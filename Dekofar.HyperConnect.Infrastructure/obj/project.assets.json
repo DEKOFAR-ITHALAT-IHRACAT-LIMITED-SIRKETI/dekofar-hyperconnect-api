@@ -31,6 +31,19 @@
           "lib/netstandard2.1/AutoMapper.Extensions.Microsoft.DependencyInjection.dll": {}
         }
       },
+      "Bogus/35.0.1": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/Bogus.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/Bogus.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "EntityFramework/6.1.0": {
         "type": "package",
         "compile": {
@@ -1487,6 +1500,25 @@
         "automapper.extensions.microsoft.dependencyinjection.nuspec",
         "icon.png",
         "lib/netstandard2.1/AutoMapper.Extensions.Microsoft.DependencyInjection.dll"
+      ]
+    },
+    "Bogus/35.0.1": {
+      "sha512": "LS9nczTM+frGJ9bdQV82WwEvt1tKaiIQq0kmeMhUyuzhWMRggo9WULTxhc++QjWQQ2bWp65lyt00nJt0meKD0g==",
+      "type": "package",
+      "path": "bogus/35.0.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "bogus.35.0.1.nupkg.sha512",
+        "bogus.nuspec",
+        "lib/net40/Bogus.dll",
+        "lib/net40/Bogus.xml",
+        "lib/net6.0/Bogus.dll",
+        "lib/net6.0/Bogus.xml",
+        "lib/netstandard1.3/Bogus.dll",
+        "lib/netstandard1.3/Bogus.xml",
+        "lib/netstandard2.0/Bogus.dll",
+        "lib/netstandard2.0/Bogus.xml"
       ]
     },
     "EntityFramework/6.1.0": {
@@ -3670,6 +3702,7 @@
   },
   "projectFileDependencyGroups": {
     "net8.0": [
+      "Bogus >= 35.0.1",
       "Dekofar.HyperConnect.Application >= 1.0.0",
       "Dekofar.HyperConnect.Domain >= 1.0.0",
       "Dekofar.HyperConnect.Integrations >= 1.0.0",
@@ -3741,6 +3774,10 @@
       "net8.0": {
         "targetAlias": "net8.0",
         "dependencies": {
+          "Bogus": {
+            "target": "Package",
+            "version": "[35.0.1, )"
+          },
           "Microsoft.AspNetCore.Authentication.JwtBearer": {
             "target": "Package",
             "version": "[8.0.0, )"

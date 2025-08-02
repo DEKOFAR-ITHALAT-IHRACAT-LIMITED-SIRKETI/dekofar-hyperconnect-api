@@ -15,7 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dekofar.HyperConnect.Shared
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dekofar.HyperConnect.Application", "Dekofar.HyperConnect.Application\Dekofar.HyperConnect.Application.csproj", "{226CFB77-E4FF-4F3F-9E92-0BFD8556883C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dekofar.HyperConnect.Tests", "Dekofar.HyperConnect.Tests\\Dekofar.HyperConnect.Tests.csproj", "{9C558325-3458-4EFD-BECE-4AB614768021}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dekofar.HyperConnect.Tests", "Dekofar.HyperConnect.Tests\Dekofar.HyperConnect.Tests.csproj", "{9C558325-3458-4EFD-BECE-4AB614768021}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,10 +47,10 @@ Global
 		{226CFB77-E4FF-4F3F-9E92-0BFD8556883C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{226CFB77-E4FF-4F3F-9E92-0BFD8556883C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{226CFB77-E4FF-4F3F-9E92-0BFD8556883C}.Release|Any CPU.Build.0 = Release|Any CPU
-                {9C558325-3458-4EFD-BECE-4AB614768021}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-                {9C558325-3458-4EFD-BECE-4AB614768021}.Debug|Any CPU.Build.0 = Debug|Any CPU
-                {9C558325-3458-4EFD-BECE-4AB614768021}.Release|Any CPU.ActiveCfg = Release|Any CPU
-                {9C558325-3458-4EFD-BECE-4AB614768021}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C558325-3458-4EFD-BECE-4AB614768021}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C558325-3458-4EFD-BECE-4AB614768021}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C558325-3458-4EFD-BECE-4AB614768021}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C558325-3458-4EFD-BECE-4AB614768021}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

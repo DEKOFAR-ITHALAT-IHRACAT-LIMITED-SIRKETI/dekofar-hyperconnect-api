@@ -149,11 +149,11 @@ app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<SupportHub>("/supportHub");
 
 // 🚀 Seed default roles and admin user
-await SeedData.SeedDefaultsAsync(app.Services);
+//await SeedData.SeedDefaultsAsync(app.Services);
 
 var configuration = app.Services.GetRequiredService<IConfiguration>();
-var enableTestData = configuration.GetValue<bool>("EnableTestData");
-await TestDataSeeder.SeedAsync(app.Services, enableTestData);
+//var enableTestData = configuration.GetValue<bool>("EnableTestData");
+//await TestDataSeeder.SeedAsync(app.Services, enableTestData);
 
 using (var scope = app.Services.CreateScope())
 {

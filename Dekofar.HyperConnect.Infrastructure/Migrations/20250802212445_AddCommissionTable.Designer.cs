@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dekofar.HyperConnect.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250802194014_AddPinLastUpdatedAt")]
-    partial class AddPinLastUpdatedAt
+    [Migration("20250802212445_AddCommissionTable")]
+    partial class AddCommissionTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,34 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.ActivityLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActionData")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ActivityLogs", (string)null);
+                });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.ApplicationUser", b =>
                 {
@@ -376,13 +404,21 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("SellerId")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("SellerId");
 
@@ -642,6 +678,28 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                     b.ToTable("SupportTicketReplies", (string)null);
                 });
 
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.UserBadge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AwardedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Badge")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserBadges", (string)null);
+                });
+
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.UserMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -682,6 +740,40 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                     b.HasIndex("SenderId");
 
                     b.ToTable("UserMessages", (string)null);
+                });
+
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.UserNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserNotifications", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>
@@ -845,10 +937,17 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.Order", b =>
                 {
+                    b.HasOne("Dekofar.HyperConnect.Domain.Entities.ApplicationUser", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Dekofar.HyperConnect.Domain.Entities.ApplicationUser", "Seller")
                         .WithMany("Orders")
                         .HasForeignKey("SellerId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Customer");
 
                     b.Navigation("Seller");
                 });

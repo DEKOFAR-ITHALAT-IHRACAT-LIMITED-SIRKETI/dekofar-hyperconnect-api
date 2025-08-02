@@ -7,11 +7,27 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dekofar.HyperConnect.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class dfsdfsfsfcls : Migration
+    public partial class AddCommissionTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "ActivityLogs",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ActionType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    ActionData = table.Column<string>(type: "text", nullable: true),
+                    IpAddress = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ActivityLogs", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "AspNetRoles",
                 columns: table => new
@@ -33,6 +49,17 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     FullName = table.Column<string>(type: "text", nullable: true),
                     AvatarUrl = table.Column<string>(type: "text", nullable: true),
+                    HashedPin = table.Column<string>(type: "text", nullable: true),
+                    PinLastUpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    MembershipDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsOnline = table.Column<bool>(type: "boolean", nullable: false),
+                    LastSeen = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    TotalSalesCount = table.Column<int>(type: "integer", nullable: false),
+                    TotalCommissionAmount = table.Column<decimal>(type: "numeric", nullable: false),
+                    TotalSupportRequestCount = table.Column<int>(type: "integer", nullable: false),
+                    UnreadMessageCount = table.Column<int>(type: "integer", nullable: false),
+                    LastMessageDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastSupportActivity = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     UserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
@@ -192,6 +219,37 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserBadges",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Badge = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    AwardedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserBadges", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserNotifications",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Message = table.Column<string>(type: "text", nullable: false),
+                    Type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    IsRead = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserNotifications", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
@@ -298,6 +356,66 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Orders",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    TotalAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    SellerId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CustomerId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Status = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Orders", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Orders_AspNetUsers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_Orders_AspNetUsers_SellerId",
+                        column: x => x.SellerId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserMessages",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    SenderId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ReceiverId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Text = table.Column<string>(type: "text", nullable: true),
+                    FileUrl = table.Column<string>(type: "text", nullable: true),
+                    FileType = table.Column<string>(type: "text", nullable: true),
+                    FileSize = table.Column<long>(type: "bigint", nullable: true),
+                    SentAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsRead = table.Column<bool>(type: "boolean", nullable: false),
+                    ReadAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserMessages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserMessages_AspNetUsers_ReceiverId",
+                        column: x => x.ReceiverId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_UserMessages_AspNetUsers_SenderId",
+                        column: x => x.SenderId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ManualOrderItems",
                 columns: table => new
                 {
@@ -374,7 +492,8 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                     DueDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     FilePath = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    LastUpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    LastUpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UnreadReplyCount = table.Column<int>(type: "integer", nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {
@@ -406,6 +525,62 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                         name: "FK_OrderTags_Tags_TagId",
                         column: x => x.TagId,
                         principalTable: "Tags",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Commissions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Amount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    OrderId = table.Column<Guid>(type: "uuid", nullable: true),
+                    Description = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Commissions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Commissions_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Commissions_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SupportTicketReplies",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    TicketId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Message = table.Column<string>(type: "text", nullable: false),
+                    AttachmentUrl = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SupportTicketReplies", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SupportTicketReplies_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SupportTicketReplies_SupportTickets_TicketId",
+                        column: x => x.TicketId,
+                        principalTable: "SupportTickets",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -448,9 +623,29 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Commissions_OrderId",
+                table: "Commissions",
+                column: "OrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Commissions_UserId",
+                table: "Commissions",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ManualOrderItems_ManualOrderId",
                 table: "ManualOrderItems",
                 column: "ManualOrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_CustomerId",
+                table: "Orders",
+                column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_SellerId",
+                table: "Orders",
+                column: "SellerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OrderTags_TagId",
@@ -468,14 +663,37 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                 column: "SupportCategoryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_SupportTicketReplies_TicketId",
+                table: "SupportTicketReplies",
+                column: "TicketId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupportTicketReplies_UserId",
+                table: "SupportTicketReplies",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_SupportTickets_CategoryId",
                 table: "SupportTickets",
                 column: "CategoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserMessages_ReceiverId",
+                table: "UserMessages",
+                column: "ReceiverId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserMessages_SenderId",
+                table: "UserMessages",
+                column: "SenderId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "ActivityLogs");
+
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
 
@@ -493,6 +711,9 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "AuditLogs");
+
+            migrationBuilder.DropTable(
+                name: "Commissions");
 
             migrationBuilder.DropTable(
                 name: "Discounts");
@@ -516,13 +737,22 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                 name: "SupportCategoryRoles");
 
             migrationBuilder.DropTable(
-                name: "SupportTickets");
+                name: "SupportTicketReplies");
+
+            migrationBuilder.DropTable(
+                name: "UserBadges");
+
+            migrationBuilder.DropTable(
+                name: "UserMessages");
+
+            migrationBuilder.DropTable(
+                name: "UserNotifications");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "AspNetUsers");
+                name: "Orders");
 
             migrationBuilder.DropTable(
                 name: "ManualOrders");
@@ -532,6 +762,12 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Permissions");
+
+            migrationBuilder.DropTable(
+                name: "SupportTickets");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUsers");
 
             migrationBuilder.DropTable(
                 name: "SupportCategories");
