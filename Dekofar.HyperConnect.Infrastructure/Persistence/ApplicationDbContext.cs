@@ -44,6 +44,9 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
         public DbSet<CalendarTask> CalendarTasks => Set<CalendarTask>();
         public DbSet<AllowedAdminIp> AllowedAdminIps => Set<AllowedAdminIp>();
         public DbSet<DeploymentLog> DeploymentLogs => Set<DeploymentLog>();
+        public DbSet<ResponseTemplate> ResponseTemplates => Set<ResponseTemplate>();
+        public DbSet<ModerationRule> ModerationRules => Set<ModerationRule>();
+        public DbSet<ModerationLog> ModerationLogs => Set<ModerationLog>();
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
             => await base.SaveChangesAsync(cancellationToken);
@@ -261,6 +264,32 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
                 entity.ToTable("ActivityLogs");
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.ActionType).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.CreatedAt).IsRequired();
+            });
+
+            builder.Entity<ResponseTemplate>(entity =>
+            {
+                entity.ToTable("ResponseTemplates");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Body).IsRequired();
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.ModuleScope).HasMaxLength(100);
+            });
+
+            builder.Entity<ModerationRule>(entity =>
+            {
+                entity.ToTable("ModerationRules");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Pattern).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(250);
+            });
+
+            builder.Entity<ModerationLog>(entity =>
+            {
+                entity.ToTable("ModerationLogs");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Content).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
             });
         }

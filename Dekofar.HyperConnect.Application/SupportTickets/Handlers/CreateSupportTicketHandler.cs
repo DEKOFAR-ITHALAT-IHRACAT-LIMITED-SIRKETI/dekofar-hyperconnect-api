@@ -1,5 +1,6 @@
 using Dekofar.HyperConnect.Application.Common.Interfaces;
 using Dekofar.HyperConnect.Application.SupportTickets.Commands;
+using Dekofar.HyperConnect.Application.Interfaces;
 using Dekofar.HyperConnect.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -17,18 +18,28 @@ namespace Dekofar.HyperConnect.Application.SupportTickets.Handlers
         private readonly IApplicationDbContext _context;
         private readonly ICurrentUserService _currentUser;
         private readonly IHostEnvironment _env;
+        private readonly IModerationService _moderation;
 
-        public CreateSupportTicketHandler(IApplicationDbContext context, ICurrentUserService currentUser, IHostEnvironment env)
+        public CreateSupportTicketHandler(IApplicationDbContext context, ICurrentUserService currentUser, IHostEnvironment env, IModerationService moderation)
         {
             _context = context;
             _currentUser = currentUser;
             _env = env;
+            _moderation = moderation;
         }
 
         public async Task<Guid> Handle(CreateSupportTicketCommand request, CancellationToken cancellationToken)
         {
             if (_currentUser.UserId == null)
                 throw new UnauthorizedAccessException();
+
+            var checkTitle = await _moderation.CheckAsync(request.Title, _currentUser.UserId);
+            if (checkTitle.Blocked)
+                throw new InvalidOperationException("Your message contains restricted content.");
+
+            var checkDesc = await _moderation.CheckAsync(request.Description, _currentUser.UserId);
+            if (checkDesc.Blocked)
+                throw new InvalidOperationException("Your message contains restricted content.");
 
             var ticket = new SupportTicket
             {

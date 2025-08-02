@@ -80,6 +80,7 @@ builder.Services.AddScoped<INetGsmSmsService, NetGsmSmsService>();
 builder.Services.AddHttpClient<IShopifyService, ShopifyService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IModerationService, ModerationService>();
 
 // 📡 Controller & JSON Ayarları
 builder.Services.AddControllers()
