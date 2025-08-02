@@ -29,6 +29,7 @@ namespace Dekofar.HyperConnect.Application.Common.Interfaces
         DbSet<RolePermission> RolePermissions { get; }
         DbSet<UserMessage> UserMessages { get; }
         DbSet<SupportTicketReply> SupportTicketReplies { get; }
+        DbSet<PinCoverImage> PinCoverImages { get; }
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

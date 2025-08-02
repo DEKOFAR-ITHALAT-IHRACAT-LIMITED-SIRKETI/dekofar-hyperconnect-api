@@ -38,6 +38,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
         public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
         public DbSet<UserMessage> UserMessages => Set<UserMessage>();
         public DbSet<SupportTicketReply> SupportTicketReplies => Set<SupportTicketReply>();
+        public DbSet<PinCoverImage> PinCoverImages => Set<PinCoverImage>();
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
             => await base.SaveChangesAsync(cancellationToken);
@@ -108,6 +109,13 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.CreatedByUserId).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
+            });
+
+            builder.Entity<PinCoverImage>(entity =>
+            {
+                entity.ToTable("PinCoverImages");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Url).IsRequired();
             });
 
             builder.Entity<OrderCommission>(entity =>
