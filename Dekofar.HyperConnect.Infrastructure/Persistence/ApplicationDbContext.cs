@@ -34,6 +34,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
         public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
         public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
         public DbSet<UserBadge> UserBadges => Set<UserBadge>();
+        public DbSet<UserUIPreference> UserUIPreferences => Set<UserUIPreference>();
         public DbSet<Permission> Permissions => Set<Permission>();
         public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
         public DbSet<UserMessage> UserMessages => Set<UserMessage>();
@@ -244,6 +245,15 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Badge).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.AwardedAt).IsRequired();
+            });
+
+            builder.Entity<UserUIPreference>(entity =>
+            {
+                entity.ToTable("UserUIPreferences");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ModuleKey).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.PreferenceJson).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
             });
 
             builder.Entity<ActivityLog>(entity =>
