@@ -39,6 +39,10 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
         public DbSet<UserMessage> UserMessages => Set<UserMessage>();
         public DbSet<SupportTicketReply> SupportTicketReplies => Set<SupportTicketReply>();
         public DbSet<PinCoverImage> PinCoverImages => Set<PinCoverImage>();
+        public DbSet<BlacklistEntry> BlacklistEntries => Set<BlacklistEntry>();
+        public DbSet<CalendarTask> CalendarTasks => Set<CalendarTask>();
+        public DbSet<AllowedAdminIp> AllowedAdminIps => Set<AllowedAdminIp>();
+        public DbSet<DeploymentLog> DeploymentLogs => Set<DeploymentLog>();
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
             => await base.SaveChangesAsync(cancellationToken);
