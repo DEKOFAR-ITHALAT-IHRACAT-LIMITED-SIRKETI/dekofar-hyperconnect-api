@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Dekofar.HyperConnect.Domain.Entities
 {
@@ -55,7 +56,11 @@ namespace Dekofar.HyperConnect.Domain.Entities
             set => LastSupportActivity = value;
         }
 
+        // Navigation collections cause self-referencing loops; ignore for Swagger
+        [JsonIgnore]
         public ICollection<Order> Orders { get; set; } = new List<Order>();
+
+        [JsonIgnore]
         public ICollection<Commission> Commissions { get; set; } = new List<Commission>();
     }
 }

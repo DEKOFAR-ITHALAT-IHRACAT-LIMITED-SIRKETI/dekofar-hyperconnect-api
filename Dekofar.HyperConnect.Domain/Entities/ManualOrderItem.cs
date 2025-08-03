@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Serialization;
 
 namespace Dekofar.HyperConnect.Domain.Entities
 {
@@ -12,6 +13,8 @@ namespace Dekofar.HyperConnect.Domain.Entities
         public decimal Price { get; set; }
         public decimal Total { get; set; }
 
+        // Avoid self-referential loop during Swagger schema generation
+        [JsonIgnore]
         public ManualOrder? ManualOrder { get; set; }
     }
 }
