@@ -1,5 +1,6 @@
 using Dekofar.HyperConnect.Application.SupportTickets.Commands;
 using Dekofar.HyperConnect.Application.SupportTickets.Queries;
+using Dekofar.API.Authorization;
 using Dekofar.API.Hubs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Threading.Tasks;
+using Dekofar.HyperConnect.Domain.Entities;
 
 namespace Dekofar.API.Controllers
 {
@@ -35,6 +37,38 @@ namespace Dekofar.API.Controllers
             var id = await _mediator.Send(command);
             await _hubContext.Clients.Group("SupportAgents").SendAsync("OnSupportTicketCreated", new { ticketId = id });
             return Ok(id);
+        }
+
+        /// <summary>
+        /// Destek taleplerini listeler.
+        /// Yönetici kullanıcılar tüm talepleri görebilirken diğer kullanıcılar
+        /// sadece kendi oluşturduğu veya kendisine atanan talepleri görebilir.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetAll(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] Guid? category = null,
+            [FromQuery] SupportTicketStatus? status = null,
+            [FromQuery] string? search = null)
+        {
+            var userId = User.GetUserId();
+            if (userId == null) return Unauthorized();
+
+            // İstemciden gelen parametreler ile sorgu nesnesi oluşturulur
+            var query = new GetAllSupportTicketsQuery
+            {
+                UserId = userId.Value,
+                IsAdmin = User.IsInRole("Admin"),
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                CategoryId = category,
+                Status = status,
+                Search = search
+            };
+
+            var tickets = await _mediator.Send(query);
+            return Ok(tickets);
         }
 
         // Kullanıcının kendi taleplerini döner
