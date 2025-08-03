@@ -3,6 +3,7 @@ using Dekofar.HyperConnect.Application.Common.Interfaces;
 using Dekofar.HyperConnect.Application.Interfaces;
 using Dekofar.HyperConnect.Domain.Entities;
 using Dekofar.HyperConnect.Infrastructure.Persistence;
+using Dekofar.HyperConnect.Infrastructure.Persistence.Repositories;
 using Dekofar.HyperConnect.Infrastructure.Services;
 using Dekofar.HyperConnect.Infrastructure.Jobs;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces;
@@ -93,6 +94,10 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IActivityLogger, ActivityLogger>();
             services.AddScoped<IUserNotificationService, UserNotificationService>();
             services.AddScoped<IBadgeService, BadgeService>();
+
+            // 🌐 Genel depo ve IP servis kayıtları
+            services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
+            services.AddScoped<IAllowedAdminIpService, AllowedAdminIpService>();
 
             services.AddScoped<SupportTicketJobService>();
 
