@@ -47,6 +47,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
         public DbSet<ResponseTemplate> ResponseTemplates => Set<ResponseTemplate>();
         public DbSet<ModerationRule> ModerationRules => Set<ModerationRule>();
         public DbSet<ModerationLog> ModerationLogs => Set<ModerationLog>();
+        public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
             => await base.SaveChangesAsync(cancellationToken);
