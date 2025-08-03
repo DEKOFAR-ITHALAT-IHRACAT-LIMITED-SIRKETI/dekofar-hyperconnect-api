@@ -1,5 +1,6 @@
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
+using System.Reflection; // Needed for XML comments
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -118,7 +119,17 @@ builder.Services.AddSwaggerGen(c =>
     {
         { jwtSecurityScheme, Array.Empty<string>() }
     });
+
+    // Swashbuckle options to handle complex schemas and parameter naming
+    c.UseAllOfToExtendReferenceSchemas();
+    c.DescribeAllParametersInCamelCase();
+
+    // Include generated XML comments for better documentation
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
 });
+
 
 // 📋 Logging
 builder.Logging.ClearProviders();

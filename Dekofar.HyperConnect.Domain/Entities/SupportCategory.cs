@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 namespace Dekofar.HyperConnect.Domain.Entities
 {
     public class SupportCategory
@@ -10,6 +11,9 @@ namespace Dekofar.HyperConnect.Domain.Entities
         public DateTime CreatedAt { get; set; }
 
         public ICollection<SupportCategoryRole> Roles { get; set; } = new List<SupportCategoryRole>();
+
+        // Prevent recursive schema generation with SupportTicket.Category
+        [JsonIgnore]
         public ICollection<SupportTicket> Tickets { get; set; } = new List<SupportTicket>();
     }
 }
