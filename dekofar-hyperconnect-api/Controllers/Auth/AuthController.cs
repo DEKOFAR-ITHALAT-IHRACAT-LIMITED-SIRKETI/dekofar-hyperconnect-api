@@ -24,6 +24,7 @@ namespace Dekofar.API.Controllers
         private readonly ITokenService _tokenService;
         private readonly IActivityLogger _activityLogger;
         private readonly IBadgeService _badgeService;
+        private readonly IWorkSessionService _workSessionService;
 
         // Gerekli bağımlılıkları enjekte eden kurucu metot
         public AuthController(
@@ -31,13 +32,15 @@ namespace Dekofar.API.Controllers
             SignInManager<ApplicationUser> signInManager,
             ITokenService tokenService,
             IActivityLogger activityLogger,
-            IBadgeService badgeService)
+            IBadgeService badgeService,
+            IWorkSessionService workSessionService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _tokenService = tokenService;
             _activityLogger = activityLogger;
             _badgeService = badgeService;
+            _workSessionService = workSessionService;
         }
 
         // Birden fazla kullanıcıyı rol bilgisiyle birlikte oluşturur
@@ -147,6 +150,9 @@ namespace Dekofar.API.Controllers
             var roles = await _userManager.GetRolesAsync(user);
             var token = _tokenService.GenerateToken(user.Id.ToString(), user.Email!, roles);
 
+            // Oturum başlat ve kullanıcıyı online yap
+            await _workSessionService.StartSessionAsync(user.Id, HttpContext.Connection.RemoteIpAddress?.ToString());
+
             await _activityLogger.LogAsync(user.Id, "Login", null, HttpContext.Connection.RemoteIpAddress?.ToString());
             await _badgeService.EvaluateAsync(user.Id);
 
@@ -190,6 +196,9 @@ namespace Dekofar.API.Controllers
 
             var roles = await _userManager.GetRolesAsync(user);
             var token = _tokenService.GenerateToken(user.Id.ToString(), user.Email!, roles);
+
+            // Oturum başlat ve kullanıcıyı online yap
+            await _workSessionService.StartSessionAsync(user.Id, HttpContext.Connection.RemoteIpAddress?.ToString());
 
             await _activityLogger.LogAsync(user.Id, "Login", null, HttpContext.Connection.RemoteIpAddress?.ToString());
             await _badgeService.EvaluateAsync(user.Id);

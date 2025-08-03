@@ -94,6 +94,7 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IActivityLogger, ActivityLogger>();
             services.AddScoped<IUserNotificationService, UserNotificationService>();
             services.AddScoped<IBadgeService, BadgeService>();
+            services.AddScoped<IWorkSessionService, WorkSessionService>();
 
             // 🌐 Genel depo ve IP servis kayıtları
             services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));

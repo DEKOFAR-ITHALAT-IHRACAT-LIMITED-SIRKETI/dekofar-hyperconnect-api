@@ -28,14 +28,16 @@ namespace Dekofar.API.Controllers
         private readonly IUserService _userService;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IActivityLogger _activityLogger;
+        private readonly IWorkSessionService _workSessionService;
 
         // MediatR bağımlılığını alan kurucu
-        public UsersController(IMediator mediator, IUserService userService, UserManager<ApplicationUser> userManager, IActivityLogger activityLogger)
+        public UsersController(IMediator mediator, IUserService userService, UserManager<ApplicationUser> userManager, IActivityLogger activityLogger, IWorkSessionService workSessionService)
         {
             _mediator = mediator;
             _userService = userService;
             _userManager = userManager;
             _activityLogger = activityLogger;
+            _workSessionService = workSessionService;
         }
 
         // Sistemdeki tüm kullanıcıları döner
@@ -45,6 +47,20 @@ namespace Dekofar.API.Controllers
         {
             var users = await _mediator.Send(new GetAllUsersWithRolesQuery());
             return Ok(users);
+        }
+
+        // Bu endpoint mevcut kullanıcının profilini getirir.
+        // Erişim: Giriş yapmış tüm kullanıcılar.
+        // Çıktı: Kullanıcı bilgileri
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<ActionResult<UserDto?>> GetMe()
+        {
+            var userId = User.GetUserId();
+            if (userId == null) return Unauthorized();
+            var user = await _mediator.Send(new GetUserProfileQuery { UserId = userId.Value });
+            if (user == null) return NotFound();
+            return Ok(user);
         }
 
         // Kullanıcıya rol ataması yapar
@@ -57,6 +73,22 @@ namespace Dekofar.API.Controllers
             {
                 return Ok();
             }
+            return BadRequest(result.Errors);
+        }
+
+        // Bu endpoint kullanıcı profilini günceller.
+        // Erişim: Kullanıcının kendisi veya admin.
+        // Girdi: FullName ve Email
+        [HttpPut("{id:guid}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserCommand command)
+        {
+            var currentUserId = User.GetUserId();
+            if (currentUserId == null) return Unauthorized();
+            if (currentUserId != id && !User.IsInRole("Admin")) return Forbid();
+            command.Id = id;
+            var result = await _mediator.Send(command);
+            if (result.Succeeded) return Ok();
             return BadRequest(result.Errors);
         }
 
@@ -73,6 +105,49 @@ namespace Dekofar.API.Controllers
 
             var url = await _mediator.Send(new UploadProfileImageCommand { UserId = id, File = file });
             return Ok(new { avatarUrl = url });
+        }
+
+        // Bu endpoint profil resmini siler.
+        // Erişim: Kullanıcının kendisi veya admin.
+        // Girdi: Yok
+        [HttpDelete("{id:guid}/avatar")]
+        [Authorize]
+        public async Task<IActionResult> RemoveAvatar(Guid id)
+        {
+            var currentUserId = User.GetUserId();
+            if (currentUserId == null) return Unauthorized();
+            if (currentUserId != id && !User.IsInRole("Admin")) return Forbid();
+            var result = await _mediator.Send(new RemoveProfileImageCommand { UserId = id });
+            if (result.Succeeded) return Ok();
+            return BadRequest(result.Errors);
+        }
+
+        // Bu endpoint kullanıcı şifresini günceller.
+        // Erişim: Kullanıcının kendisi.
+        // Girdi: Mevcut şifre ve yeni şifre
+        [HttpPost("{id:guid}/change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword(Guid id, [FromBody] ChangePasswordCommand command)
+        {
+            var currentUserId = User.GetUserId();
+            if (currentUserId == null || currentUserId != id) return Forbid();
+            command.UserId = id;
+            var result = await _mediator.Send(command);
+            if (result.Succeeded) return Ok();
+            return BadRequest(result.Errors);
+        }
+
+        // Bu endpoint admin tarafından şifre sıfırlamak için kullanılır.
+        // Erişim: Admin
+        // Girdi: Yeni şifre
+        [HttpPost("{id:guid}/reset-password")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ResetPassword(Guid id, [FromBody] ResetPasswordCommand command)
+        {
+            command.UserId = id;
+            var result = await _mediator.Send(command);
+            if (result.Succeeded) return Ok();
+            return BadRequest(result.Errors);
         }
 
         [HttpGet("me/stats")]
@@ -160,6 +235,31 @@ namespace Dekofar.API.Controllers
             user.PinLastUpdatedAt = null;
             await _userManager.UpdateAsync(user);
             return Ok();
+        }
+
+        // Bu endpoint kullanıcı oturumunu sonlandırır.
+        // Erişim: Giriş yapmış tüm kullanıcılar.
+        // Girdi: Yok
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            var userId = User.GetUserId();
+            if (userId == null) return Unauthorized();
+            await _workSessionService.EndSessionAsync(userId.Value);
+            return Ok();
+        }
+
+        // Bu endpoint admin tarafından kullanıcıyı siler.
+        // Erişim: Admin
+        // Girdi: Yok
+        [HttpDelete("{id:guid}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteUser(Guid id)
+        {
+            var result = await _mediator.Send(new DeleteUserCommand { UserId = id });
+            if (result.Succeeded) return Ok();
+            return BadRequest(result.Errors);
         }
     }
 }
