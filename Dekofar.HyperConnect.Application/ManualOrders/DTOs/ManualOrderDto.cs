@@ -31,8 +31,6 @@ namespace Dekofar.HyperConnect.Application.ManualOrders.DTOs
         public Guid Id { get; set; }
         public string ProductId { get; set; } = default!;
         public string ProductName { get; set; } = default!;
-        public string? VariantId { get; set; }
-        public string? VariantName { get; set; }
         public int Quantity { get; set; }
         public decimal Price { get; set; }
         public decimal Total { get; set; }
