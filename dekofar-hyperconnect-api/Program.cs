@@ -30,19 +30,20 @@ using Microsoft.Extensions.Configuration;
 var builder = WebApplication.CreateBuilder(args);
 
 // 🌐 CORS Politikası
+// Angular için yerel adres ve production ortamı için ana domain izinleri
+// Not: Uygulama Azure App Service'te host ediliyorsa, Azure Portal üzerinden de CORS ayarlarının yapılması gerekir
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins, policy =>
     {
         policy.WithOrigins(
-            "http://localhost:4200",
-            "http://192.168.1.100:4200",
-            "https://hyperconnect.dekofar.com"
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials();
+                "http://localhost:4200", // Angular uygulaması (geliştirme)
+                "https://dekofar.com"    // Production domain
+            )
+            .AllowAnyHeader()   // Tüm header'lara izin ver
+            .AllowAnyMethod()   // Tüm HTTP metodlarına izin ver
+            .AllowCredentials(); // Kimlik bilgileri (cookies, auth header) gönderimine izin ver
     });
 });
 
@@ -148,14 +149,21 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Enviro
     });
 }
 
-// 🌐 Orta Katmanlar
-app.UseCors(MyAllowSpecificOrigins);
-app.UseHttpsRedirection();
-app.UseAuthentication();
-app.UseAuthorization();
-app.UseHangfireDashboard();
-app.MapControllers();
-// Route for the SignalR chat hub used for user-to-user messaging
+// 🌐 Orta Katmanlar - Sıralama önemlidir
+app.UseHttpsRedirection(); // HTTP -> HTTPS yönlendirme
+
+app.UseRouting(); // Rotaları belirle
+
+app.UseCors(MyAllowSpecificOrigins); // Global CORS politikası
+
+app.UseAuthentication(); // Kimlik doğrulama middleware'i
+app.UseAuthorization();  // Yetkilendirme kontrolü
+
+app.UseHangfireDashboard(); // Hangfire izleme paneli
+
+app.MapControllers(); // API controller'larını endpoint olarak ekle
+
+// 💬 SignalR hub'ları (gerçek zamanlı iletişim için)
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<SupportHub>("/supportHub");
