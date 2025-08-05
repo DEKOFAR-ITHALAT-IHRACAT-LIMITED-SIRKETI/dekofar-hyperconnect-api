@@ -39,8 +39,6 @@ namespace Dekofar.HyperConnect.Application.ManualOrders.Commands
         [Range(1, int.MaxValue)]
         public int Quantity { get; set; }
         public decimal Price { get; set; }
-        public string? VariantId { get; set; }
-        public string? VariantName { get; set; }
     }
 }
 
