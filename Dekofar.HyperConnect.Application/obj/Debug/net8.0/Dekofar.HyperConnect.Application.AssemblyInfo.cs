@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Dekofar.HyperConnect.Application")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+64ce72982a2307c814337d4e417dcf1ad7991e19")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b1d5110c8e4154ce851f519d60eed1f6e5f9c49a")]
 [assembly: System.Reflection.AssemblyProductAttribute("Dekofar.HyperConnect.Application")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Dekofar.HyperConnect.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

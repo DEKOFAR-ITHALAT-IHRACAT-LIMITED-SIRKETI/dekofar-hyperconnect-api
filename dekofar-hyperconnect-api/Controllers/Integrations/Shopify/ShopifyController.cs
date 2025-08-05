@@ -14,11 +14,12 @@ namespace Dekofar.API.Controllers.Integrations
     {
         // Shopify servisleri ile iletişim kuran servis
         private readonly IShopifyService _shopifyService;
+        private readonly ILogger<ShopifyController> _logger;
 
-        // Servis bağımlılığını alan kurucu
-        public ShopifyController(IShopifyService shopifyService)
+        public ShopifyController(IShopifyService shopifyService, ILogger<ShopifyController> logger)
         {
             _shopifyService = shopifyService;
+            _logger = logger;
         }
 
         // Shopify API bağlantısını test eder
@@ -159,14 +160,50 @@ namespace Dekofar.API.Controllers.Integrations
             var resp = await _shopifyService.CreateFulfillmentAsync(request.OrderId, request, ct);
             return Ok(resp);
         }
+        [HttpGet("orders/search-lite")]
+        public async Task<IActionResult> SearchOrdersLite([FromQuery] string query, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+                return BadRequest("Arama sorgusu en az 2 karakter olmalıdır.");
 
-        // Siparişlerde arama yapar
+            try
+            {
+                var results = await _shopifyService.SearchOrdersLiteAsync(query, ct);
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "🔍 Shopify lite arama hatası: {Query}", query);
+                return StatusCode(500, "Lite arama sırasında hata oluştu.");
+            }
+        }
+
+        /// <summary>
+        /// Shopify siparişlerinde arama yapar (isim, telefon, e-posta, etiket vb.)
+        /// Arka planda hem GraphQL hem REST API birleşimi ile gelişmiş detaylar getirir.
+        /// </summary>
+        /// <param name="query">Arama sorgusu (örnek: müşteri adı, telefon, e-posta, etiket)</param>
+        /// <param name="ct">İptal tokeni</param>
+        /// <returns>Detaylı sipariş listesi</returns>
         [HttpGet("orders/search")]
         public async Task<IActionResult> SearchOrders([FromQuery] string query, CancellationToken ct)
         {
-            var result = await _shopifyService.SearchOrdersAsync(query, ct);
-            return Ok(result);
+            if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+                return BadRequest("Arama sorgusu en az 2 karakter olmalıdır.");
+
+            try
+            {
+                var orders = await _shopifyService.SearchOrdersWithDetailsAsync(query, ct);
+                return Ok(orders);
+            }
+            catch (Exception ex)
+            {
+                // Hata loglama
+                _logger.LogError(ex, "🔍 Shopify sipariş arama hatası: {Query}", query);
+                return StatusCode(500, "Shopify sipariş araması sırasında bir hata oluştu.");
+            }
         }
+
 
         // Açık siparişleri cursor bazlı olarak getirir
         [HttpGet("orders-open-cursor")]

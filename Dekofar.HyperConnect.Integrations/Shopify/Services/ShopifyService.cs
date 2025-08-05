@@ -689,10 +689,50 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Services
             if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
                 return new List<Order>();
 
-            // Prefer GraphQL search which fetches first 250 matching orders.
             var result = await GetOrdersBySearchQueryAsync(query, ct);
             return result;
         }
+
+        public async Task<List<ShopifyOrderLiteDto>> SearchOrdersLiteAsync(string query, CancellationToken ct = default)
+        {
+            var orders = await GetOrdersBySearchQueryAsync(query, ct);
+
+            return orders.Select(order => new ShopifyOrderLiteDto
+            {
+                Id = order.Id,
+                OrderNumber = order.OrderNumber ?? order.Name ?? $"#{order.Id}",
+                CreatedAt = order.CreatedAt,
+                TotalPrice = order.TotalPrice,
+                Currency = order.Currency ?? "TRY",
+
+                FinancialStatus = order.FinancialStatus ?? "",
+                FulfillmentStatus = order.FulfillmentStatus ?? "",
+
+                Status = GetStatus(order.FinancialStatus, order.FulfillmentStatus),
+
+                CustomerName = $"{order.Customer?.FirstName ?? ""} {order.Customer?.LastName ?? ""}".Trim(),
+                CustomerPhone = order.Customer?.Phone,
+                CustomerOrderCount = order.Customer?.OrdersCount ?? 0,
+
+                ItemCount = order.LineItems?.Count ?? 0
+
+            }).ToList();
+        }
+        private static string GetStatus(string? financial, string? fulfillment)
+        {
+            financial = (financial ?? "").ToLower();
+            fulfillment = (fulfillment ?? "").ToLower();
+
+            if (financial == "paid" && fulfillment == "fulfilled") return "Tamamlandı";
+            if (financial == "paid" && fulfillment == "unfulfilled") return "Hazırlanıyor";
+            if (financial == "refunded") return "İade Edildi";
+            if (financial == "partially_refunded") return "Kısmi İade";
+            if (financial == "pending") return "Beklemede";
+            if (financial == "authorized") return "Onaylandı";
+            if (financial == "voided") return "İptal";
+            return "Bilinmiyor";
+        }
+
 
 
 
@@ -735,8 +775,70 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Services
             };
         }
 
+        /// <summary>
+        /// Gelişmiş sipariş arama ve detaylı veri birleştirme işlemi gerçekleştirir.
+        /// </summary>
+        public async Task<List<Order>> SearchOrdersWithDetailsAsync(string query, CancellationToken ct = default)
+        {
+            var baseOrders = await GetOrdersBySearchQueryAsync(query, ct);
+            var enrichedOrders = new List<Order>();
 
+            foreach (var order in baseOrders)
+            {
+                try
+                {
+                    // Tam detayları REST ile al (financial_status, fulfillment_status, line_items vs.)
+                    var fullOrder = await GetOrderByIdAsync(order.Id, ct);
+                    if (fullOrder != null)
+                    {
+                        // Önceki GraphQL'den gelen eksik alanları buradan tamamlıyoruz
+                        fullOrder.OrderNumber = order.OrderNumber ?? fullOrder.OrderNumber;
+                        fullOrder.Customer ??= order.Customer;
 
+                        enrichedOrders.Add(fullOrder);
+                    }
+                    else
+                    {
+                        enrichedOrders.Add(order);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "⚠️ Shopify sipariş detay yüklenemedi: {OrderId}", order.Id);
+                    enrichedOrders.Add(order);
+                }
+            }
+
+            return enrichedOrders;
+        }
+
+        public async Task<List<Order>> SearchOrdersAsync(OrderSearchFilter filter, CancellationToken ct = default)
+        {
+            if (filter == null || string.IsNullOrWhiteSpace(filter.Query))
+                return new List<Order>();
+
+            var orders = await GetOrdersBySearchQueryAsync(filter.Query, ct);
+            var enriched = new List<Order>();
+
+            foreach (var order in orders)
+            {
+                var fullOrder = await GetOrderByIdAsync(order.Id, ct);
+                if (fullOrder == null) continue;
+
+                if (filter.CreatedAfter.HasValue && DateTime.Parse(fullOrder.CreatedAt) < filter.CreatedAfter.Value)
+                    continue;
+
+                if (filter.CreatedBefore.HasValue && DateTime.Parse(fullOrder.CreatedAt) > filter.CreatedBefore.Value)
+                    continue;
+
+                if (!string.IsNullOrWhiteSpace(filter.Status) && fullOrder.FinancialStatus != filter.Status)
+                    continue;
+
+                enriched.Add(fullOrder);
+            }
+
+            return enriched.Take(filter.Limit ?? 50).ToList();
+        }
 
     }
 }
