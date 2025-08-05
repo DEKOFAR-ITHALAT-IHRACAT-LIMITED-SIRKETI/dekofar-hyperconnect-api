@@ -49,6 +49,8 @@ namespace Dekofar.HyperConnect.Application.ManualOrders.Handlers
                 {
                     ProductId = item.ProductId,
                     ProductName = item.ProductName,
+                    VariantId = item.VariantId,
+                    VariantName = item.VariantName,
                     Quantity = item.Quantity,
                     Price = item.Price,
                     Total = item.Price * item.Quantity
