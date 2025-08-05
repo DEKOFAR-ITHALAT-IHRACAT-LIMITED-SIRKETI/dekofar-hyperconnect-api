@@ -11,7 +11,6 @@ namespace Dekofar.API.Controllers
 {
     [ApiController]
     [Route("api/manual-orders")]
-    [Authorize(Roles = "Admin")]
     // Manuel siparişlerle ilgili CRUD işlemlerini yöneten controller
     public class ManualOrdersController : ControllerBase
     {
