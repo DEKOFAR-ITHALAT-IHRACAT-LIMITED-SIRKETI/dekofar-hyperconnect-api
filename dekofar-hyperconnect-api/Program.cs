@@ -1,90 +1,59 @@
-using System.Text;
-using System.IdentityModel.Tokens.Jwt;
-using System.Reflection; // Needed for XML comments
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using Newtonsoft.Json;
-using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces;
-using Dekofar.HyperConnect.Integrations.NetGsm.Services;
-using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
-using Dekofar.HyperConnect.Integrations.Shopify.Services;
-using Dekofar.HyperConnect.Application; // Application servis kayıtları
-using Dekofar.HyperConnect.Application.Common.Interfaces;
-using Dekofar.HyperConnect.Infrastructure.Services;
-using Dekofar.HyperConnect.API.Authorization;
-using MediatR;
-using Dekofar.HyperConnect.Infrastructure.ServiceRegistration;
-using Hangfire;
-using Hangfire.MemoryStorage;
-using Dekofar.HyperConnect.Infrastructure.Jobs;
-using Microsoft.AspNetCore.Authorization;
-using Dekofar.API.Hubs;
-using Dekofar.API.Services;
-using Dekofar.HyperConnect.Application.Interfaces;
-using Dekofar.HyperConnect.Application.Services;
-using Dekofar.HyperConnect.Infrastructure.Seeders;
-using Microsoft.Extensions.Configuration;
-
 var builder = WebApplication.CreateBuilder(args);
 
 // 🌐 CORS Politikası
-// Angular için yerel adres ve production ortamı için ana domain izinleri
-// Not: Uygulama Azure App Service'te host ediliyorsa, Azure Portal üzerinden de CORS ayarlarının yapılması gerekir
+// Hem local geliştirme (localhost:4200) hem production (dekofar.com) için CORS ayarı yapılır
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins, policy =>
     {
         policy.WithOrigins(
-                "http://localhost:4200", // Angular uygulaması (geliştirme)
-                "https://dekofar.com"    // Production domain
+                "http://localhost:4200",         // Geliştirme ortamı (local)
+                "https://dekofar.com",           // Production domain
+                "http://212.154.77.170:4200"     // 🔒 Senin IP adresin üzerinden gelen istekler
             )
-            .AllowAnyHeader()   // Tüm header'lara izin ver
-            .AllowAnyMethod()   // Tüm HTTP metodlarına izin ver
-            .AllowCredentials(); // Kimlik bilgileri (cookies, auth header) gönderimine izin ver
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials(); // Gerekirse oturum bilgilerini iletmek için
     });
 });
 
-// 📦 Altyapı Servisleri (DbContext, Identity, JWT vs.)
+
+// 📦 Altyapı servisleri (DbContext, Identity, JWT vs.)
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddMemoryCache();
 builder.Services.AddApplication();
 
-// Register authorization policies backed by our custom requirement
+// Yetkilendirme politikaları
 builder.Services.AddAuthorization(options =>
 {
-    // Users must have the CanAssignTicket permission to access protected endpoints
     options.AddPolicy("CanAssignTicket", policy =>
         policy.Requirements.Add(new PermissionRequirement("CanAssignTicket")));
 
-    // Controls access to discount management endpoints
     options.AddPolicy("CanManageDiscounts", policy =>
         policy.Requirements.Add(new PermissionRequirement("CanManageDiscounts")));
 
-    // Allows editing support ticket due dates
     options.AddPolicy("CanEditDueDate", policy =>
         policy.Requirements.Add(new PermissionRequirement("CanEditDueDate")));
 });
 
-// Authorization handler that checks permission assignments for the current user
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
+// Hangfire - Arkaplan görevleri
 builder.Services.AddHangfire(config =>
 {
     config.UseMemoryStorage();
 });
 builder.Services.AddHangfireServer();
 
-// 📬 Entegrasyon Servisleri
+// Entegrasyon servisleri
 builder.Services.AddScoped<INetGsmSmsService, NetGsmSmsService>();
 builder.Services.AddHttpClient<IShopifyService, ShopifyService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IModerationService, ModerationService>();
 
-// 📡 Controller & JSON Ayarları
+// Controller ayarları ve JSON yapılandırması
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options =>
     {
@@ -94,7 +63,7 @@ builder.Services.AddControllers()
 
 builder.Services.AddSignalR();
 
-// 📘 Swagger + JWT Destekli Dokümantasyon
+// Swagger dokümantasyonu
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -121,24 +90,21 @@ builder.Services.AddSwaggerGen(c =>
         { jwtSecurityScheme, Array.Empty<string>() }
     });
 
-    // Swashbuckle options to handle complex schemas and parameter naming
-    c.UseAllOfToExtendReferenceSchemas();
-    c.DescribeAllParametersInCamelCase();
-
-    // Include generated XML comments for better documentation
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+
+    c.UseAllOfToExtendReferenceSchemas();
+    c.DescribeAllParametersInCamelCase();
 });
 
-
-// 📋 Logging
+// Logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
 var app = builder.Build();
 
-// 🧪 Swagger Arayüzü (Tüm ortamlarda aktif)
+// 🧪 Swagger arayüzü (her ortamda açık olabilir)
 if (app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Environment.IsProduction())
 {
     app.UseSwagger();
@@ -149,31 +115,27 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Enviro
     });
 }
 
-// 🌐 Orta Katmanlar - Sıralama önemlidir
-app.UseHttpsRedirection(); // HTTP -> HTTPS yönlendirme
+// 🌐 Middleware sıralaması çok önemlidir
+app.UseHttpsRedirection();
 
-app.UseRouting(); // Rotaları belirle
+app.UseRouting(); // Rotaları başlat
 
-app.UseCors(MyAllowSpecificOrigins); // Global CORS politikası
+app.UseCors(MyAllowSpecificOrigins); // ✅ CORS middleware'i en üstte çağrılır
 
-app.UseAuthentication(); // Kimlik doğrulama middleware'i
-app.UseAuthorization();  // Yetkilendirme kontrolü
+app.UseAuthentication();
+app.UseAuthorization();
 
-app.UseHangfireDashboard(); // Hangfire izleme paneli
+app.UseHangfireDashboard();
 
-app.MapControllers(); // API controller'larını endpoint olarak ekle
+app.MapControllers();
 
-// 💬 SignalR hub'ları (gerçek zamanlı iletişim için)
+// SignalR hub endpoint'leri
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<SupportHub>("/supportHub");
 
-// 🚀 Seed default roles and admin user
-//await SeedData.SeedDefaultsAsync(app.Services);
-
-var configuration = app.Services.GetRequiredService<IConfiguration>();
-//var enableTestData = configuration.GetValue<bool>("EnableTestData");
-//await TestDataSeeder.SeedAsync(app.Services, enableTestData);
+// Opsiyonel: Seed işlemleri
+// await SeedData.SeedDefaultsAsync(app.Services);
 
 using (var scope = app.Services.CreateScope())
 {
