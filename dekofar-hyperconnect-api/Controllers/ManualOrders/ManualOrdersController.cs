@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace Dekofar.API.Controllers
 {
@@ -31,7 +32,10 @@ namespace Dekofar.API.Controllers
         public async Task<IActionResult> GetAll()
         {
             // Veritabanından tüm manuel siparişleri çeker
-            var orders = await _context.ManualOrders.AsNoTracking().ToListAsync();
+            var orders = await _context.ManualOrders
+                .Include(o => o.Items)
+                .AsNoTracking()
+                .ToListAsync();
             return Ok(orders);
         }
 
@@ -40,7 +44,9 @@ namespace Dekofar.API.Controllers
         public async Task<IActionResult> GetById(Guid id)
         {
             // Id'ye göre manuel siparişi arar
-            var order = await _context.ManualOrders.FindAsync(id);
+            var order = await _context.ManualOrders
+                .Include(o => o.Items)
+                .FirstOrDefaultAsync(o => o.Id == id);
             if (order == null)
                 return NotFound(); // Sipariş bulunamazsa 404 döner
 
@@ -65,7 +71,9 @@ namespace Dekofar.API.Controllers
             if (id != order.Id)
                 return BadRequest(); // Id eşleşmezse 400 döner
 
-            var existing = await _context.ManualOrders.FindAsync(id);
+            var existing = await _context.ManualOrders
+                .Include(o => o.Items)
+                .FirstOrDefaultAsync(o => o.Id == id);
             if (existing == null)
                 return NotFound(); // Güncellenecek sipariş yoksa 404 döner
 
@@ -80,11 +88,32 @@ namespace Dekofar.API.Controllers
             existing.PaymentType = order.PaymentType;
             existing.OrderNote = order.OrderNote;
             existing.Status = order.Status;
-            existing.TotalAmount = order.TotalAmount;
             existing.DiscountName = order.DiscountName;
             existing.DiscountType = order.DiscountType;
             existing.DiscountValue = order.DiscountValue;
-            existing.BonusAmount = order.BonusAmount;
+
+            // Update items: remove existing and add new ones
+            _context.ManualOrderItems.RemoveRange(existing.Items);
+            existing.Items.Clear();
+            if (order.Items != null)
+            {
+                foreach (var item in order.Items)
+                {
+                    existing.Items.Add(new ManualOrderItem
+                    {
+                        ProductId = item.ProductId,
+                        ProductName = item.ProductName,
+                        VariantId = item.VariantId,
+                        VariantName = item.VariantName,
+                        Quantity = item.Quantity,
+                        Price = item.Price,
+                        Total = item.Price * item.Quantity
+                    });
+                }
+            }
+
+            existing.TotalAmount = existing.Items.Sum(i => i.Total);
+            existing.BonusAmount = existing.TotalAmount * 0.1m;
 
             await _context.SaveChangesAsync(); // Değişiklikleri kaydeder
             return Ok();
