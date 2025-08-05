@@ -2,105 +2,118 @@ using Dekofar.HyperConnect.Application.ManualOrders.Commands;
 using Dekofar.HyperConnect.Application.Common.Interfaces;
 using Dekofar.HyperConnect.Domain.Entities;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Dekofar.API.Controllers
+namespace Dekofar.API.Controllers;
+
+[ApiController]
+[Route("api/manual-orders")]
+public class ManualOrdersController : ControllerBase
 {
-    [ApiController]
-    [Route("api/manual-orders")]
-    // Manuel siparişlerle ilgili CRUD işlemlerini yöneten controller
-    public class ManualOrdersController : ControllerBase
+    private readonly IMediator _mediator;
+    private readonly IApplicationDbContext _context;
+
+    public ManualOrdersController(IMediator mediator, IApplicationDbContext context)
     {
-        // MediatR aracısı
-        private readonly IMediator _mediator;
-        // Veritabanı bağlamı
-        private readonly IApplicationDbContext _context;
+        _mediator = mediator;
+        _context = context;
+    }
 
-        // MediatR ve veritabanı bağlamını alan kurucu metot
-        public ManualOrdersController(IMediator mediator, IApplicationDbContext context)
-        {
-            _mediator = mediator;
-            _context = context;
-        }
+    // ✅ Tüm manuel siparişleri getirir
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var orders = await _context.ManualOrders
+            .AsNoTracking()
+            .OrderByDescending(o => o.CreatedAt)
+            .ToListAsync();
+        return Ok(orders);
+    }
 
-        // Tüm manuel siparişleri getirir
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            // Veritabanından tüm manuel siparişleri çeker
-            var orders = await _context.ManualOrders.AsNoTracking().ToListAsync();
-            return Ok(orders);
-        }
+    // ✅ Belirli siparişi ID ile getirir
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var order = await _context.ManualOrders.FindAsync(id);
+        return order == null ? NotFound() : Ok(order);
+    }
 
-        // Belirli bir manuel siparişi Id ile getirir
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id)
-        {
-            // Id'ye göre manuel siparişi arar
-            var order = await _context.ManualOrders.FindAsync(id);
-            if (order == null)
-                return NotFound(); // Sipariş bulunamazsa 404 döner
+    // ✅ Yeni sipariş oluşturur (MediatR)
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateManualOrderCommand command)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
-            return Ok(order);
-        }
+        var id = await _mediator.Send(command);
+        return Ok(id);
+    }
 
-        // Yeni manuel sipariş oluşturur
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateManualOrderCommand command)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState); // Model geçersizse 400 döner
+    // ✅ Siparişi günceller
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] ManualOrder order)
+    {
+        if (id != order.Id) return BadRequest();
 
-            var id = await _mediator.Send(command); // MediatR ile komut gönderilir
-            return Ok(id);
-        }
+        var existing = await _context.ManualOrders.FindAsync(id);
+        if (existing == null) return NotFound();
 
-        // Mevcut bir manuel siparişi günceller
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] ManualOrder order)
-        {
-            if (id != order.Id)
-                return BadRequest(); // Id eşleşmezse 400 döner
+        // Alanları güncelle
+        existing.CustomerName = order.CustomerName;
+        existing.CustomerSurname = order.CustomerSurname;
+        existing.Phone = order.Phone;
+        existing.Email = order.Email;
+        existing.Address = order.Address;
+        existing.City = order.City;
+        existing.District = order.District;
+        existing.PaymentType = order.PaymentType;
+        existing.OrderNote = order.OrderNote;
+        existing.Status = order.Status;
+        existing.TotalAmount = order.TotalAmount;
+        existing.DiscountName = order.DiscountName;
+        existing.DiscountType = order.DiscountType;
+        existing.DiscountValue = order.DiscountValue;
+        existing.BonusAmount = order.BonusAmount;
 
-            var existing = await _context.ManualOrders.FindAsync(id);
-            if (existing == null)
-                return NotFound(); // Güncellenecek sipariş yoksa 404 döner
+        await _context.SaveChangesAsync();
+        return Ok();
+    }
 
-            // Mevcut siparişin alanlarını günceller
-            existing.CustomerName = order.CustomerName;
-            existing.CustomerSurname = order.CustomerSurname;
-            existing.Phone = order.Phone;
-            existing.Email = order.Email;
-            existing.Address = order.Address;
-            existing.City = order.City;
-            existing.District = order.District;
-            existing.PaymentType = order.PaymentType;
-            existing.OrderNote = order.OrderNote;
-            existing.Status = order.Status;
-            existing.TotalAmount = order.TotalAmount;
-            existing.DiscountName = order.DiscountName;
-            existing.DiscountType = order.DiscountType;
-            existing.DiscountValue = order.DiscountValue;
-            existing.BonusAmount = order.BonusAmount;
+    // ✅ Siparişi siler
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var existing = await _context.ManualOrders.FindAsync(id);
+        if (existing == null) return NotFound();
 
-            await _context.SaveChangesAsync(); // Değişiklikleri kaydeder
-            return Ok();
-        }
+        _context.ManualOrders.Remove(existing);
+        await _context.SaveChangesAsync();
+        return Ok();
+    }
 
-        // Belirli bir manuel siparişi siler
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid id)
-        {
-            var existing = await _context.ManualOrders.FindAsync(id);
-            if (existing == null)
-                return NotFound(); // Silinecek sipariş bulunamazsa 404 döner
+    // ✅ Gelişmiş arama (isim, telefon, e-posta, not vs)
+    [HttpGet("search")]
+    public async Task<IActionResult> Search([FromQuery] string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return Ok(new List<ManualOrder>());
 
-            _context.ManualOrders.Remove(existing); // Siparişi siler
-            await _context.SaveChangesAsync();
-            return Ok();
-        }
+        var q = query.ToLower();
+
+        var results = await _context.ManualOrders
+            .Where(o =>
+                o.CustomerName.ToLower().Contains(q) ||
+                o.CustomerSurname.ToLower().Contains(q) ||
+                o.Phone.ToLower().Contains(q) ||
+                o.Email.ToLower().Contains(q) ||
+                o.OrderNote.ToLower().Contains(q) ||
+                o.Address.ToLower().Contains(q)
+            )
+            .OrderByDescending(o => o.CreatedAt)
+            .Take(250)
+            .ToListAsync();
+
+        return Ok(results);
     }
 }
-
