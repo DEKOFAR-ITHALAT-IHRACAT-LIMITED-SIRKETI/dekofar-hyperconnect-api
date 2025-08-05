@@ -26,8 +26,34 @@ using Dekofar.HyperConnect.Application.Interfaces;
 using Dekofar.HyperConnect.Application.Services;
 using Dekofar.HyperConnect.Infrastructure.Seeders;
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Http; // For returning custom status codes
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Ensure incoming JWT tokens keep original claim types (e.g. "sub", "role")
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
+// Explicitly configure JWT Bearer authentication so valid tokens are accepted
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        // Do not require HTTPS metadata since tokens may come from different hosts
+        options.RequireHttpsMetadata = false;
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidAudience = jwtSettings["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!)),
+            ClockSkew = TimeSpan.Zero,
+            RoleClaimType = ClaimTypes.Role
+        };
+    });
 
 // 🌐 CORS Politikası
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -138,6 +164,21 @@ builder.Logging.AddConsole();
 
 var app = builder.Build();
 
+// Respond with 204 instead of 404 for requests like /robots933456.txt
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value;
+    if (!string.IsNullOrEmpty(path) &&
+        path.StartsWith("/robots", StringComparison.OrdinalIgnoreCase) &&
+        path.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.StatusCode = StatusCodes.Status204NoContent;
+        return;
+    }
+
+    await next();
+});
+
 // 🧪 Swagger Arayüzü (Tüm ortamlarda aktif)
 if (app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Environment.IsProduction())
 {
@@ -149,9 +190,16 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Enviro
     });
 }
 
-// 🌐 Orta Katmanlar
+// 🌐 Middleware order matters for authentication and CORS
+app.UseRouting();
 app.UseCors(MyAllowSpecificOrigins);
-app.UseHttpsRedirection();
+
+// Azure App Service already handles HTTPS, so avoid redirect warnings there
+if (!app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseHangfireDashboard();
