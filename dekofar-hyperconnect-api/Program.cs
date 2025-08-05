@@ -28,6 +28,7 @@ using Dekofar.HyperConnect.Application.Services;
 using Dekofar.HyperConnect.Infrastructure.Seeders;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Http; // For returning custom status codes
+using Npgsql; // PostgreSQL bağlantı testleri için
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -187,73 +188,128 @@ builder.Services.AddSwaggerGen(c =>
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
-var app = builder.Build();
+WebApplication? app = null;
 
-// Respond with 204 instead of 404 for requests like /robots933456.txt
-app.Use(async (context, next) =>
+try
 {
-    var path = context.Request.Path.Value;
-    if (!string.IsNullOrEmpty(path) &&
-        path.StartsWith("/robots", StringComparison.OrdinalIgnoreCase) &&
-        path.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+    app = builder.Build();
+
+    // PostgreSQL bağlantısını doğrula (şifreyi loglama!)
+    ValidatePostgresConnection(app.Configuration.GetConnectionString("DefaultConnection"), app.Logger);
+
+    // Respond with 204 instead of 404 for requests like /robots933456.txt
+    app.Use(async (context, next) =>
     {
-        context.Response.StatusCode = StatusCodes.Status204NoContent;
+        var path = context.Request.Path.Value;
+        if (!string.IsNullOrEmpty(path) &&
+            path.StartsWith("/robots", StringComparison.OrdinalIgnoreCase) &&
+            path.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.StatusCode = StatusCodes.Status204NoContent;
+            return;
+        }
+
+        await next();
+    });
+
+    // 🧪 Swagger Arayüzü (Tüm ortamlarda aktif)
+    if (app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Environment.IsProduction())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI(c =>
+        {
+            c.SwaggerEndpoint("/swagger/v1/swagger.json", "Dekofar API v1");
+            c.RoutePrefix = "swagger";
+        });
+    }
+
+    // 🌐 Middleware order matters for authentication and CORS
+    app.UseRouting();
+    app.UseCors(MyAllowSpecificOrigins);
+
+    // Azure App Service already handles HTTPS, so avoid redirect warnings there
+    if (!app.Environment.IsProduction())
+    {
+        app.UseHttpsRedirection();
+    }
+
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.UseHangfireDashboard();
+    app.MapControllers();
+    // Route for the SignalR chat hub used for user-to-user messaging
+    app.MapHub<ChatHub>("/hubs/chat");
+    app.MapHub<NotificationHub>("/hubs/notifications");
+    app.MapHub<SupportHub>("/supportHub");
+
+    // 🚀 Seed default roles and admin user
+    //await SeedData.SeedDefaultsAsync(app.Services);
+
+    var configuration = app.Services.GetRequiredService<IConfiguration>();
+
+    // Test verilerini oluştururken hataları yakala ve logla
+    try
+    {
+        var enableTestData = configuration.GetValue<bool>("EnableTestData");
+        if (enableTestData)
+        {
+            await TestDataSeeder.SeedAsync(app.Services, enableTestData);
+        }
+    }
+    catch (Exception seedingEx)
+    {
+        app.Logger.LogError(seedingEx, "Test verileri oluşturulurken hata meydana geldi");
+    }
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+
+        recurringJobManager.AddOrUpdate<SupportTicketJobService>(
+            "CloseStaleTickets",
+            x => x.CloseOldTickets(),
+            Cron.Daily);
+
+        recurringJobManager.AddOrUpdate<SupportTicketJobService>(
+            "NotifyUnassignedTickets",
+            x => x.NotifyAdminOfUnassignedTickets(),
+            Cron.Daily);
+    }
+
+    app.Run();
+}
+catch (Exception ex)
+{
+    var logger = app?.Logger ?? LoggerFactory.Create(c => c.AddConsole()).CreateLogger("Program");
+    logger.LogCritical(ex, "Uygulama başlatılırken beklenmeyen bir hata oluştu");
+}
+
+// PostgreSQL bağlantı dizesini güvenli şekilde doğrulamak için yardımcı metot
+static void ValidatePostgresConnection(string? connectionString, ILogger logger)
+{
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        logger.LogWarning("PostgreSQL connection string is not configured");
         return;
     }
 
-    await next();
-});
-
-// 🧪 Swagger Arayüzü (Tüm ortamlarda aktif)
-if (app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Environment.IsProduction())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
+    try
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Dekofar API v1");
-        c.RoutePrefix = "swagger";
-    });
+        var builder = new NpgsqlConnectionStringBuilder(connectionString);
+
+        // Hassas bilgileri loglamadan bağlanılacak sunucuyu göster
+        logger.LogInformation("PostgreSQL'e bağlanma denemesi Host:{Host} DB:{Database} User:{Username}",
+            builder.Host, builder.Database, builder.Username);
+
+        using var connection = new NpgsqlConnection(builder.ConnectionString);
+        connection.Open(); // Doğrulama amaçlı kısa bağlantı
+    }
+    catch (NpgsqlException ex)
+    {
+        logger.LogError(ex, "PostgreSQL bağlantı hatası. SqlState: {SqlState}", ex.SqlState);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "PostgreSQL connection string doğrulanamadı");
+    }
 }
-
-// 🌐 Middleware order matters for authentication and CORS
-app.UseRouting();
-app.UseCors(MyAllowSpecificOrigins);
-
-// Azure App Service already handles HTTPS, so avoid redirect warnings there
-if (!app.Environment.IsProduction())
-{
-    app.UseHttpsRedirection();
-}
-
-app.UseAuthentication();
-app.UseAuthorization();
-app.UseHangfireDashboard();
-app.MapControllers();
-// Route for the SignalR chat hub used for user-to-user messaging
-app.MapHub<ChatHub>("/hubs/chat");
-app.MapHub<NotificationHub>("/hubs/notifications");
-app.MapHub<SupportHub>("/supportHub");
-
-// 🚀 Seed default roles and admin user
-//await SeedData.SeedDefaultsAsync(app.Services);
-
-var configuration = app.Services.GetRequiredService<IConfiguration>();
-//var enableTestData = configuration.GetValue<bool>("EnableTestData");
-//await TestDataSeeder.SeedAsync(app.Services, enableTestData);
-
-using (var scope = app.Services.CreateScope())
-{
-    var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
-
-    recurringJobManager.AddOrUpdate<SupportTicketJobService>(
-        "CloseStaleTickets",
-        x => x.CloseOldTickets(),
-        Cron.Daily);
-
-    recurringJobManager.AddOrUpdate<SupportTicketJobService>(
-        "NotifyUnassignedTickets",
-        x => x.NotifyAdminOfUnassignedTickets(),
-        Cron.Daily);
-}
-
-app.Run();

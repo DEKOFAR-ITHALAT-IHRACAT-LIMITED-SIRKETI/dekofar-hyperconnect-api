@@ -57,11 +57,24 @@ namespace Dekofar.HyperConnect.Infrastructure.Seeders
             // Helper local function to create users
             async Task<ApplicationUser> CreateUserAsync(string role, string emailPrefix)
             {
+                var email = $"{emailPrefix}@{TestEmailDomain}";
+
+                // Kullanıcı zaten varsa tekrar oluşturmuyoruz
+                var existing = await userManager.FindByEmailAsync(email);
+                if (existing != null)
+                {
+                    if (!await userManager.IsInRoleAsync(existing, role))
+                    {
+                        await userManager.AddToRoleAsync(existing, role);
+                    }
+                    return existing;
+                }
+
                 var user = new ApplicationUser
                 {
                     Id = Guid.NewGuid(),
-                    UserName = $"{emailPrefix}@{TestEmailDomain}",
-                    Email = $"{emailPrefix}@{TestEmailDomain}",
+                    UserName = email,
+                    Email = email,
                     FullName = faker.Name.FullName(),
                     AvatarUrl = faker.Internet.Avatar(),
                     MembershipDate = faker.Date.PastOffset(1).UtcDateTime,
@@ -69,7 +82,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Seeders
                     LastSeen = faker.Date.RecentOffset(7).UtcDateTime
                 };
 
-                // Optional PIN support
+                // Opsiyonel PIN desteği
                 var pin = faker.Random.Int(1000, 9999).ToString();
                 user.HashedPin = userManager.PasswordHasher.HashPassword(user, pin);
                 user.PinLastUpdatedAt = DateTime.UtcNow;
@@ -151,10 +164,14 @@ namespace Dekofar.HyperConnect.Infrastructure.Seeders
             {
                 for (int i = categories.Count; i < 3; i++)
                 {
+                    var name = faker.Commerce.Categories(1).First();
+                    if (await context.SupportCategories.AnyAsync(c => c.Name == name))
+                        continue;
+
                     var cat = new SupportCategory
                     {
                         Id = Guid.NewGuid(),
-                        Name = faker.Commerce.Categories(1).First(),
+                        Name = name,
                         Description = faker.Lorem.Sentence(),
                         CreatedAt = DateTime.UtcNow
                     };
