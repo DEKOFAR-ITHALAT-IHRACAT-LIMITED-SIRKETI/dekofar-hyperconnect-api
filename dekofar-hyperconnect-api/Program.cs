@@ -2,6 +2,7 @@ using System.Text;
 using System.IdentityModel.Tokens.Jwt;
 using System.Reflection; // Needed for XML comments
 using System.Security.Claims;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -33,9 +34,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Ensure incoming JWT tokens keep original claim types (e.g. "sub", "role")
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
-// Explicitly configure JWT Bearer authentication so valid tokens are accepted
+// Configure JWT authentication only once to avoid duplicate 'Bearer' scheme registration
+// that previously caused "Scheme already exists: Bearer" on startup. The Infrastructure
+// layer no longer registers authentication so all JWT settings live here.
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
     .AddJwtBearer(options =>
     {
         // Do not require HTTPS metadata since tokens may come from different hosts
@@ -52,6 +59,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!)),
             ClockSkew = TimeSpan.Zero,
             RoleClaimType = ClaimTypes.Role
+        };
+
+        // Allow JWT tokens to be passed via query string for SignalR hubs
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    (path.StartsWithSegments("/hubs/chat") ||
+                     path.StartsWithSegments("/hubs/notifications") ||
+                     path.StartsWithSegments("/supportHub")))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
