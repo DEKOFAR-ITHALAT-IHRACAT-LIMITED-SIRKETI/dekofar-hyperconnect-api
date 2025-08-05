@@ -3,7 +3,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Reflection; // Needed for XML comments
 using System.Security.Claims;
 using System.Threading.Tasks;
-using System.Linq; // Needed to safely read Authorization headers
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -62,47 +61,24 @@ builder.Services.AddAuthentication(options =>
             RoleClaimType = ClaimTypes.Role
         };
 
-        // Custom token retrieval so that normal HTTP requests read the token from the
-        // Authorization header while SignalR connections can still use the access_token
-        // query string value. Previously overriding OnMessageReceived prevented the
-        // Authorization header from being processed which resulted in 401 responses.
+        // Allow JWT tokens to be passed via query string for SignalR hubs
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
             {
-                // 1) Standard HTTP requests: check the Authorization header
-                var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-                if (!string.IsNullOrEmpty(authHeader) &&
-                    authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    (path.StartsWithSegments("/hubs/chat") ||
+                     path.StartsWithSegments("/hubs/notifications") ||
+                     path.StartsWithSegments("/supportHub")))
                 {
-                    context.Token = authHeader.Substring("Bearer ".Length).Trim();
-                }
-
-                // 2) SignalR hubs: allow tokens in the query string for WebSocket clients
-                if (string.IsNullOrEmpty(context.Token))
-                {
-                    var accessToken = context.Request.Query["access_token"];
-                    var path = context.HttpContext.Request.Path;
-                    if (!string.IsNullOrEmpty(accessToken) &&
-                        (path.StartsWithSegments("/hubs/chat") ||
-                         path.StartsWithSegments("/hubs/notifications") ||
-                         path.StartsWithSegments("/supportHub")))
-                    {
-                        context.Token = accessToken;
-                    }
+                    context.Token = accessToken;
                 }
                 return Task.CompletedTask;
             }
         };
     });
-
-// Explicitly tell the HTTPS redirection middleware which port to use. Azure App Service
-// runs behind a proxy and without this the middleware logs "Failed to determine the https
-// port for redirect".
-builder.Services.AddHttpsRedirection(options =>
-{
-    options.HttpsPort = 443;
-});
 
 // 🌐 CORS Politikası
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -243,9 +219,11 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Enviro
 app.UseRouting();
 app.UseCors(MyAllowSpecificOrigins);
 
-// Redirect all HTTP requests to HTTPS. The port was configured earlier so the
-// middleware works correctly even when running behind Azure App Service.
-app.UseHttpsRedirection();
+// Azure App Service already handles HTTPS, so avoid redirect warnings there
+if (!app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
