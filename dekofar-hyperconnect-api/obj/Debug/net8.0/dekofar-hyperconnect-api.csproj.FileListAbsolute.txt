@@ -179,3 +179,5 @@ D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Deb
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.pdb
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.genruntimeconfig.cache
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\ref\dekofar-hyperconnect-api.dll
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\dekofar-hyperconnect-api.xml
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.xml
