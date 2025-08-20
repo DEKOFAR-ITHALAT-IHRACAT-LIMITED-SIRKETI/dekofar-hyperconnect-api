@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dekofar.HyperConnect.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class AddCommissionTable : Migration
+    public partial class AddAvatarUrlToUsers : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -26,6 +26,21 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ActivityLogs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AllowedAdminIps",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    IpAddress = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AllowedAdminIps", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -98,6 +113,56 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "BlacklistEntries",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Type = table.Column<int>(type: "integer", nullable: false),
+                    Value = table.Column<string>(type: "text", nullable: false),
+                    Reason = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BlacklistEntries", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CalendarTasks",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    AssignedUserId = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CalendarTasks", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DeploymentLogs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Version = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: false),
+                    DeployedBy = table.Column<string>(type: "text", nullable: false),
+                    DeployedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DeploymentLogs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Discounts",
                 columns: table => new
                 {
@@ -145,6 +210,39 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ModerationLogs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Content = table.Column<string>(type: "text", nullable: false),
+                    RuleId = table.Column<int>(type: "integer", nullable: false),
+                    Severity = table.Column<int>(type: "integer", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ModerationLogs", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ModerationRules",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Pattern = table.Column<string>(type: "text", nullable: false),
+                    Severity = table.Column<int>(type: "integer", nullable: false),
+                    Description = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
+                    IsActive = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ModerationRules", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Notes",
                 columns: table => new
                 {
@@ -187,6 +285,40 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Permissions", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PinCoverImages",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Url = table.Column<string>(type: "text", nullable: false),
+                    Active = table.Column<bool>(type: "boolean", nullable: false),
+                    DisplayStartTime = table.Column<TimeSpan>(type: "interval", nullable: true),
+                    DisplayEndTime = table.Column<TimeSpan>(type: "interval", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PinCoverImages", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ResponseTemplates",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Body = table.Column<string>(type: "text", nullable: false),
+                    IsGlobal = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ModuleScope = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ResponseTemplates", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -247,6 +379,21 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_UserNotifications", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserUIPreferences",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    ModuleKey = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    PreferenceJson = table.Column<string>(type: "text", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserUIPreferences", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -413,6 +560,27 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "WorkSessions",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    StartTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    StartIp = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WorkSessions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_WorkSessions_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -686,6 +854,11 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                 name: "IX_UserMessages_SenderId",
                 table: "UserMessages",
                 column: "SenderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WorkSessions_UserId",
+                table: "WorkSessions",
+                column: "UserId");
         }
 
         /// <inheritdoc />
@@ -693,6 +866,9 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
         {
             migrationBuilder.DropTable(
                 name: "ActivityLogs");
+
+            migrationBuilder.DropTable(
+                name: "AllowedAdminIps");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
@@ -713,13 +889,28 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                 name: "AuditLogs");
 
             migrationBuilder.DropTable(
+                name: "BlacklistEntries");
+
+            migrationBuilder.DropTable(
+                name: "CalendarTasks");
+
+            migrationBuilder.DropTable(
                 name: "Commissions");
+
+            migrationBuilder.DropTable(
+                name: "DeploymentLogs");
 
             migrationBuilder.DropTable(
                 name: "Discounts");
 
             migrationBuilder.DropTable(
                 name: "ManualOrderItems");
+
+            migrationBuilder.DropTable(
+                name: "ModerationLogs");
+
+            migrationBuilder.DropTable(
+                name: "ModerationRules");
 
             migrationBuilder.DropTable(
                 name: "Notes");
@@ -729,6 +920,12 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "OrderTags");
+
+            migrationBuilder.DropTable(
+                name: "PinCoverImages");
+
+            migrationBuilder.DropTable(
+                name: "ResponseTemplates");
 
             migrationBuilder.DropTable(
                 name: "RolePermissions");
@@ -747,6 +944,12 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "UserNotifications");
+
+            migrationBuilder.DropTable(
+                name: "UserUIPreferences");
+
+            migrationBuilder.DropTable(
+                name: "WorkSessions");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");

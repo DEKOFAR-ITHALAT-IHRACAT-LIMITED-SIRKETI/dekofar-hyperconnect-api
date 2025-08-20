@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dekofar.HyperConnect.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250802212445_AddCommissionTable")]
-    partial class AddCommissionTable
+    [Migration("20250819205548_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -51,6 +51,29 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ActivityLogs", (string)null);
+                });
+
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.AllowedAdminIp", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AllowedAdminIps");
                 });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.ApplicationUser", b =>
@@ -189,6 +212,65 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                     b.ToTable("AuditLogs", (string)null);
                 });
 
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.BlacklistEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BlacklistEntries");
+                });
+
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.CalendarTask", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AssignedUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CalendarTasks");
+                });
+
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.Commission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -217,6 +299,34 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Commissions", (string)null);
+                });
+
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.DeploymentLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("DeployedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeployedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DeploymentLogs");
                 });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.Discount", b =>
@@ -365,6 +475,62 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                     b.HasIndex("ManualOrderId");
 
                     b.ToTable("ManualOrderItems");
+                });
+
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.ModerationLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RuleId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ModerationLogs", (string)null);
+                });
+
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.ModerationRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Pattern")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ModerationRules", (string)null);
                 });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.Note", b =>
@@ -522,6 +688,67 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Permissions", (string)null);
+                });
+
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.PinCoverImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<TimeSpan?>("DisplayEndTime")
+                        .HasColumnType("interval");
+
+                    b.Property<TimeSpan?>("DisplayStartTime")
+                        .HasColumnType("interval");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PinCoverImages", (string)null);
+                });
+
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.ResponseTemplate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsGlobal")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ModuleScope")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ResponseTemplates", (string)null);
                 });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.RolePermission", b =>
@@ -774,6 +1001,57 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("UserNotifications", (string)null);
+                });
+
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.UserUIPreference", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ModuleKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PreferenceJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserUIPreferences", (string)null);
+                });
+
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.WorkSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("EndTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("StartIp")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("WorkSessions");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>
@@ -1031,6 +1309,17 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                     b.Navigation("Receiver");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.WorkSession", b =>
+                {
+                    b.HasOne("Dekofar.HyperConnect.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
