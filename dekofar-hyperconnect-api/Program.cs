@@ -1,89 +1,94 @@
+using System.Reflection;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
-using System.Reflection; // Needed for XML comments
 using System.Security.Claims;
+
+using MediatR;
+using Hangfire;
+using Hangfire.MemoryStorage;
+
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+
+using Dekofar.API.Hubs;
+using Dekofar.API.Services;
+using Dekofar.HyperConnect.API.Authorization;
+using Dekofar.HyperConnect.Application; // Application servis kayıtları
+using Dekofar.HyperConnect.Application.Interfaces;
+using Dekofar.HyperConnect.Application.Services;
+using Dekofar.HyperConnect.Application.Common.Interfaces;
+using Dekofar.HyperConnect.Infrastructure.ServiceRegistration;
+using Dekofar.HyperConnect.Infrastructure.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
 using Dekofar.HyperConnect.Integrations.Shopify.Services;
-using Dekofar.HyperConnect.Application; // Application servis kayıtları
-using Dekofar.HyperConnect.Application.Common.Interfaces;
-using Dekofar.HyperConnect.Infrastructure.Services;
-using Dekofar.HyperConnect.API.Authorization;
-using MediatR;
-using Dekofar.HyperConnect.Infrastructure.ServiceRegistration;
-using Hangfire;
-using Hangfire.MemoryStorage;
-using Dekofar.HyperConnect.Infrastructure.Jobs;
-using Microsoft.AspNetCore.Authorization;
-using Dekofar.API.Hubs;
-using Dekofar.API.Services;
-using Dekofar.HyperConnect.Application.Interfaces;
-using Dekofar.HyperConnect.Application.Services;
-using Dekofar.HyperConnect.Infrastructure.Seeders;
-using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
+//
 // 🌐 CORS Politikası
+//
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins, policy =>
     {
         policy.WithOrigins(
-            "http://localhost:4200",
-            "http://192.168.1.100:4200",
-            "https://hyperconnect.dekofar.com"
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials();
+                "http://localhost:4200",
+                "http://192.168.1.100:4200",
+                "https://hyperconnect.dekofar.com"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
+//
 // 📦 Altyapı Servisleri (DbContext, Identity, JWT vs.)
+//
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddMemoryCache();
 builder.Services.AddApplication();
 
-// Register authorization policies backed by our custom requirement
+//
+// 🔐 Yetkilendirme politikaları
+//
 builder.Services.AddAuthorization(options =>
 {
-    // Users must have the CanAssignTicket permission to access protected endpoints
     options.AddPolicy("CanAssignTicket", policy =>
         policy.Requirements.Add(new PermissionRequirement("CanAssignTicket")));
-
-    // Controls access to discount management endpoints
     options.AddPolicy("CanManageDiscounts", policy =>
         policy.Requirements.Add(new PermissionRequirement("CanManageDiscounts")));
-
-    // Allows editing support ticket due dates
     options.AddPolicy("CanEditDueDate", policy =>
         policy.Requirements.Add(new PermissionRequirement("CanEditDueDate")));
 });
-
-// Authorization handler that checks permission assignments for the current user
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
-builder.Services.AddHangfire(config =>
-{
-    config.UseMemoryStorage();
-});
+//
+// ⏰ Hangfire (in-memory)
+//
+builder.Services.AddHangfire(config => { config.UseMemoryStorage(); });
 builder.Services.AddHangfireServer();
 
+//
 // 📬 Entegrasyon Servisleri
+//
 builder.Services.AddScoped<INetGsmSmsService, NetGsmSmsService>();
 builder.Services.AddHttpClient<IShopifyService, ShopifyService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IModerationService, ModerationService>();
 
-// 📡 Controller & JSON Ayarları
+//
+// 📡 Controllers & JSON
+//
 builder.Services.AddControllers()
     .AddNewtonsoftJson(options =>
     {
@@ -93,7 +98,9 @@ builder.Services.AddControllers()
 
 builder.Services.AddSignalR();
 
-// 📘 Swagger + JWT Destekli Dokümantasyon
+//
+// 📘 Swagger + JWT
+//
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -107,11 +114,7 @@ builder.Services.AddSwaggerGen(c =>
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
         Description = "JWT Bearer Token için `Bearer {token}` formatında giriniz",
-        Reference = new OpenApiReference
-        {
-            Id = "Bearer",
-            Type = ReferenceType.SecurityScheme
-        }
+        Reference = new OpenApiReference { Id = "Bearer", Type = ReferenceType.SecurityScheme }
     };
 
     c.AddSecurityDefinition("Bearer", jwtSecurityScheme);
@@ -120,53 +123,82 @@ builder.Services.AddSwaggerGen(c =>
         { jwtSecurityScheme, Array.Empty<string>() }
     });
 
-    // Swashbuckle options to handle complex schemas and parameter naming
+    // opsiyonel ayarlar
     c.UseAllOfToExtendReferenceSchemas();
     c.DescribeAllParametersInCamelCase();
 
-    // Include generated XML comments for better documentation
+    // XML yorumlarını yalnızca dosya varsa ekle (prod'da güvenli)
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+    }
 });
 
-
+//
 // 📋 Logging
+//
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
+//
+// 🛰️ Proxy/Forwarded Headers (Railway için gerekli)
+//
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
 
-// 🧪 Swagger Arayüzü (Tüm ortamlarda aktif)
-if (app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Environment.IsProduction())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Dekofar API v1");
-        c.RoutePrefix = "swagger";
-    });
-}
+//
+// 🧭 Forwarded Headers en başta
+//
+app.UseForwardedHeaders();
 
+//
+// 🧪 Swagger (tüm ortamlarda aktif kalsın)
+//
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Dekofar API v1");
+    c.RoutePrefix = "swagger";
+});
+
+//
 // 🌐 Orta Katmanlar
+//
 app.UseCors(MyAllowSpecificOrigins);
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+
+//
+// ⛏️ Hangfire Dashboard (gerekirse auth ekleyebilirsin)
+//
 app.UseHangfireDashboard();
+
+//
+// 🗺️ Endpointler
+//
 app.MapControllers();
-// Route for the SignalR chat hub used for user-to-user messaging
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<SupportHub>("/supportHub");
 
-// 🚀 Seed default roles and admin user
-//await SeedData.SeedDefaultsAsync(app.Services);
+// Kök path'i Swagger'a yönlendir
+app.MapGet("/", () => Results.Redirect("/swagger"));
 
-var configuration = app.Services.GetRequiredService<IConfiguration>();
-//var enableTestData = configuration.GetValue<bool>("EnableTestData");
-//await TestDataSeeder.SeedAsync(app.Services, enableTestData);
+// Basit health endpoint
+app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTime.UtcNow }));
 
+//
+// ⏱️ Recurring Jobs
+//
 using (var scope = app.Services.CreateScope())
 {
     var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
@@ -182,4 +214,7 @@ using (var scope = app.Services.CreateScope())
         Cron.Daily);
 }
 
+//
+// 🚀 Run
+//
 app.Run();

@@ -10,13 +10,11 @@
         "projectUniqueName": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
         "projectName": "dekofar-hyperconnect-api",
         "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
-        "packagesPath": "C:\\Users\\recep\\.nuget\\packages\\",
+        "packagesPath": "D:\\root\\.nuget\\packages",
         "outputPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
+          "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\NuGet.Config",
           "C:\\Users\\recep\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
@@ -25,7 +23,6 @@
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -179,13 +176,11 @@
         "projectUniqueName": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Application\\Dekofar.HyperConnect.Application.csproj",
         "projectName": "Dekofar.HyperConnect.Application",
         "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Application\\Dekofar.HyperConnect.Application.csproj",
-        "packagesPath": "C:\\Users\\recep\\.nuget\\packages\\",
+        "packagesPath": "D:\\root\\.nuget\\packages",
         "outputPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Application\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
+          "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\NuGet.Config",
           "C:\\Users\\recep\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
@@ -194,7 +189,6 @@
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -297,13 +291,11 @@
         "projectUniqueName": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj",
         "projectName": "Dekofar.HyperConnect.Domain",
         "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj",
-        "packagesPath": "C:\\Users\\recep\\.nuget\\packages\\",
+        "packagesPath": "D:\\root\\.nuget\\packages",
         "outputPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
+          "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\NuGet.Config",
           "C:\\Users\\recep\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
@@ -312,7 +304,6 @@
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -371,13 +362,11 @@
         "projectUniqueName": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
         "projectName": "Dekofar.HyperConnect.Infrastructure",
         "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
-        "packagesPath": "C:\\Users\\recep\\.nuget\\packages\\",
+        "packagesPath": "D:\\root\\.nuget\\packages",
         "outputPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
+          "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\NuGet.Config",
           "C:\\Users\\recep\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
@@ -386,7 +375,6 @@
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -483,13 +471,11 @@
         "projectUniqueName": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Integrations\\Dekofar.HyperConnect.Integrations.csproj",
         "projectName": "Dekofar.HyperConnect.Integrations",
         "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Integrations\\Dekofar.HyperConnect.Integrations.csproj",
-        "packagesPath": "C:\\Users\\recep\\.nuget\\packages\\",
+        "packagesPath": "D:\\root\\.nuget\\packages",
         "outputPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Integrations\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
+          "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\NuGet.Config",
           "C:\\Users\\recep\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
@@ -498,7 +484,6 @@
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -569,13 +554,11 @@
         "projectUniqueName": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Shared\\Dekofar.HyperConnect.Shared.csproj",
         "projectName": "Dekofar.HyperConnect.Shared",
         "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Shared\\Dekofar.HyperConnect.Shared.csproj",
-        "packagesPath": "C:\\Users\\recep\\.nuget\\packages\\",
+        "packagesPath": "D:\\root\\.nuget\\packages",
         "outputPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Shared\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
+          "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\NuGet.Config",
           "C:\\Users\\recep\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
@@ -584,7 +567,6 @@
           "net8.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
