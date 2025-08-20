@@ -1,33 +1,31 @@
-using System.Reflection;
-using System.Text;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-
-using MediatR;
-using Hangfire;
-using Hangfire.MemoryStorage;
-
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
-
 using Dekofar.API.Hubs;
 using Dekofar.API.Services;
 using Dekofar.HyperConnect.API.Authorization;
 using Dekofar.HyperConnect.Application; // Application servis kayıtları
+using Dekofar.HyperConnect.Application.Common.Interfaces;
 using Dekofar.HyperConnect.Application.Interfaces;
 using Dekofar.HyperConnect.Application.Services;
-using Dekofar.HyperConnect.Application.Common.Interfaces;
+using Dekofar.HyperConnect.Infrastructure.Jobs;
 using Dekofar.HyperConnect.Infrastructure.ServiceRegistration;
 using Dekofar.HyperConnect.Infrastructure.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
 using Dekofar.HyperConnect.Integrations.Shopify.Services;
+using Hangfire;
+using Hangfire.MemoryStorage;
+using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Newtonsoft.Json;
+using System.IdentityModel.Tokens.Jwt;
+using System.Reflection;
+using System.Security.Claims;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -199,20 +197,6 @@ app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTime.UtcNow }
 //
 // ⏱️ Recurring Jobs
 //
-using (var scope = app.Services.CreateScope())
-{
-    var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
-
-    recurringJobManager.AddOrUpdate<SupportTicketJobService>(
-        "CloseStaleTickets",
-        x => x.CloseOldTickets(),
-        Cron.Daily);
-
-    recurringJobManager.AddOrUpdate<SupportTicketJobService>(
-        "NotifyUnassignedTickets",
-        x => x.NotifyAdminOfUnassignedTickets(),
-        Cron.Daily);
-}
 
 //
 // 🚀 Run
