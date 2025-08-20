@@ -6,7 +6,7 @@ ENV DOTNET_NOLOGO=1 \
     DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     NUGET_PACKAGES=/root/.nuget/packages
 
-# Önce sadece csproj'leri kopyala (cache)
+# Sadece csproj'leri kopyala (cache)
 COPY dekofar-hyperconnect-api/dekofar-hyperconnect-api.csproj ./dekofar-hyperconnect-api/
 COPY Dekofar.HyperConnect.Application/Dekofar.HyperConnect.Application.csproj ./Dekofar.HyperConnect.Application/
 COPY Dekofar.HyperConnect.Domain/Dekofar.HyperConnect.Domain.csproj ./Dekofar.HyperConnect.Domain/
@@ -14,18 +14,21 @@ COPY Dekofar.HyperConnect.Infrastructure/Dekofar.HyperConnect.Infrastructure.csp
 COPY Dekofar.HyperConnect.Integrations/Dekofar.HyperConnect.Integrations.csproj ./Dekofar.HyperConnect.Integrations/
 COPY Dekofar.HyperConnect.Shared/Dekofar.HyperConnect.Shared.csproj ./Dekofar.HyperConnect.Shared/
 
-# NuGet.Config'i kopyala (repo kökünde)
+# NuGet.Config (fallback klasörlerini kapatıyoruz)
 COPY NuGet.Config ./
 
-# Windows'tan gelen fallback klasörlerini tamamen kapatmak için MSBuild property de veriyoruz
+# Restore (Linux uyumlu, fallback kapalı)
 RUN dotnet restore ./dekofar-hyperconnect-api/dekofar-hyperconnect-api.csproj \
     --configfile NuGet.Config \
     -p:RestoreAdditionalFallbackFolders= \
     -p:DisableImplicitNuGetFallbackFolder=true \
     --verbosity minimal
 
-# Kaynakların tamamını kopyala
+# Tüm kaynakları kopyala (obj/bin zaten .dockerignore ile gelmeyecek)
 COPY . .
+
+# Emniyet için: yanlışlıkla kopyalandıysa obj/bin'i temizle
+RUN find . -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
 
 # Publish
 RUN dotnet publish ./dekofar-hyperconnect-api/dekofar-hyperconnect-api.csproj \

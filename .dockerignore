@@ -1,0 +1,19 @@
+# Git
+.git
+.gitignore
+
+# Build çıktıları – KESİNLİKLE kopyalanmasın
+**/bin
+**/obj
+**/out
+**/Debug
+**/Release
+
+# IDE / OS
+.vs
+.vscode
+.idea
+*.user
+*.suo
+*.swp
+.DS_Store
