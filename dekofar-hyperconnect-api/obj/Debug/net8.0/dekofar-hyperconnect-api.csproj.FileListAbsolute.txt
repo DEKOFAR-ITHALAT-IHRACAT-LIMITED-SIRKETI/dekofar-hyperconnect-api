@@ -1,3 +1,11 @@
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.csproj.AssemblyReference.cache
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.GeneratedMSBuildEditorConfig.editorconfig
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.AssemblyInfoInputs.cache
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.AssemblyInfo.cs
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.csproj.CoreCompileInputs.cache
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.MvcApplicationPartsAssemblyInfo.cs
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.MvcApplicationPartsAssemblyInfo.cache
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.sourcelink.json
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\appsettings.Development.json
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\appsettings.json
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\dekofar-hyperconnect-api.exe
@@ -44,6 +52,7 @@ D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Deb
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Microsoft.EntityFrameworkCore.Relational.dll
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Microsoft.Extensions.Caching.Abstractions.dll
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Microsoft.Extensions.Caching.Memory.dll
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Microsoft.Extensions.Configuration.Abstractions.dll
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Microsoft.Extensions.DependencyInjection.dll
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Microsoft.Extensions.DependencyInjection.Abstractions.dll
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Microsoft.Extensions.DependencyModel.dll
@@ -70,6 +79,7 @@ D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Deb
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Npgsql.dll
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Owin.dll
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\RestSharp.dll
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Swashbuckle.AspNetCore.Swagger.dll
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Swashbuckle.AspNetCore.SwaggerUI.dll
@@ -158,14 +168,6 @@ D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Deb
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Dekofar.HyperConnect.Infrastructure.pdb
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Dekofar.HyperConnect.Integrations.pdb
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\bin\Debug\net8.0\Dekofar.HyperConnect.Shared.pdb
-D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.csproj.AssemblyReference.cache
-D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.GeneratedMSBuildEditorConfig.editorconfig
-D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.AssemblyInfoInputs.cache
-D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.AssemblyInfo.cs
-D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.csproj.CoreCompileInputs.cache
-D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.MvcApplicationPartsAssemblyInfo.cs
-D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.MvcApplicationPartsAssemblyInfo.cache
-D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.sourcelink.json
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\staticwebassets.build.json
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\staticwebassets.development.json
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\staticwebassets\msbuild.dekofar-hyperconnect-api.Microsoft.AspNetCore.StaticWebAssets.props

@@ -2,10 +2,12 @@
 using Dekofar.HyperConnect.Application.Common.Interfaces;
 using Dekofar.HyperConnect.Application.Interfaces;
 using Dekofar.HyperConnect.Domain.Entities;
+using Dekofar.HyperConnect.Infrastructure.Jobs;
 using Dekofar.HyperConnect.Infrastructure.Persistence;
 using Dekofar.HyperConnect.Infrastructure.Persistence.Repositories;
 using Dekofar.HyperConnect.Infrastructure.Services;
-using Dekofar.HyperConnect.Infrastructure.Jobs;
+using Dekofar.HyperConnect.Integrations.DHLKargo.Interfaces;
+using Dekofar.HyperConnect.Integrations.DHLKargo.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services;
 using MediatR;
@@ -38,6 +40,8 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+            // 📦 MNG Kargo servisi
+            services.AddScoped<IDhlKargoAuthService, DhlKargoAuthService>();
 
 
             // JWT authentication is configured in Program.cs to avoid duplicate scheme registration
