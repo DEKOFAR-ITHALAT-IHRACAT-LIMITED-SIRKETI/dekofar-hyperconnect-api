@@ -1,4 +1,4 @@
-﻿using Dekofar.HyperConnect.Integrations.DHLKargo.Interfaces;
+﻿using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace dekofar_hyperconnect_api.Controllers.Kargo.Dhl
