@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Dekofar.HyperConnect.Integrations.MNGKargo.Models
+﻿namespace Dekofar.HyperConnect.Integrations.Kargo.Dhl.Models
 {
     public class TokenResponse
     {
@@ -13,8 +7,4 @@ namespace Dekofar.HyperConnect.Integrations.MNGKargo.Models
         public string jwtExpireDate { get; set; }
         public string refreshTokenExpireDate { get; set; }
     }
-
-
-
-
 }

@@ -1,9 +1,11 @@
-﻿using Dekofar.HyperConnect.Integrations.DHLKargo.Interfaces;
+﻿using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Interfaces;
+using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Models;
 using Microsoft.Extensions.Configuration;
 using RestSharp;
 using System.Text.Json;
+using System.Threading.Tasks;
 
-namespace Dekofar.HyperConnect.Integrations.DHLKargo.Services
+namespace Dekofar.HyperConnect.Integrations.Kargo.Dhl.Services
 {
     public class DhlKargoAuthService : IDhlKargoAuthService
     {
@@ -19,19 +21,16 @@ namespace Dekofar.HyperConnect.Integrations.DHLKargo.Services
             var client = new RestClient("https://api.mngkargo.com.tr/mngapi/api/token");
             var request = new RestRequest("", Method.Post);
 
-            // Config’den okuma
             var clientId = _config["DhlKargo:ClientId"];
             var clientSecret = _config["DhlKargo:ClientSecret"];
             var customerNumber = _config["DhlKargo:CustomerNumber"];
             var password = _config["DhlKargo:Password"];
 
-            // Headers
             request.AddHeader("accept", "application/json");
             request.AddHeader("Content-Type", "application/json");
             request.AddHeader("X-IBM-Client-Id", clientId);
             request.AddHeader("X-IBM-Client-Secret", clientSecret);
 
-            // Body
             var body = new
             {
                 customerNumber,
@@ -40,25 +39,14 @@ namespace Dekofar.HyperConnect.Integrations.DHLKargo.Services
             };
             request.AddJsonBody(body);
 
-            // Request
             var response = await client.ExecuteAsync(request);
 
             if (!response.IsSuccessful)
                 throw new Exception($"DHL Kargo token hatası: {response.StatusCode} - {response.Content}");
 
-            Console.WriteLine("RAW RESPONSE: " + response.Content);
-
             var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(response.Content!);
 
             return tokenResponse!;
         }
-    }
-
-    public class TokenResponse
-    {
-        public string jwt { get; set; }
-        public string refreshToken { get; set; }
-        public string jwtExpireDate { get; set; }
-        public string refreshTokenExpireDate { get; set; }
     }
 }
