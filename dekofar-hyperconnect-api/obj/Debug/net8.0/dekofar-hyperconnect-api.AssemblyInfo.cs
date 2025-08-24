@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("dekofar-hyperconnect-api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+72728d7f9ba7559ad372847fadfd3024f6f2afa5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+082ca5d6754e9017b96f7d99c21bb4f3dce56dee")]
 [assembly: System.Reflection.AssemblyProductAttribute("dekofar-hyperconnect-api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("dekofar-hyperconnect-api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
