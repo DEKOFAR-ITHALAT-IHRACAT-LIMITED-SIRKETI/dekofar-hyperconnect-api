@@ -1,0 +1,120 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>dekofar-hyperconnect-api</name>
+    </assembly>
+    <members>
+        <member name="M:Dekofar.API.Controllers.Admin.AdminStatsController.GetTotalUsers">
+            <summary>
+            Returns the total number of registered users.
+            </summary>
+        </member>
+        <member name="M:Dekofar.API.Controllers.Admin.AdminStatsController.GetTotalOrders">
+            <summary>
+            Returns the total number of orders (manual and synced).
+            </summary>
+        </member>
+        <member name="M:Dekofar.API.Controllers.Admin.AdminStatsController.GetTotalSupportTickets">
+            <summary>
+            Returns the total number of support tickets.
+            </summary>
+        </member>
+        <member name="M:Dekofar.API.Controllers.Admin.AdminStatsController.GetMonthlyCommissions(System.Int32)">
+            <summary>
+            Returns commission totals grouped by month for the requested period.
+            </summary>
+        </member>
+        <member name="M:Dekofar.API.Controllers.Admin.DashboardController.GetSummary">
+            <summary>
+            Gets summary metrics for the dashboard.
+            </summary>
+        </member>
+        <member name="M:Dekofar.API.Controllers.Admin.DashboardController.GetSalesOverTime(System.String)">
+            <summary>
+            Gets sales totals grouped by date within a range.
+            </summary>
+        </member>
+        <member name="M:Dekofar.API.Controllers.Admin.DashboardController.GetTopProducts(System.Int32)">
+            <summary>
+            Gets the most sold products.
+            </summary>
+        </member>
+        <member name="M:Dekofar.API.Controllers.Admin.DashboardController.GetTicketActivity(System.String)">
+            <summary>
+            Gets support ticket activity over time.
+            </summary>
+        </member>
+        <member name="M:Dekofar.API.Controllers.Integrations.ShopifyController.SearchOrders(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Shopify siparişlerinde arama yapar (isim, telefon, e-posta, etiket vb.)
+            Arka planda hem GraphQL hem REST API birleşimi ile gelişmiş detaylar getirir.
+            </summary>
+            <param name="query">Arama sorgusu (örnek: müşteri adı, telefon, e-posta, etiket)</param>
+            <param name="ct">İptal tokeni</param>
+            <returns>Detaylı sipariş listesi</returns>
+        </member>
+        <member name="M:Dekofar.API.Controllers.SupportTicketsController.GetAll(System.Int32,System.Int32,System.Nullable{System.Guid},System.Nullable{Dekofar.HyperConnect.Domain.Entities.SupportTicketStatus},System.String)">
+            <summary>
+            Destek taleplerini listeler.
+            Yönetici kullanıcılar tüm talepleri görebilirken diğer kullanıcılar
+            sadece kendi oluşturduğu veya kendisine atanan talepleri görebilir.
+            </summary>
+        </member>
+        <member name="T:Dekofar.API.Controllers.WorkSessionsController">
+            <summary>
+            Kullanıcı çalışma oturumlarını yöneten controller.
+            </summary>
+        </member>
+        <member name="F:Dekofar.API.Hubs.ChatHub.Connections">
+            <summary>
+            Thread safe store mapping user IDs to active SignalR connection IDs.
+            This allows targeting a specific user when sending messages.
+            </summary>
+        </member>
+        <member name="M:Dekofar.API.Hubs.ChatHub.OnConnectedAsync">
+            <summary>
+            Called whenever a client connects to the hub.
+            The authenticated user's identifier (<see cref="P:Microsoft.AspNetCore.SignalR.HubCallerContext.UserIdentifier"/>)
+            is mapped to the current connection id so that we can later address
+            that user directly.
+            </summary>
+        </member>
+        <member name="M:Dekofar.API.Hubs.ChatHub.OnDisconnectedAsync(System.Exception)">
+            <summary>
+            Cleans up the connection mapping when a client disconnects for any reason.
+            </summary>
+        </member>
+        <member name="M:Dekofar.API.Hubs.ChatHub.SendMessage(System.String,System.String)">
+            <summary>
+            Sends a plain text message to the specified user.
+            The receiver is identified by their user identifier which is set as the
+            <c>UserIdentifier</c> claim during authentication.
+            </summary>
+        </member>
+        <member name="M:dekofar_hyperconnect_api.Controllers.Kargo.Dhl.DhlKargoController.GetToken">
+            <summary>
+            DHL Kargo için JWT token alır.
+            </summary>
+        </member>
+        <member name="M:dekofar_hyperconnect_api.Controllers.Kargo.Dhl.DhlKargoController.GetShipmentStatus(System.String)">
+            <summary>
+            ShipmentId’ye göre ilk statüyü getirir.
+            </summary>
+        </member>
+        <member name="M:dekofar_hyperconnect_api.Controllers.Kargo.Dhl.DhlKargoController.GetShipmentStatusList(System.String)">
+            <summary>
+            ShipmentId’ye göre tüm statü geçmişini getirir.
+            </summary>
+        </member>
+        <member name="M:dekofar_hyperconnect_api.Controllers.Kargo.Dhl.DhlKargoController.TrackShipment(System.String)">
+            <summary>
+            ShipmentId’ye göre tüm hareket geçmişini getirir.
+            </summary>
+        </member>
+        <member name="M:dekofar_hyperconnect_api.Controllers.Kargo.Dhl.DhlKargoController.GetShipment(System.String)">
+            <summary>
+            ShipmentId’ye göre detaylı gönderi bilgisini getirir (shipment info + parçalar + gönderici + alıcı).
+            </summary>
+        </member>
+    </members>
+</doc>

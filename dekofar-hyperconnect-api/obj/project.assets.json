@@ -10287,7 +10287,7 @@
       "code": "NU1603",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "dekofar-hyperconnect-api depends on Hangfire.MemoryStorage (>= 1.7.5) but Hangfire.MemoryStorage 1.7.5 was not found. An approximate best match of Hangfire.MemoryStorage 1.8.0 was resolved.",
+      "message": "dekofar-hyperconnect-api depends on Hangfire.MemoryStorage (>= 1.7.5) but Hangfire.MemoryStorage 1.7.5 was not found. Hangfire.MemoryStorage 1.8.0 was resolved instead.",
       "libraryId": "Hangfire.MemoryStorage",
       "targetGraphs": [
         "net8.0",
@@ -10299,7 +10299,7 @@
       "code": "NU1603",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "dekofar-hyperconnect-api depends on Microsoft.IdentityModel.Tokens (>= 8.0.5) but Microsoft.IdentityModel.Tokens 8.0.5 was not found. An approximate best match of Microsoft.IdentityModel.Tokens 8.1.0 was resolved.",
+      "message": "dekofar-hyperconnect-api depends on Microsoft.IdentityModel.Tokens (>= 8.0.5) but Microsoft.IdentityModel.Tokens 8.0.5 was not found. Microsoft.IdentityModel.Tokens 8.1.0 was resolved instead.",
       "libraryId": "Microsoft.IdentityModel.Tokens",
       "targetGraphs": [
         "net8.0",
@@ -10311,7 +10311,7 @@
       "code": "NU1603",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "dekofar-hyperconnect-api depends on System.IdentityModel.Tokens.Jwt (>= 8.0.5) but System.IdentityModel.Tokens.Jwt 8.0.5 was not found. An approximate best match of System.IdentityModel.Tokens.Jwt 8.1.0 was resolved.",
+      "message": "dekofar-hyperconnect-api depends on System.IdentityModel.Tokens.Jwt (>= 8.0.5) but System.IdentityModel.Tokens.Jwt 8.0.5 was not found. System.IdentityModel.Tokens.Jwt 8.1.0 was resolved instead.",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
         "net8.0",
