@@ -40,12 +40,14 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
-            // 📦 MNG Kargo servisi
+
+            // 📦 MNG Kargo servisleri
             services.AddScoped<IDhlKargoAuthService, DhlKargoAuthService>();
+            services.AddScoped<IDhlKargoShipmentService, DhlKargoShipmentService>();
 
 
-            // JWT authentication is configured in Program.cs to avoid duplicate scheme registration
-            services.AddHttpContextAccessor(); // gerekli
+            // JWT authentication is configured in Program.cs
+            services.AddHttpContextAccessor();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IFileStorageService, LocalFileStorageService>();
             services.AddScoped<IActivityLogger, ActivityLogger>();
@@ -62,7 +64,7 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             // 📞 NetGSM servisleri
             services.AddScoped<INetGsmCallService, NetGsmCallService>();
 
-            // 🔑 Token servisi
+            // 🔑 Token & kullanıcı servisleri
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IUserService, UserService>();
 
