@@ -50,6 +50,10 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             // 📦 Job Stats servisleri
             services.AddScoped<IJobStatsService, JobStatsService>();
 
+            // 📦 Recurring Job (DHL → Shopify sync job)
+            services.AddScoped<IRecurringJob, DhlShopifySyncJob>();
+            services.AddScoped<DhlShopifySyncJob>(); // direkt job enjekte etmek için de ekledik
+
             // JWT authentication Program.cs’de
             services.AddHttpContextAccessor();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
