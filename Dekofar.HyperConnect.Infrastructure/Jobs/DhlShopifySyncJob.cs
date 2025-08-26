@@ -4,6 +4,7 @@ using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Interfaces;
 using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,6 +12,8 @@ namespace Dekofar.HyperConnect.Infrastructure.Jobs
 {
     /// <summary>
     /// DHL teslimat statülerini Shopify siparişleri ile senkronize eder.
+    /// - DHL status 5 → Shopify "paid"
+    /// - DHL status 7 → Shopify "iptal" etiketi
     /// </summary>
     public class DhlShopifySyncJob : IRecurringJob
     {
@@ -32,7 +35,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Jobs
         }
 
         /// <summary>
-        /// Günlük DHL teslimatlarını kontrol eder ve Shopify siparişlerini günceller.
+        /// Bugünün DHL teslimatlarını kontrol eder ve Shopify siparişlerini günceller.
         /// </summary>
         public async Task RunAsync(CancellationToken cancellationToken = default)
         {
@@ -50,7 +53,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Jobs
                 var shopifyOrderId = await _shopifyService.GetOrderIdByTrackingNumberAsync(trackingNumber, cancellationToken);
                 if (shopifyOrderId == null)
                 {
-                    _logger.LogWarning("⚠️ Eşleşen Shopify siparişi bulunamadı. TrackingNo: {TrackingNo}", trackingNumber);
+                    _logger.LogWarning("⚠️ Shopify siparişi bulunamadı. TrackingNo: {TrackingNo}", trackingNumber);
                     continue;
                 }
 
@@ -75,8 +78,11 @@ namespace Dekofar.HyperConnect.Infrastructure.Jobs
             }
         }
 
-        public async Task<List<(string TrackingNumber, long? ShopifyOrderId, bool Success, string? Error)>>
-    RunForDateAsync(DateTime date, CancellationToken ct = default)
+        /// <summary>
+        /// Belirtilen tarih için DHL → Shopify senkron çalıştırır.
+        /// Başarı ve hata detaylarını döner (UI modal için kullanılabilir).
+        /// </summary>
+        public async Task<List<(string TrackingNumber, long? ShopifyOrderId, bool Success, string? Error)>> RunForDateAsync(DateTime date, CancellationToken ct = default)
         {
             var results = new List<(string, long?, bool, string?)>();
             var deliveries = await _dhlService.GetDeliveredShipmentsByDateAsync(date);
@@ -141,6 +147,5 @@ namespace Dekofar.HyperConnect.Infrastructure.Jobs
 
             return results;
         }
-
     }
 }
