@@ -74,5 +74,73 @@ namespace Dekofar.HyperConnect.Infrastructure.Jobs
                 }
             }
         }
+
+        public async Task<List<(string TrackingNumber, long? ShopifyOrderId, bool Success, string? Error)>>
+    RunForDateAsync(DateTime date, CancellationToken ct = default)
+        {
+            var results = new List<(string, long?, bool, string?)>();
+            var deliveries = await _dhlService.GetDeliveredShipmentsByDateAsync(date);
+
+            foreach (var delivery in deliveries)
+            {
+                var trackingNumber = delivery.shipment?.shipmentId;
+                var code = delivery.shipment?.shipmentStatusCode;
+
+                if (string.IsNullOrEmpty(trackingNumber))
+                {
+                    results.Add((trackingNumber ?? "-", null, false, "Tracking numarası boş"));
+                    continue;
+                }
+
+                try
+                {
+                    var shopifyOrderId = await _shopifyService.GetOrderIdByTrackingNumberAsync(trackingNumber, ct);
+
+                    if (shopifyOrderId == null)
+                    {
+                        results.Add((trackingNumber, null, false, "Shopify siparişi bulunamadı"));
+                        continue;
+                    }
+
+                    if (code == 5) // DHL: Ödendi
+                    {
+                        var ok = await _shopifyService.MarkOrderAsPaidAsync(shopifyOrderId.Value, ct);
+                        if (ok)
+                        {
+                            await _statsService.IncrementPaidMarkedAsync(ct);
+                            results.Add((trackingNumber, shopifyOrderId, true, null));
+                        }
+                        else
+                        {
+                            results.Add((trackingNumber, shopifyOrderId, false, "Shopify ödeme işaretleme başarısız"));
+                        }
+                    }
+                    else if (code == 7) // DHL: İptal
+                    {
+                        var ok = await _shopifyService.UpdateOrderTagsAsync(shopifyOrderId.Value, "İptal", ct);
+                        if (ok)
+                        {
+                            await _statsService.IncrementCancelTaggedAsync(ct);
+                            results.Add((trackingNumber, shopifyOrderId, true, null));
+                        }
+                        else
+                        {
+                            results.Add((trackingNumber, shopifyOrderId, false, "İptal etiketi eklenemedi"));
+                        }
+                    }
+                    else
+                    {
+                        results.Add((trackingNumber, shopifyOrderId, false, $"Beklenmeyen status code: {code}"));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    results.Add((trackingNumber, null, false, ex.Message));
+                }
+            }
+
+            return results;
+        }
+
     }
 }

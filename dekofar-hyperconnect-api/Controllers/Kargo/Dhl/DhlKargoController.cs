@@ -1,4 +1,5 @@
 ﻿using Dekofar.HyperConnect.Application.Common.Interfaces;
+using Dekofar.HyperConnect.Infrastructure.Jobs;
 using Dekofar.HyperConnect.Infrastructure.Services;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -12,17 +13,20 @@ namespace dekofar_hyperconnect_api.Controllers.Kargo.Dhl
         private readonly IDhlKargoAuthService _authService;
         private readonly IDhlKargoShipmentService _shipmentService;
         private readonly IDhlKargoDeliveredShipmentService _deliveredService;
+        private readonly IRecurringJob _job;
 
         public DhlKargoController(
             IDhlKargoAuthService authService,
             IDhlKargoShipmentService shipmentService,
-            IDhlKargoDeliveredShipmentService deliveredService)
+            IDhlKargoDeliveredShipmentService deliveredService,
+            IRecurringJob job // 👈 DHL→Shopify senkron job’u
+        )
         {
             _authService = authService;
             _shipmentService = shipmentService;
             _deliveredService = deliveredService;
+            _job = job;
         }
-
 
         /// <summary>
         /// DHL Kargo için JWT token alır.
@@ -74,7 +78,6 @@ namespace dekofar_hyperconnect_api.Controllers.Kargo.Dhl
             return Ok(detail);
         }
 
-
         /// <summary>
         /// Belirtilen tarihte teslim edilen tüm gönderileri getirir.
         /// </summary>
@@ -116,6 +119,10 @@ namespace dekofar_hyperconnect_api.Controllers.Kargo.Dhl
 
             return Ok(results);
         }
+
+        /// <summary>
+        /// Bugüne ait job istatistiklerini döndürür (kaç sipariş paid / cancel yapıldı).
+        /// </summary>
         [HttpGet("job-stats/today")]
         public async Task<IActionResult> GetTodayJobStats(
             [FromServices] IJobStatsService statsService,
@@ -128,19 +135,66 @@ namespace dekofar_hyperconnect_api.Controllers.Kargo.Dhl
             return Ok(stat);
         }
 
+        /// <summary>
+        /// Job istatistik geçmişi (varsayılan son 30 gün).
+        /// </summary>
         [HttpGet("job-stats/history")]
         public async Task<IActionResult> GetJobStatsHistory(
             [FromServices] IJobStatsService statsService,
             CancellationToken ct,
-            [FromQuery] int days = 30)   // opsiyonel en sonda ✅
+            [FromQuery] int days = 30)
         {
             var history = await statsService.GetStatsHistoryAsync(days, ct);
             return Ok(history);
         }
 
+        /// <summary>
+        /// DHL → Shopify senkron job’unu manuel tetikler.
+        /// </summary>
+        [HttpPost("sync-now")]
+        public async Task<IActionResult> SyncNow(CancellationToken ct)
+        {
+            await _job.RunAsync(ct);
+            return Ok(new { message = "✅ DHL → Shopify senkron çalıştırıldı." });
+        }
 
+        [HttpPost("sync-last7days")]
+        public async Task<IActionResult> SyncLast7Days(
+    [FromServices] DhlShopifySyncJob job,
+    CancellationToken ct = default)
+        {
+            var allResults = new List<object>();
+            int successCount = 0;
+            int failCount = 0;
 
+            for (int i = 0; i < 7; i++)
+            {
+                var date = DateTime.Today.AddDays(-i);
+                var results = await job.RunForDateAsync(date, ct);
 
+                foreach (var r in results)
+                {
+                    if (r.Success) successCount++;
+                    else failCount++;
+
+                    allResults.Add(new
+                    {
+                        Date = date.ToString("yyyy-MM-dd"),
+                        TrackingNo = r.TrackingNumber,
+                        ShopifyOrderId = r.ShopifyOrderId,
+                        Status = r.Success ? "OK" : "FAIL",
+                        Error = r.Error
+                    });
+                }
+            }
+
+            return Ok(new
+            {
+                SuccessCount = successCount,
+                FailCount = failCount,
+                Details = allResults
+            });
+        }
 
     }
 }
