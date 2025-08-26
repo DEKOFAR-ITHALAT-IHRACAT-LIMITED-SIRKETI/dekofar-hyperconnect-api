@@ -8,7 +8,6 @@ using Dekofar.HyperConnect.Infrastructure.Persistence.Repositories;
 using Dekofar.HyperConnect.Infrastructure.Services;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Services;
-
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services;
 using MediatR;
@@ -16,6 +15,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
 {
@@ -42,13 +42,15 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-            // 📦 MNG Kargo servisleri
+            // 📦 DHL servisleri
             services.AddScoped<IDhlKargoAuthService, DhlKargoAuthService>();
             services.AddScoped<IDhlKargoShipmentService, DhlKargoShipmentService>();
+            services.AddScoped<IDhlKargoDeliveredShipmentService, DhlKargoDeliveredShipmentService>();
 
+            // 📦 Job Stats servisleri
+            services.AddScoped<IJobStatsService, JobStatsService>();
 
-
-            // JWT authentication is configured in Program.cs
+            // JWT authentication Program.cs’de
             services.AddHttpContextAccessor();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IFileStorageService, LocalFileStorageService>();
@@ -57,14 +59,13 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IBadgeService, BadgeService>();
             services.AddScoped<IWorkSessionService, WorkSessionService>();
 
-            // 🌐 Genel depo ve IP servis kayıtları
+            // 🌐 Genel repo & IP servisleri
             services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
             services.AddScoped<IAllowedAdminIpService, AllowedAdminIpService>();
 
-            services.AddScoped<SupportTicketJobService>();
-
             // 📞 NetGSM servisleri
             services.AddScoped<INetGsmCallService, NetGsmCallService>();
+            services.AddScoped<INetGsmSmsService, NetGsmSmsService>();
 
             // 🔑 Token & kullanıcı servisleri
             services.AddScoped<ITokenService, TokenService>();

@@ -4,9 +4,12 @@ using Dekofar.HyperConnect.Integrations.Shopify.Models;
 using Dekofar.HyperConnect.Integrations.Shopify.Models.Shopify;
 using Dekofar.HyperConnect.Integrations.Shopify.Models.Shopify.Dto;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +20,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Services
 {
@@ -580,16 +582,52 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Services
             return false;
         }
 
-        /// <summary>
-        /// Update order tags field.
-        /// </summary>
-        public async Task<bool> UpdateOrderTagsAsync(long orderId, string tags, CancellationToken ct = default)
+        public async Task<bool> UpdateOrderTagsAsync(long orderId, string newTag, CancellationToken ct = default)
         {
-            var body = new { order = new { id = orderId, tags } };
+            // 1️⃣ Önce sipariş detayını çekelim (mevcut etiketleri öğrenmek için)
+            var order = await GetOrderByIdAsync(orderId, ct);
+            if (order == null)
+            {
+                _logger.LogWarning("⚠️ Sipariş bulunamadı, etiket güncellenemedi. OrderId: {OrderId}", orderId);
+                return false;
+            }
+
+            // 2️⃣ Mevcut etiketleri liste haline getir
+            var existingTags = string.IsNullOrWhiteSpace(order.Tags)
+                ? new List<string>()
+                : order.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(t => t.Trim())
+                            .ToList();
+
+            // 3️⃣ Yeni etiket zaten varsa ekleme
+            if (existingTags.Contains(newTag, StringComparer.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation("ℹ️ Sipariş {OrderId} için '{Tag}' etiketi zaten mevcut.", orderId, newTag);
+                return true;
+            }
+
+            // 4️⃣ Yeni etiketi ekle
+            existingTags.Add(newTag);
+
+            var updatedTags = string.Join(", ", existingTags);
+
+            var body = new { order = new { id = orderId, tags = updatedTags } };
             var json = JsonConvert.SerializeObject(body);
-            var resp = await _httpClient.PutAsync($"/admin/api/2024-04/orders/{orderId}.json", new StringContent(json, Encoding.UTF8, "application/json"), ct);
-            return resp.IsSuccessStatusCode;
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var resp = await _httpClient.PutAsync($"/admin/api/2024-04/orders/{orderId}.json", content, ct);
+
+            if (resp.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("🏷️ Sipariş {OrderId} etiketleri güncellendi → {Tags}", orderId, updatedTags);
+                return true;
+            }
+
+            var error = await resp.Content.ReadAsStringAsync(ct);
+            _logger.LogError("❌ Sipariş {OrderId} etiket güncellenemedi: {Error}", orderId, error);
+            return false;
         }
+
 
         /// <summary>
         /// Update order note field.
@@ -839,6 +877,51 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Services
 
             return enriched.Take(filter.Limit ?? 50).ToList();
         }
+
+        public async Task<bool> MarkOrderAsPaidAsync(long orderId, CancellationToken ct = default)
+        {
+            // 1️⃣ Önce siparişi çek → zaten paid mi kontrol et
+            var order = await GetOrderByIdAsync(orderId, ct);
+            if (order == null)
+            {
+                _logger.LogWarning("⚠️ Sipariş bulunamadı (ID: {OrderId})", orderId);
+                return false;
+            }
+
+            if (string.Equals(order.FinancialStatus, "paid", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation("ℹ️ Sipariş {OrderId} zaten 'paid' durumunda.", orderId);
+                return true; // Tekrar işlem yapma
+            }
+
+            // 2️⃣ Transaction gönder → paid yap
+            var transaction = new
+            {
+                transaction = new
+                {
+                    kind = "sale",
+                    status = "success"
+                }
+            };
+
+            var json = JsonConvert.SerializeObject(transaction);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var url = $"/admin/api/2024-04/orders/{orderId}/transactions.json";
+            var response = await _httpClient.PostAsync(url, content, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("❌ MarkOrderAsPaid hata: {StatusCode} - {Error}", response.StatusCode, error);
+                return false;
+            }
+
+            _logger.LogInformation("✅ Sipariş {OrderId} başarıyla 'paid' işaretlendi.", orderId);
+            return true;
+        }
+
+
 
     }
 }

@@ -1,4 +1,6 @@
-﻿using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Interfaces;
+﻿using Dekofar.HyperConnect.Application.Common.Interfaces;
+using Dekofar.HyperConnect.Infrastructure.Services;
+using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace dekofar_hyperconnect_api.Controllers.Kargo.Dhl
@@ -9,14 +11,18 @@ namespace dekofar_hyperconnect_api.Controllers.Kargo.Dhl
     {
         private readonly IDhlKargoAuthService _authService;
         private readonly IDhlKargoShipmentService _shipmentService;
+        private readonly IDhlKargoDeliveredShipmentService _deliveredService;
 
         public DhlKargoController(
             IDhlKargoAuthService authService,
-            IDhlKargoShipmentService shipmentService)
+            IDhlKargoShipmentService shipmentService,
+            IDhlKargoDeliveredShipmentService deliveredService)
         {
             _authService = authService;
             _shipmentService = shipmentService;
+            _deliveredService = deliveredService;
         }
+
 
         /// <summary>
         /// DHL Kargo için JWT token alır.
@@ -67,5 +73,74 @@ namespace dekofar_hyperconnect_api.Controllers.Kargo.Dhl
             var detail = await _shipmentService.GetShipmentByShipmentIdAsync(shipmentId);
             return Ok(detail);
         }
+
+
+        /// <summary>
+        /// Belirtilen tarihte teslim edilen tüm gönderileri getirir.
+        /// </summary>
+        /// <param name="date">Format: yyyy-MM-dd</param>
+        [HttpGet("delivered-shipments")]
+        public async Task<IActionResult> GetDeliveredShipments([FromQuery] DateTime date)
+        {
+            if (date == default)
+                return BadRequest("Geçerli bir tarih giriniz. Örn: 2025-08-26");
+
+            var result = await _deliveredService.GetDeliveredShipmentsByDateAsync(date);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Son N gün içinde teslim edilen gönderileri getirir.
+        /// </summary>
+        /// <param name="days">Kaç gün geriye bakılacak (default: 7)</param>
+        [HttpGet("delivered-shipments/range")]
+        public async Task<IActionResult> GetDeliveredShipmentsRange([FromQuery] int days = 7)
+        {
+            if (days <= 0)
+                return BadRequest("Gün sayısı 0'dan büyük olmalı.");
+
+            var results = new List<object>();
+
+            for (int i = 0; i < days; i++)
+            {
+                var date = DateTime.Today.AddDays(-i);
+                var shipments = await _deliveredService.GetDeliveredShipmentsByDateAsync(date);
+
+                results.Add(new
+                {
+                    Date = date.ToString("yyyy-MM-dd"),
+                    Count = shipments.Count,
+                    Shipments = shipments
+                });
+            }
+
+            return Ok(results);
+        }
+        [HttpGet("job-stats/today")]
+        public async Task<IActionResult> GetTodayJobStats(
+            [FromServices] IJobStatsService statsService,
+            CancellationToken ct = default)
+        {
+            var stat = await statsService.GetTodayStatsAsync(ct);
+            if (stat == null)
+                return Ok(new { Date = DateTime.Today.ToString("yyyy-MM-dd"), PaidMarked = 0, CancelTagged = 0 });
+
+            return Ok(stat);
+        }
+
+        [HttpGet("job-stats/history")]
+        public async Task<IActionResult> GetJobStatsHistory(
+            [FromServices] IJobStatsService statsService,
+            CancellationToken ct,
+            [FromQuery] int days = 30)   // opsiyonel en sonda ✅
+        {
+            var history = await statsService.GetStatsHistoryAsync(days, ct);
+            return Ok(history);
+        }
+
+
+
+
+
     }
 }

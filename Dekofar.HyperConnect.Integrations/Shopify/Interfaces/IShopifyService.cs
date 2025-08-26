@@ -30,6 +30,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Interfaces
         Task<List<Order>> SearchOrdersWithDetailsAsync(string query, CancellationToken ct = default);
         Task<PagedResult<Order>> GetOpenOrdersWithCursorAsync(string? pageInfo, int limit, CancellationToken ct);
         Task<List<ShopifyOrderLiteDto>> SearchOrdersLiteAsync(string query, CancellationToken ct = default);
+        Task<bool> MarkOrderAsPaidAsync(long orderId, CancellationToken ct = default);
 
     }
 }

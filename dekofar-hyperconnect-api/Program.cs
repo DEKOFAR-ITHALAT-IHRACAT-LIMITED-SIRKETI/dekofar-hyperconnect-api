@@ -176,7 +176,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 //
-// ⛏️ Hangfire Dashboard (gerekirse auth ekleyebilirsin)
+// ⛏️ Hangfire Dashboard
 //
 app.UseHangfireDashboard();
 
@@ -197,6 +197,12 @@ app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTime.UtcNow }
 //
 // ⏱️ Recurring Jobs
 //
+RecurringJob.AddOrUpdate<DhlShopifySyncJob>(
+    "dhl-shopify-sync",
+    job => job.RunAsync(CancellationToken.None),
+    "*/5 * * * *"   // ⏳ her 5 dakikada bir (test için)
+);
+
 
 //
 // 🚀 Run

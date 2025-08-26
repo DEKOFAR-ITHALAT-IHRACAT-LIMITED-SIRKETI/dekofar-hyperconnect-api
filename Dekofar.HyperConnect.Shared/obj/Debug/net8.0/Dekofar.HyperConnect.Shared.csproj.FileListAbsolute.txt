@@ -1,0 +1,12 @@
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\bin\Debug\net8.0\Dekofar.HyperConnect.Shared.deps.json
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\bin\Debug\net8.0\Dekofar.HyperConnect.Shared.dll
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\bin\Debug\net8.0\Dekofar.HyperConnect.Shared.pdb
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.GeneratedMSBuildEditorConfig.editorconfig
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.AssemblyInfoInputs.cache
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.AssemblyInfo.cs
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.csproj.CoreCompileInputs.cache
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.sourcelink.json
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.dll
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\refint\Dekofar.HyperConnect.Shared.dll
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.pdb
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\ref\Dekofar.HyperConnect.Shared.dll

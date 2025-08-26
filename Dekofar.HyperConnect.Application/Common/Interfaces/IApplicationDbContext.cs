@@ -38,6 +38,8 @@ namespace Dekofar.HyperConnect.Application.Common.Interfaces
         /// Kullanıcı çalışma oturumları tablosu
         /// </summary>
         DbSet<WorkSession> WorkSessions { get; }
+        IEnumerable<object> JobStats { get; }
+
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }
