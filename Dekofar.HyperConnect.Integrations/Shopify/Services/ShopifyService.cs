@@ -878,9 +878,44 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Services
             return enriched.Take(filter.Limit ?? 50).ToList();
         }
 
+
+        /// <summary>
+        /// DHL gönderi numarasına (tracking number) göre Shopify sipariş ID'sini bulur.
+        /// </summary>
+        public async Task<long?> GetOrderIdByTrackingNumberAsync(string trackingNumber, CancellationToken ct = default)
+        {
+            // Tüm açık siparişleri (veya son 250 siparişi) çekiyoruz
+            var orders = await GetAllOrdersCachedAsync(ct);
+
+            foreach (var order in orders)
+            {
+                if (order.Fulfillments == null) continue;
+
+                foreach (var f in order.Fulfillments)
+                {
+                    if (f.TrackingNumbers != null && f.TrackingNumbers.Contains(trackingNumber))
+                    {
+                        return order.Id; // Shopify gerçek OrderId
+                    }
+                }
+            }
+
+            return null; // Eşleşme bulunamadı
+        }
+
+        /// <summary>
+        /// DHL gönderi numarasına (tracking number) göre Shopify sipariş ID'sini bulur.
+        /// </summary>
+        Task<long?> IShopifyService.GetOrderIdByTrackingNumberAsync(string trackingNumber, CancellationToken cancellationToken)
+        {
+            return GetOrderIdByTrackingNumberAsync(trackingNumber, cancellationToken);
+        }
+
+        /// <summary>
+        /// Shopify siparişini 'paid' durumuna işaretler.
+        /// </summary>
         public async Task<bool> MarkOrderAsPaidAsync(long orderId, CancellationToken ct = default)
         {
-            // 1️⃣ Önce siparişi çek → zaten paid mi kontrol et
             var order = await GetOrderByIdAsync(orderId, ct);
             if (order == null)
             {
@@ -891,10 +926,9 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Services
             if (string.Equals(order.FinancialStatus, "paid", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.LogInformation("ℹ️ Sipariş {OrderId} zaten 'paid' durumunda.", orderId);
-                return true; // Tekrar işlem yapma
+                return true;
             }
 
-            // 2️⃣ Transaction gönder → paid yap
             var transaction = new
             {
                 transaction = new
@@ -920,8 +954,6 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Services
             _logger.LogInformation("✅ Sipariş {OrderId} başarıyla 'paid' işaretlendi.", orderId);
             return true;
         }
-
-
 
     }
 }

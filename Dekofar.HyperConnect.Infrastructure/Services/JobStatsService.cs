@@ -59,6 +59,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Services
             return await _db.JobStats
                 .FirstOrDefaultAsync(s => s.Date == today, ct);
         }
+       
 
         public async Task<List<JobStat>> GetStatsHistoryAsync(int days = 30, CancellationToken ct = default)
         {

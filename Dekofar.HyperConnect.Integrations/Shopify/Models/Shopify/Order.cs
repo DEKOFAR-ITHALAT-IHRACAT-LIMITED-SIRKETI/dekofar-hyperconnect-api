@@ -16,6 +16,7 @@ public class Order
     [JsonProperty("total_price")]
     public string TotalPrice { get; set; }
 
+
     [JsonProperty("currency")]
     public string Currency { get; set; }
 
@@ -40,7 +41,9 @@ public class Order
     [JsonProperty("note_attributes")]
     public List<NoteAttribute>? NoteAttributes { get; set; }
 
-
+    // 🔑 BURAYA EKLE
+    [JsonProperty("fulfillments")]
+    public List<Fulfillment>? Fulfillments { get; set; }
     [JsonProperty("line_items")]
     public List<LineItem> LineItems { get; set; } = new(); // 👈 Ürünler
     public string Name { get; internal set; }

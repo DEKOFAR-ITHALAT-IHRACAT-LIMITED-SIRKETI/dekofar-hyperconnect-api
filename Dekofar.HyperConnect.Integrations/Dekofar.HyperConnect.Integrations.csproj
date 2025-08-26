@@ -18,6 +18,14 @@
 		<ProjectReference Include="..\Dekofar.HyperConnect.Domain\Dekofar.HyperConnect.Domain.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <EditorConfigFiles Remove="D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Integrations\Shopify\Models\Shopify\.editorconfig" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Integrations\Shopify\Models\Shopify\.editorconfig" />
+	</ItemGroup>
+
 
 
 </Project>
