@@ -1,16 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Dekofar.HyperConnect.Domain.Entities
 {
     public class JobStat
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        /// <summary>İstatistik tarihi (gün bazlı, yyyy-MM-dd formatında tutulur)</summary>
         public DateTime Date { get; set; }
+
+        /// <summary>Bugün kaç sipariş ödenmiş olarak işaretlendi</summary>
         public int PaidMarked { get; set; }
+
+        /// <summary>Bugün kaç sipariş iptal etiketlendi</summary>
         public int CancelTagged { get; set; }
     }
 }

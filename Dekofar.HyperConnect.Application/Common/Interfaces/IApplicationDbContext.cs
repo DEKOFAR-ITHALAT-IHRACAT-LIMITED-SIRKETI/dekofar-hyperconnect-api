@@ -34,11 +34,12 @@ namespace Dekofar.HyperConnect.Application.Common.Interfaces
         DbSet<ResponseTemplate> ResponseTemplates { get; }
         DbSet<ModerationRule> ModerationRules { get; }
         DbSet<ModerationLog> ModerationLogs { get; }
+        DbSet<JobStat> JobStats { get; }   // 🔑 Burada ekli olmalı
+
         /// <summary>
         /// Kullanıcı çalışma oturumları tablosu
         /// </summary>
         DbSet<WorkSession> WorkSessions { get; }
-        IEnumerable<object> JobStats { get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }

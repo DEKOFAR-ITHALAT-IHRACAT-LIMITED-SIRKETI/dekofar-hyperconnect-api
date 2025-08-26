@@ -50,7 +50,6 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
         public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
         public DbSet<JobStat> JobStats => Set<JobStat>();
 
-        IEnumerable<object> IApplicationDbContext.JobStats => JobStats;
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
             => await base.SaveChangesAsync(cancellationToken);
@@ -60,6 +59,14 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
             base.OnModelCreating(builder);
 
             // ⚠️ Identity tabloları için ExcludeFromMigrations kaldırıldı
+            builder.Entity<JobStat>(entity =>
+            {
+                entity.ToTable("JobStats");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Date).IsRequired();
+                entity.Property(e => e.PaidMarked).HasDefaultValue(0);
+                entity.Property(e => e.CancelTagged).HasDefaultValue(0);
+            });
 
             builder.Entity<SupportCategory>(entity =>
             {
