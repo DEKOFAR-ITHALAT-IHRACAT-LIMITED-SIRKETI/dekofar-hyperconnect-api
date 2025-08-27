@@ -6,8 +6,10 @@ using Dekofar.HyperConnect.Infrastructure.Jobs;
 using Dekofar.HyperConnect.Infrastructure.Persistence;
 using Dekofar.HyperConnect.Infrastructure.Persistence.Repositories;
 using Dekofar.HyperConnect.Infrastructure.Services;
-using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Interfaces;
-using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Services;
+using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Auth.Interfaces;
+using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Auth.Services;
+using Dekofar.HyperConnect.Integrations.Kargo.Dhl.BulkQuery;
+using Dekofar.HyperConnect.Integrations.Kargo.Dhl.BulkQuery.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services;
 using MediatR;
@@ -16,6 +18,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+
+
+// ✅ Alias tanımı: sadece Bulk_Query altındaki interface kullanılacak
 
 namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
 {
@@ -42,17 +47,35 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-            // 📦 DHL servisleri
-            services.AddScoped<IDhlKargoAuthService, DhlKargoAuthService>();
-            services.AddScoped<IDhlKargoShipmentService, DhlKargoShipmentService>();
-            services.AddScoped<IDhlKargoDeliveredShipmentService, DhlKargoDeliveredShipmentService>();
+
+            // 🔑 Alias ile doğru interface kullanımı
+            services.AddScoped<IShipmentByDateService, ShipmentByDateService>();
+            services.AddScoped<IDeliveredShipmentService, DeliveredShipmentService>();
+            services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IStatusChangedShipmentService, StatusChangedShipmentService>();
 
             // 📦 Job Stats servisleri
             services.AddScoped<IJobStatsService, JobStatsService>();
 
+
+            // 🔑 DHL servisleri
+            services.AddScoped<IShipmentByDateService, ShipmentByDateService>();
+            services.AddScoped<IDeliveredShipmentService, DeliveredShipmentService>();
+
+            // 🔑 MNG servisleri
+
+            // 🔐 Ortak Auth
+            services.AddScoped<IAuthService, AuthService>();
+
+            // 📦 Job Stats
+            services.AddScoped<IJobStatsService, JobStatsService>();
+
+
+
+
             // 📦 Recurring Job (DHL → Shopify sync job)
             services.AddScoped<IRecurringJob, DhlShopifySyncJob>();
-            services.AddScoped<DhlShopifySyncJob>(); // direkt job enjekte etmek için de ekledik
+            services.AddScoped<DhlShopifySyncJob>(); // direkt job enjekte etmek için
 
             // JWT authentication Program.cs’de
             services.AddHttpContextAccessor();

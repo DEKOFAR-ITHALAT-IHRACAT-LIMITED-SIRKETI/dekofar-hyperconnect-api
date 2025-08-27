@@ -1,4 +1,4 @@
-﻿namespace Dekofar.HyperConnect.Integrations.Kargo.Dhl.Models
+﻿namespace Dekofar.HyperConnect.Integrations.Kargo.Dhl.Auth.Models
 {
     public class TokenResponse
     {

@@ -1,6 +1,6 @@
 ﻿using Dekofar.HyperConnect.Application.Common.Interfaces;
 using Dekofar.HyperConnect.Infrastructure.Services;
-using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Interfaces;
+using Dekofar.HyperConnect.Integrations.Kargo.Dhl.BulkQuery;
 using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
 using Microsoft.Extensions.Logging;
 using System;
@@ -17,13 +17,13 @@ namespace Dekofar.HyperConnect.Infrastructure.Jobs
     /// </summary>
     public class DhlShopifySyncJob : IRecurringJob
     {
-        private readonly IDhlKargoDeliveredShipmentService _dhlService;
+        private readonly IDeliveredShipmentService _dhlService;
         private readonly IShopifyService _shopifyService;
         private readonly IJobStatsService _statsService;
         private readonly ILogger<DhlShopifySyncJob> _logger;
 
         public DhlShopifySyncJob(
-            IDhlKargoDeliveredShipmentService dhlService,
+            IDeliveredShipmentService dhlService,
             IShopifyService shopifyService,
             IJobStatsService statsService,
             ILogger<DhlShopifySyncJob> logger)
@@ -39,17 +39,16 @@ namespace Dekofar.HyperConnect.Infrastructure.Jobs
         /// </summary>
         public async Task RunAsync(CancellationToken cancellationToken = default)
         {
-            var todayDeliveries = await _dhlService.GetDeliveredShipmentsByDateAsync(DateTime.Today);
+            var todayDeliveries = await _dhlService.GetDeliveredShipmentsAsync(DateTime.Today.ToString("dd-MM-yyyy"));
 
             foreach (var delivery in todayDeliveries)
             {
-                var trackingNumber = delivery.shipment?.shipmentId; // DHL gönderi no
-                var code = delivery.shipment?.shipmentStatusCode;
+                var trackingNumber = delivery.Shipment?.ShipmentId;
+                var code = delivery.Shipment?.ShipmentStatusCode;
 
                 if (string.IsNullOrEmpty(trackingNumber))
                     continue;
 
-                // Shopify siparişini tracking no ile bul
                 var shopifyOrderId = await _shopifyService.GetOrderIdByTrackingNumberAsync(trackingNumber, cancellationToken);
                 if (shopifyOrderId == null)
                 {
@@ -57,7 +56,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Jobs
                     continue;
                 }
 
-                if (code == 5) // DHL: Ödendi
+                if (code == 5)
                 {
                     var ok = await _shopifyService.MarkOrderAsPaidAsync(shopifyOrderId.Value, cancellationToken);
                     if (ok)
@@ -66,7 +65,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Jobs
                         _logger.LogInformation("✅ Sipariş {OrderId} 'Paid' işaretlendi. TrackingNo: {TrackingNo}", shopifyOrderId, trackingNumber);
                     }
                 }
-                else if (code == 7) // DHL: İptal
+                else if (code == 7)
                 {
                     var ok = await _shopifyService.UpdateOrderTagsAsync(shopifyOrderId.Value, "İptal", cancellationToken);
                     if (ok)
@@ -80,17 +79,18 @@ namespace Dekofar.HyperConnect.Infrastructure.Jobs
 
         /// <summary>
         /// Belirtilen tarih için DHL → Shopify senkron çalıştırır.
-        /// Başarı ve hata detaylarını döner (UI modal için kullanılabilir).
         /// </summary>
-        public async Task<List<(string TrackingNumber, long? ShopifyOrderId, bool Success, string? Error)>> RunForDateAsync(DateTime date, CancellationToken ct = default)
+        public async Task<List<(string TrackingNumber, long? ShopifyOrderId, bool Success, string? Error)>> RunForDateAsync(
+            DateTime date,
+            CancellationToken ct = default)
         {
             var results = new List<(string, long?, bool, string?)>();
-            var deliveries = await _dhlService.GetDeliveredShipmentsByDateAsync(date);
+            var deliveries = await _dhlService.GetDeliveredShipmentsAsync(date.ToString("dd-MM-yyyy"));
 
             foreach (var delivery in deliveries)
             {
-                var trackingNumber = delivery.shipment?.shipmentId;
-                var code = delivery.shipment?.shipmentStatusCode;
+                var trackingNumber = delivery.Shipment?.ShipmentId;
+                var code = delivery.Shipment?.ShipmentStatusCode;
 
                 if (string.IsNullOrEmpty(trackingNumber))
                 {
@@ -108,7 +108,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Jobs
                         continue;
                     }
 
-                    if (code == 5) // DHL: Ödendi
+                    if (code == 5)
                     {
                         var ok = await _shopifyService.MarkOrderAsPaidAsync(shopifyOrderId.Value, ct);
                         if (ok)
@@ -121,7 +121,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Jobs
                             results.Add((trackingNumber, shopifyOrderId, false, "Shopify ödeme işaretleme başarısız"));
                         }
                     }
-                    else if (code == 7) // DHL: İptal
+                    else if (code == 7)
                     {
                         var ok = await _shopifyService.UpdateOrderTagsAsync(shopifyOrderId.Value, "İptal", ct);
                         if (ok)

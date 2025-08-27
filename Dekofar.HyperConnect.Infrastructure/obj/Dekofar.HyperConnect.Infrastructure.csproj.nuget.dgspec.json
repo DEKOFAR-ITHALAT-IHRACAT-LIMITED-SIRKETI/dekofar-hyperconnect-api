@@ -10,9 +10,12 @@
         "projectUniqueName": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Application\\Dekofar.HyperConnect.Application.csproj",
         "projectName": "Dekofar.HyperConnect.Application",
         "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Application\\Dekofar.HyperConnect.Application.csproj",
-        "packagesPath": "D:\\root\\.nuget\\packages",
+        "packagesPath": "C:\\Users\\recep\\.nuget\\packages\\",
         "outputPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Application\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
           "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\NuGet.Config",
           "C:\\Users\\recep\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -125,9 +128,12 @@
         "projectUniqueName": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj",
         "projectName": "Dekofar.HyperConnect.Domain",
         "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj",
-        "packagesPath": "D:\\root\\.nuget\\packages",
+        "packagesPath": "C:\\Users\\recep\\.nuget\\packages\\",
         "outputPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
           "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\NuGet.Config",
           "C:\\Users\\recep\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -196,9 +202,12 @@
         "projectUniqueName": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
         "projectName": "Dekofar.HyperConnect.Infrastructure",
         "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
-        "packagesPath": "D:\\root\\.nuget\\packages",
+        "packagesPath": "C:\\Users\\recep\\.nuget\\packages\\",
         "outputPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
           "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\NuGet.Config",
           "C:\\Users\\recep\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -305,9 +314,12 @@
         "projectUniqueName": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Integrations\\Dekofar.HyperConnect.Integrations.csproj",
         "projectName": "Dekofar.HyperConnect.Integrations",
         "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Integrations\\Dekofar.HyperConnect.Integrations.csproj",
-        "packagesPath": "D:\\root\\.nuget\\packages",
+        "packagesPath": "C:\\Users\\recep\\.nuget\\packages\\",
         "outputPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Integrations\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
           "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\NuGet.Config",
           "C:\\Users\\recep\\AppData\\Roaming\\NuGet\\NuGet.Config",
