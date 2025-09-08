@@ -13,8 +13,8 @@ using Dekofar.HyperConnect.Integrations.Kargo.Dhl.BulkQuery.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.BulkQuery.Services;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.CBSInfo.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.CBSInfo.Services;
-using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces;
-using Dekofar.HyperConnect.Integrations.NetGsm.Services;
+using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
+using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -97,8 +97,10 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IAllowedAdminIpService, AllowedAdminIpService>();
 
             // 📞 NetGSM servisleri
-            services.AddScoped<INetGsmCallService, NetGsmCallService>();
-            services.AddScoped<INetGsmSmsService, NetGsmSmsService>();
+
+            services.AddTransient<INetGsmSmsService, NetGsmSmsInboxService>();
+            services.AddTransient<INetGsmSmsService, NetGsmSmsSendService>();
+
 
             // 🔑 Token & kullanıcı servisleri
             services.AddScoped<ITokenService, TokenService>();
