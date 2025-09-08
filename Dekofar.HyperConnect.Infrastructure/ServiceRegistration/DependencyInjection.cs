@@ -9,7 +9,10 @@ using Dekofar.HyperConnect.Infrastructure.Services;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Auth.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Auth.Services;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.BulkQuery;
+using Dekofar.HyperConnect.Integrations.Kargo.Dhl.BulkQuery.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.BulkQuery.Services;
+using Dekofar.HyperConnect.Integrations.Kargo.Dhl.CBSInfo.Interfaces;
+using Dekofar.HyperConnect.Integrations.Kargo.Dhl.CBSInfo.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services;
 using MediatR;
@@ -61,8 +64,11 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             // 🔑 DHL servisleri
             services.AddScoped<IShipmentByDateService, ShipmentByDateService>();
             services.AddScoped<IDeliveredShipmentService, DeliveredShipmentService>();
+            services.AddScoped<IStatusChangedShipmentService, StatusChangedShipmentService>();
+            services.AddScoped<IShipmentByDateDetailService, ShipmentByDateDetailService>();
+            services.AddScoped<ICbsInfoService, CbsInfoService>();
 
-            // 🔑 MNG servisleri
+
 
             // 🔐 Ortak Auth
             services.AddScoped<IAuthService, AuthService>();

@@ -18,11 +18,15 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.ResponseCompression;   // ✅ Response Compression
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
+using System.IO.Compression;                      // ✅ Compression level
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;                                 // ✅ DecompressionMethods
+using System.Net.Http;                            // ✅ SocketsHttpHandler
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
@@ -78,11 +82,20 @@ builder.Services.AddHangfireServer();
 //
 // 📬 Entegrasyon Servisleri
 //
+builder.Services.AddScoped(typeof(INotificationService), typeof(NotificationService));
+builder.Services.AddScoped(typeof(IDashboardService), typeof(DashboardService));
+builder.Services.AddScoped(typeof(IModerationService), typeof(ModerationService));
 builder.Services.AddScoped<INetGsmSmsService, NetGsmSmsService>();
-builder.Services.AddHttpClient<IShopifyService, ShopifyService>();
-builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddScoped<IDashboardService, DashboardService>();
-builder.Services.AddScoped<IModerationService, ModerationService>();
+
+// ✅ Shopify HttpClient: otomatik gzip/deflate, connection pooling (servis içinde header’lar zaten set ediliyor)
+builder.Services.AddHttpClient<IShopifyService, ShopifyService>()
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+    {
+        AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+        PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(5),
+        MaxConnectionsPerServer = 10
+    });
 
 //
 // 📡 Controllers & JSON
@@ -95,6 +108,25 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddSignalR();
+
+//
+// 🧠 Response Caching & Compression (🔑 Controller’daki [ResponseCache] için gerekli)
+//
+builder.Services.AddResponseCaching(options =>
+{
+    // Büyük JSON cevaplar için üst sınır; gerekirse arttırın
+    options.MaximumBodySize = 5 * 1024 * 1024; // 5 MB
+    options.UseCaseSensitivePaths = false;
+});
+
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    // JSON’u da sıkıştır (Swagger, HTML vb. zaten default listede)
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/json" });
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
 
 //
 // 📘 Swagger + JWT
@@ -168,10 +200,19 @@ app.UseSwaggerUI(c =>
 });
 
 //
+// 🔽 Response Compression erken devreye
+//
+app.UseResponseCompression();
+
+//
 // 🌐 Orta Katmanlar
 //
 app.UseCors(MyAllowSpecificOrigins);
 app.UseHttpsRedirection();
+
+// ✅ Response Caching (Controller’daki [ResponseCache] ile çalışır)
+app.UseResponseCaching();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -195,14 +236,12 @@ app.MapGet("/", () => Results.Redirect("/swagger"));
 app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTime.UtcNow }));
 
 ////
-//// ⏱️ Recurring Jobs
-////
-//RecurringJob.AddOrUpdate<DhlShopifySyncJob>(
-//    "dhl-shopify-sync",
-//    job => job.RunAsync(CancellationToken.None),
-//    "*/5 * * * *"   // ⏳ her 5 dakikada bir (test için)
-//);
-
+// ⏱️ Recurring Jobs (örnek)
+// RecurringJob.AddOrUpdate<DhlShopifySyncJob>(
+//     "dhl-shopify-sync",
+//     job => job.RunAsync(CancellationToken.None),
+//     "*/5 * * * *"   // her 5 dakikada bir (test için)
+//// );
 
 //
 // 🚀 Run

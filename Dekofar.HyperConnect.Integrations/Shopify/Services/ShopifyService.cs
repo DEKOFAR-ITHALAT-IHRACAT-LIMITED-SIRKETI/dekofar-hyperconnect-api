@@ -955,5 +955,307 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Services
             return true;
         }
 
+
+
+
+
+
+
+
+
+
+        // ----------------- Helpers -----------------
+        private static HashSet<string> ParseSet(string? csv)
+        {
+            return string.IsNullOrWhiteSpace(csv)
+                ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                : csv.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                     .Select(s => s.Trim())
+                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
+        // fulfillment_status normalize: null/"" → unfulfilled
+        private static string NormalizeFulfillment(string? f)
+        {
+            var v = (f ?? "").Trim().ToLowerInvariant();
+            return string.IsNullOrEmpty(v) ? "unfulfilled" : v;
+        }
+
+        // UTC/yerel farklarına takılmamak için ISO string'i güvenle filtrele
+        private static bool InRangeByIso(string? iso, DateTime? startUtc, DateTime? endUtc)
+        {
+            if (string.IsNullOrWhiteSpace(iso)) return false;
+            if (!DateTimeOffset.TryParse(iso, out var dto)) return false;
+            var t = dto.UtcDateTime;
+
+            if (startUtc.HasValue && t < startUtc.Value) return false;
+            if (endUtc.HasValue && t >= endUtc.Value) return false;
+            return true;
+        }
+
+        // ---- Cache key helper ----
+        private static string CacheKeyForSummary(DateTime? s, DateTime? e, string? fin, string? ful, string? st)
+        {
+            string ks = s?.ToUniversalTime().ToString("O") ?? "-";
+            string ke = e?.ToUniversalTime().ToString("O") ?? "-";
+            return $"shopify_order_items_summary::{ks}::{ke}::{fin ?? "-"}::{ful ?? "-"}::{st ?? "-"}";
+        }
+
+        // ---- Media batch helper’ları ----
+        private sealed class ProductImageMaps
+        {
+            public string? FirstImage { get; init; }
+            public Dictionary<long, string> ImageMap { get; init; } = new();        // image_id -> src
+            public Dictionary<long, long?> VariantImageMap { get; init; } = new();  // variant_id -> image_id?
+        }
+
+        private async Task<Dictionary<long, ProductImageMaps>> GetProductMediaBatchAsync(
+            IEnumerable<long> productIds, CancellationToken ct)
+        {
+            var distinct = productIds.Where(id => id > 0).Distinct().ToArray();
+            var result = new Dictionary<long, ProductImageMaps>();
+            if (distinct.Length == 0) return result;
+
+            // Aynı anda en fazla 6 istek
+            var sem = new SemaphoreSlim(6);
+            var tasks = new List<Task>();
+
+            foreach (var pid in distinct)
+            {
+                tasks.Add(Task.Run(async () =>
+                {
+                    var cacheKey = $"shopify_product_media::{pid}";
+                    if (_memoryCache.TryGetValue(cacheKey, out ProductImageMaps cached))
+                    {
+                        lock (result) result[pid] = cached;
+                        return;
+                    }
+
+                    await sem.WaitAsync(ct);
+                    try
+                    {
+                        // ⬇️ Sadece gerekli alanlar: images + variants
+                        var resp = await _httpClient.GetAsync(
+                            $"/admin/api/2024-04/products/{pid}.json?fields=images,variants", ct);
+
+                        if (!resp.IsSuccessStatusCode) return;
+
+                        var json = await resp.Content.ReadAsStringAsync(ct);
+                        dynamic product = JsonConvert.DeserializeObject<dynamic>(json)?.product;
+                        if (product == null) return;
+
+                        string? firstImage = (product.images != null && product.images.Count > 0)
+                            ? (string)product.images[0].src
+                            : null;
+
+                        var imageMap = new Dictionary<long, string>();
+                        if (product.images != null)
+                            foreach (var img in product.images)
+                                imageMap[(long)img.id] = (string)img.src;
+
+                        var variantImageMap = new Dictionary<long, long?>();
+                        if (product.variants != null)
+                            foreach (var v in product.variants)
+                                variantImageMap[(long)v.id] = v.image_id != null ? (long?)v.image_id : null;
+
+                        var pack = new ProductImageMaps
+                        {
+                            FirstImage = firstImage,
+                            ImageMap = imageMap,
+                            VariantImageMap = variantImageMap
+                        };
+
+                        // Ürün medyasını 20 dk cachele
+                        _memoryCache.Set(cacheKey, pack, TimeSpan.FromMinutes(20));
+
+                        lock (result) result[pid] = pack;
+                    }
+                    catch
+                    {
+                        // tek ürün hatası akışı bozmasın
+                    }
+                    finally
+                    {
+                        sem.Release();
+                    }
+                }, ct));
+            }
+
+            await Task.WhenAll(tasks);
+            return result;
+        }
+
+        // ---- Dar pencere sipariş getirme + cache ----
+        private async Task<List<Order>> GetOrdersWindowCachedAsync(
+            DateTime? startUtc, DateTime? endUtc, CancellationToken ct)
+        {
+            var key = $"shopify_orders::{startUtc?.ToString("O") ?? "-"}::{endUtc?.ToString("O") ?? "-"}";
+            if (_memoryCache.TryGetValue(key, out List<Order> cached))
+                return cached;
+
+            var all = new List<Order>();
+            string? next = null;
+            bool first = true;
+
+            // İlk sayfada sadece gerekli alanları iste (fields):
+            // line_items gerekiyor → alt alan kısıtlayamıyoruz, ama toplam payload yine de azalır.
+            var qs = new List<string>
+    {
+        "limit=250",
+        "status=any",
+        "order=created_at+desc",
+        "fields=id,created_at,financial_status,fulfillment_status,cancelled_at,cancel_reason,closed_at,line_items"
+    };
+            if (startUtc.HasValue) qs.Add($"created_at_min={Uri.EscapeDataString(startUtc.Value.ToString("o"))}");
+            if (endUtc.HasValue) qs.Add($"created_at_max={Uri.EscapeDataString(endUtc.Value.ToString("o"))}");
+
+            int pages = 0, maxPages = 8; // İhtiyaca göre sınır
+
+            do
+            {
+                string url = first
+                    ? $"/admin/api/2024-04/orders.json?{string.Join("&", qs)}"
+                    : $"/admin/api/2024-04/orders.json?limit=250&page_info={WebUtility.UrlEncode(next)}";
+
+                first = false;
+
+                var resp = await _httpClient.GetAsync(url, ct);
+                resp.EnsureSuccessStatusCode();
+
+                var json = await resp.Content.ReadAsStringAsync(ct);
+                var result = JsonConvert.DeserializeObject<OrdersResponse>(json);
+                if (result?.Orders != null) all.AddRange(result.Orders);
+
+                next = null;
+                if (resp.Headers.TryGetValues("Link", out var links))
+                {
+                    var m = Regex.Match(links.FirstOrDefault() ?? "", @"<[^>]+page_info=([^&>]+)[^>]*>; rel=""next""");
+                    if (m.Success) next = m.Groups[1].Value;
+                }
+
+                pages++;
+            } while (!string.IsNullOrEmpty(next) && pages < maxPages);
+
+            _memoryCache.Set(key, all, TimeSpan.FromMinutes(5));
+            return all;
+        }
+
+
+        // ----------------- ANA SERVİS METODU -----------------
+        public async Task<List<ShopifyOrderItemSummaryDto>> GetOrderItemsSummaryAsync(
+            DateTime? start = null,
+            DateTime? end = null,
+            string? financialCsv = null,    // ör: "pending,authorized,paid,partially_paid,partially_refunded"
+            string? fulfillmentCsv = null,  // ör: "unfulfilled,partial"
+            string? statusCsv = null,       // ör: "open"
+            CancellationToken ct = default)
+        {
+            // 0) Kısa ömürlü summary cache
+            var cacheKey = CacheKeyForSummary(start, end, financialCsv, fulfillmentCsv, statusCsv);
+            if (_memoryCache.TryGetValue(cacheKey, out List<ShopifyOrderItemSummaryDto> cached))
+                return cached;
+
+            // 1) Tarih filtresi — siparişleri dar pencerede getir (server-side fields ile)
+            DateTime? startUtc = start?.ToUniversalTime();
+            DateTime? endUtc = end?.ToUniversalTime();
+            var orders = await GetOrdersWindowCachedAsync(startUtc, endUtc, ct);
+
+            // 2) İptalleri HER ZAMAN dışla (cancelled/cancel_reason) + financial_status=voided
+            orders = orders.Where(o =>
+            {
+                var isCancelled = !string.IsNullOrWhiteSpace(o.CancelledAt)
+                                  || !string.IsNullOrWhiteSpace(o.CancelReason);
+                var fin = (o.FinancialStatus ?? "").Trim().ToLowerInvariant();
+                var isVoided = fin == "voided";
+                return !isCancelled && !isVoided;
+            }).ToList();
+
+            // 3) "open" istenirse: closed_at boş olanlar (cancelled zaten dışlandı)
+            var statusSet = ParseSet(statusCsv);
+            if (statusSet.Count > 0 && statusSet.Contains("open"))
+                orders = orders.Where(o => string.IsNullOrWhiteSpace(o.ClosedAt)).ToList();
+
+            // 4) Ödeme (çoklu) — HashSet zaten case-insensitive
+            var finSet = ParseSet(financialCsv);
+            if (finSet.Count > 0)
+                orders = orders.Where(o => finSet.Contains((o.FinancialStatus ?? "").Trim())).ToList();
+
+            // 5) Gönderim (çoklu) — boş/null → unfulfilled say
+            var fullSet = ParseSet(fulfillmentCsv);
+            if (fullSet.Count > 0)
+                orders = orders.Where(o => fullSet.Contains(NormalizeFulfillment(o.FulfillmentStatus))).ToList();
+
+            // 6) Ürün + Varyant bazlı grupla
+            var dict = new Dictionary<(long ProductId, long? VariantId, string Title, string? VariantTitle), int>();
+            foreach (var o in orders)
+            {
+                if (o.LineItems == null) continue;
+                foreach (var li in o.LineItems)
+                {
+                    var key = (li.ProductId, li.VariantId, li.Title ?? "", li.VariantTitle);
+                    dict.TryGetValue(key, out var q);
+                    dict[key] = q + li.Quantity;
+                }
+            }
+
+            var result = dict
+                .OrderByDescending(kv => kv.Value)
+                .Select(kv => new ShopifyOrderItemSummaryDto
+                {
+                    ProductId = kv.Key.ProductId,
+                    VariantId = kv.Key.VariantId,
+                    Title = kv.Key.Title,
+                    VariantTitle = kv.Key.VariantTitle,
+                    TotalQuantity = kv.Value
+                })
+                .ToList();
+
+            // 7) Görselleri BAĞLA — tek batch + cache
+            var productIds = result.Select(r => r.ProductId).Distinct();
+            var mediaMaps = await GetProductMediaBatchAsync(productIds, ct);
+
+            foreach (var row in result)
+            {
+                if (!mediaMaps.TryGetValue(row.ProductId, out var pack))
+                    continue;
+
+                if (row.VariantId.HasValue &&
+                    pack.VariantImageMap.TryGetValue(row.VariantId.Value, out var imgId) &&
+                    imgId.HasValue &&
+                    pack.ImageMap.TryGetValue(imgId.Value, out var src))
+                {
+                    row.ImageUrl = src;
+                }
+                else
+                {
+                    row.ImageUrl = pack.FirstImage;
+                }
+            }
+
+            // 8) Sonucu kısa ömürlü cache’e koy
+            _memoryCache.Set(cacheKey, result, new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60),
+                SlidingExpiration = TimeSpan.FromSeconds(30)
+            });
+
+            return result;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
 }

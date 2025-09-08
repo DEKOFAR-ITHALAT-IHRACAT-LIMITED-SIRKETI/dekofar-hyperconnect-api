@@ -32,5 +32,18 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Interfaces
         Task<List<ShopifyOrderLiteDto>> SearchOrdersLiteAsync(string query, CancellationToken ct = default);
         Task<long?> GetOrderIdByTrackingNumberAsync(string trackingNumber, CancellationToken cancellationToken = default);
         Task<bool> MarkOrderAsPaidAsync(long orderId, CancellationToken ct = default); // ✅ DOĞRU HALİ BU
+
+
+
+        Task<List<ShopifyOrderItemSummaryDto>> GetOrderItemsSummaryAsync(
+            DateTime? start = null,
+            DateTime? end = null,
+            string? financialCsv = null,    // örn: "pending,authorized,paid,partially_paid,partially_refunded"
+            string? fulfillmentCsv = null,  // örn: "unfulfilled,partial"
+            string? statusCsv = null,       // örn: "open"
+            CancellationToken ct = default
+        );
+
+
     }
 }

@@ -47,4 +47,14 @@ public class Order
     [JsonProperty("line_items")]
     public List<LineItem> LineItems { get; set; } = new(); // 👈 Ürünler
     public string Name { get; internal set; }
+
+
+    [JsonProperty("cancelled_at")]
+    public string? CancelledAt { get; set; }  // ISO tarih ya da null
+
+    [JsonProperty("closed_at")]
+    public string? ClosedAt { get; set; }     // ISO tarih ya da null
+
+    [JsonProperty("cancel_reason")]
+    public string? CancelReason { get; set; } // "customer", "fraud", ... ya da null
 }

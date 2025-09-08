@@ -4,6 +4,8 @@ using Dekofar.HyperConnect.Integrations.Shopify.Models.Shopify;
 using Dekofar.HyperConnect.Integrations.Shopify.Models.Shopify.Dto;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
+using System.Text;
 
 namespace Dekofar.API.Controllers.Integrations
 {
@@ -221,6 +223,94 @@ namespace Dekofar.API.Controllers.Integrations
             return Ok(new { message = "🧹 Cache temizlendi." });
         }
 
+        /// <summary>
+        /// Son X gün için (varsayılan 30) gönderilmemiş/kısmen gönderilmiş ürün bazlı sipariş özeti.
+        /// İptal edilmiş ve financial_status=voided siparişler her zaman hariç tutulur.
+        /// </summary>
+        [HttpGet("order-items/summary")]
+        [ProducesResponseType(typeof(List<ShopifyOrderItemSummaryDto>), StatusCodes.Status200OK)]
+        [ResponseCache(Duration = 30, Location = ResponseCacheLocation.Any,
+            VaryByQueryKeys = new[] { "days", "status", "financial", "fulfillment" })]
+        public async Task<IActionResult> GetOrderItemsSummary(
+            [FromQuery] int days = 30,
+            [FromQuery] string? status = "open",
+            [FromQuery] string? financial = "pending,authorized,paid,partially_paid,partially_refunded",
+            [FromQuery] string? fulfillment = "unfulfilled,partial",
+            CancellationToken ct = default)
+        {
+            // Guardrails
+            if (days <= 0) days = 30;
+            if (days > 365) days = 365;
 
+            var end = DateTime.UtcNow;
+            var start = end.AddDays(-Math.Abs(days));
+
+            try
+            {
+                var items = await _shopifyService.GetOrderItemsSummaryAsync(
+                    start: start,
+                    end: end,
+                    financialCsv: financial,
+                    fulfillmentCsv: fulfillment,
+                    statusCsv: status,
+                    ct: ct);
+
+                return Ok(items);
+            }
+            catch (OperationCanceledException)
+            {
+                // İstemci bağlantıyı kapattı vb.
+                return StatusCode(StatusCodes.Status499ClientClosedRequest);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "GET /order-items/summary failed. days={Days}, status={Status}, financial={Financial}, fulfillment={Fulfillment}",
+                    days, status, financial, fulfillment);
+
+                return Problem("Shopify sipariş özeti alınamadı.");
+            }
+        }
+
+        /// <summary>
+        /// İsteğe bağlı: Doğrudan tarih aralığı vererek özet almak için alternatif uç.
+        /// </summary>
+        [HttpGet("order-items/summary-by-range")]
+        [ProducesResponseType(typeof(List<ShopifyOrderItemSummaryDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetOrderItemsSummaryByRange(
+            [FromQuery] DateTime? start = null,
+            [FromQuery] DateTime? end = null,
+            [FromQuery] string? status = "open",
+            [FromQuery] string? financial = "pending,authorized,paid,partially_paid,partially_refunded",
+            [FromQuery] string? fulfillment = "unfulfilled,partial",
+            CancellationToken ct = default)
+        {
+            var endUtc = (end ?? DateTime.UtcNow);
+            var startUtc = (start ?? endUtc.AddDays(-30));
+
+            try
+            {
+                var items = await _shopifyService.GetOrderItemsSummaryAsync(
+                    start: startUtc,
+                    end: endUtc,
+                    financialCsv: financial,
+                    fulfillmentCsv: fulfillment,
+                    statusCsv: status,
+                    ct: ct);
+
+                return Ok(items);
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(StatusCodes.Status499ClientClosedRequest);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GET /order-items/summary-by-range failed. start={Start}, end={End}", start, end);
+                return Problem("Shopify sipariş özeti alınamadı.");
+            }
+        }
     }
+
+
 }
