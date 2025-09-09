@@ -13,6 +13,8 @@ using Dekofar.HyperConnect.Integrations.Kargo.Dhl.BulkQuery.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.BulkQuery.Services;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.CBSInfo.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.CBSInfo.Services;
+using Dekofar.HyperConnect.Integrations.Kargo.Dhl.StandardQuery.Interfaces;
+using Dekofar.HyperConnect.Integrations.Kargo.Dhl.StandardQuery.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
 using MediatR;
@@ -21,9 +23,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-
-
-// ✅ Alias tanımı: sadece Bulk_Query altındaki interface kullanılacak
 
 namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
 {
@@ -50,34 +49,25 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-
-            // 🔑 Alias ile doğru interface kullanımı
-            services.AddScoped<IShipmentByDateService, ShipmentByDateService>();
-            services.AddScoped<IDeliveredShipmentService, DeliveredShipmentService>();
-            services.AddScoped<IAuthService, AuthService>();
-            services.AddScoped<IStatusChangedShipmentService, StatusChangedShipmentService>();
-
-            // 📦 Job Stats servisleri
-            services.AddScoped<IJobStatsService, JobStatsService>();
-
-
             // 🔑 DHL servisleri
             services.AddScoped<IShipmentByDateService, ShipmentByDateService>();
             services.AddScoped<IDeliveredShipmentService, DeliveredShipmentService>();
             services.AddScoped<IStatusChangedShipmentService, StatusChangedShipmentService>();
             services.AddScoped<IShipmentByDateDetailService, ShipmentByDateDetailService>();
             services.AddScoped<ICbsInfoService, CbsInfoService>();
-
-
-
-            // 🔐 Ortak Auth
             services.AddScoped<IAuthService, AuthService>();
+
+            // 📦 DHL StandardQuery servisleri
+            services.AddScoped<IGetOrderService, GetOrderService>();
+            services.AddScoped<IGetShipmentService, GetShipmentService>();
+            services.AddScoped<IGetShipmentByShipmentIdService, GetShipmentByShipmentIdService>();
+            services.AddScoped<IGetShipmentStatusByReferenceIdService, GetShipmentStatusByReferenceIdService>();
+            services.AddScoped<IGetShipmentStatusByShipmentIdService, GetShipmentStatusByShipmentIdService>();
+            services.AddScoped<ITrackShipmentByReferenceIdService, TrackShipmentByReferenceIdService>();
+            services.AddScoped<ITrackShipmentByShipmentIdService, TrackShipmentByShipmentIdService>();
 
             // 📦 Job Stats
             services.AddScoped<IJobStatsService, JobStatsService>();
-
-
-
 
             // 📦 Recurring Job (DHL → Shopify sync job)
             services.AddScoped<IRecurringJob, DhlShopifySyncJob>();
@@ -97,10 +87,8 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IAllowedAdminIpService, AllowedAdminIpService>();
 
             // 📞 NetGSM servisleri
-
             services.AddTransient<INetGsmSmsService, NetGsmSmsInboxService>();
             services.AddTransient<INetGsmSmsService, NetGsmSmsSendService>();
-
 
             // 🔑 Token & kullanıcı servisleri
             services.AddScoped<ITokenService, TokenService>();

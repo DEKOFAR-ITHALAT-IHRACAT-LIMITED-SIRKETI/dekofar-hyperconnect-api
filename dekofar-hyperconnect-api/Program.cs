@@ -156,6 +156,9 @@ builder.Services.AddSwaggerGen(c =>
     c.UseAllOfToExtendReferenceSchemas();
     c.DescribeAllParametersInCamelCase();
 
+    // 🔑 ÇAKIŞMALARI ENGELLEMEK İÇİN
+    c.CustomSchemaIds(type => type.FullName);
+
     // XML yorumlarını yalnızca dosya varsa ekle (prod'da güvenli)
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
@@ -164,6 +167,7 @@ builder.Services.AddSwaggerGen(c =>
         c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
     }
 });
+
 
 //
 // 📋 Logging
