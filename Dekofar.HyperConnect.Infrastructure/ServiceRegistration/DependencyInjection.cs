@@ -15,6 +15,11 @@ using Dekofar.HyperConnect.Integrations.Kargo.Dhl.CBSInfo.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.CBSInfo.Services;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.StandardQuery.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.StandardQuery.Services;
+using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Auth;
+using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Shipment.Interfaces;
+using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Shipment.Services;
+using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Interfaces;
+using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
 using MediatR;
@@ -65,6 +70,16 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IGetShipmentStatusByShipmentIdService, GetShipmentStatusByShipmentIdService>();
             services.AddScoped<ITrackShipmentByReferenceIdService, TrackShipmentByReferenceIdService>();
             services.AddScoped<ITrackShipmentByShipmentIdService, TrackShipmentByShipmentIdService>();
+
+            // 📦 PTT servisleri
+            // 📦 PTT servisleri
+            services.AddScoped<IPttAuthService, PttAuthService>(); // önce Auth
+            services.AddHttpClient<IPttShipmentService, PttShipmentService>(); // gönderi yükleme
+            services.AddHttpClient<IPttDeleteService, PttDeleteService>();     // silme
+            services.AddHttpClient<IPttTrackingService, PttTrackingService>(); // 🔹 takip
+
+
+            // ileride: services.AddHttpClient<IPttDeleteService, PttDeleteService>();
 
             // 📦 Job Stats
             services.AddScoped<IJobStatsService, JobStatsService>();
