@@ -10,3 +10,15 @@ D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\refint\Dekofar.HyperConnect.Shared.dll
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.pdb
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\ref\Dekofar.HyperConnect.Shared.dll
+C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\bin\Debug\net8.0\Dekofar.HyperConnect.Shared.deps.json
+C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\bin\Debug\net8.0\Dekofar.HyperConnect.Shared.dll
+C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\bin\Debug\net8.0\Dekofar.HyperConnect.Shared.pdb
+C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.AssemblyInfoInputs.cache
+C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.AssemblyInfo.cs
+C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.csproj.CoreCompileInputs.cache
+C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.sourcelink.json
+C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.dll
+C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\refint\Dekofar.HyperConnect.Shared.dll
+C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\Dekofar.HyperConnect.Shared.pdb
+C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Shared\obj\Debug\net8.0\ref\Dekofar.HyperConnect.Shared.dll
