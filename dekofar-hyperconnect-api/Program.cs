@@ -8,8 +8,6 @@ using Dekofar.HyperConnect.Application.Services;
 using Dekofar.HyperConnect.Infrastructure.Jobs;
 using Dekofar.HyperConnect.Infrastructure.ServiceRegistration;
 using Dekofar.HyperConnect.Infrastructure.Services;
-using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces;
-using Dekofar.HyperConnect.Integrations.NetGsm.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
 using Dekofar.HyperConnect.Integrations.Shopify.Services;
 using Hangfire;
@@ -30,6 +28,8 @@ using System.Net.Http;                            // ✅ SocketsHttpHandler
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
+using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
+using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -85,7 +85,6 @@ builder.Services.AddHangfireServer();
 builder.Services.AddScoped(typeof(INotificationService), typeof(NotificationService));
 builder.Services.AddScoped(typeof(IDashboardService), typeof(DashboardService));
 builder.Services.AddScoped(typeof(IModerationService), typeof(ModerationService));
-builder.Services.AddScoped<INetGsmSmsService, NetGsmSmsService>();
 
 // ✅ Shopify HttpClient: otomatik gzip/deflate, connection pooling (servis içinde header’lar zaten set ediliyor)
 builder.Services.AddHttpClient<IShopifyService, ShopifyService>()
@@ -157,6 +156,9 @@ builder.Services.AddSwaggerGen(c =>
     c.UseAllOfToExtendReferenceSchemas();
     c.DescribeAllParametersInCamelCase();
 
+    // 🔑 ÇAKIŞMALARI ENGELLEMEK İÇİN
+    c.CustomSchemaIds(type => type.FullName);
+
     // XML yorumlarını yalnızca dosya varsa ekle (prod'da güvenli)
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
@@ -165,6 +167,7 @@ builder.Services.AddSwaggerGen(c =>
         c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
     }
 });
+
 
 //
 // 📋 Logging

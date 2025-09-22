@@ -26,6 +26,10 @@
 	  <None Include="D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Integrations\Shopify\Models\Shopify\.editorconfig" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Kargo\Ptt\Tracking\" />
+	</ItemGroup>
+
 
 
 </Project>

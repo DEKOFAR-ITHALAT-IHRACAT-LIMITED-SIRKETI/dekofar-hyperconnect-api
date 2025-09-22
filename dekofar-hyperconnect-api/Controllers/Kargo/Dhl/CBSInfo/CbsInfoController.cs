@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace dekofar_hyperconnect_api.Controllers.Kargo.Dhl.CBSInfo
 {
     [ApiController]
-    [Route("api/kargo/mng/cbsinfo")]
+    [Route("api/kargo/dhl/cbsinfo")]
     public class CbsInfoController : ControllerBase
     {
         private readonly ICbsInfoService _cbsInfoService;
