@@ -187,9 +187,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 var app = builder.Build();
 
-//
-// 🧭 Forwarded Headers en başta
-//
+
 app.UseForwardedHeaders();
 
 //
