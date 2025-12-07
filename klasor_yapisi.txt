@@ -1,0 +1,1296 @@
+Folder PATH listing for volume Windows
+Volume serial number is 5283-F4E7
+C:.
+-   .dockerignore
+-   .gitignore
+-   dekofar-hyperconnect-api.sln
+-   Dockerfile
+-   global.json
+-   klasor_yapisi.txt
+-   NuGet.Config
+-   
++¦¦¦.github
+-   L¦¦¦workflows
+-           main_dekofar-hyperconnect-api.yml
+-           
++¦¦¦dekofar-hyperconnect-api
+-   -   appsettings.Development.json
+-   -   appsettings.json
+-   -   dekofar-hyperconnect-api.csproj
+-   -   dekofar-hyperconnect-api.csproj.user
+-   -   dekofar-hyperconnect-api.http
+-   -   Program.cs
+-   -   
+-   +¦¦¦Authorization
+-   -       ClaimsPrincipalExtensions.cs
+-   -       PermissionAuthorizationHandler.cs
+-   -       PermissionRequirement.cs
+-   -       
+-   +¦¦¦bin
+-   -   L¦¦¦Debug
+-   -       L¦¦¦net8.0
+-   -           -   appsettings.Development.json
+-   -           -   appsettings.json
+-   -           -   AutoMapper.dll
+-   -           -   AutoMapper.Extensions.Microsoft.DependencyInjection.dll
+-   -           -   Azure.Core.dll
+-   -           -   Bogus.dll
+-   -           -   dekofar-hyperconnect-api.deps.json
+-   -           -   dekofar-hyperconnect-api.dll
+-   -           -   dekofar-hyperconnect-api.exe
+-   -           -   dekofar-hyperconnect-api.pdb
+-   -           -   dekofar-hyperconnect-api.runtimeconfig.json
+-   -           -   dekofar-hyperconnect-api.xml
+-   -           -   Dekofar.HyperConnect.Application.dll
+-   -           -   Dekofar.HyperConnect.Application.pdb
+-   -           -   Dekofar.HyperConnect.Domain.dll
+-   -           -   Dekofar.HyperConnect.Domain.pdb
+-   -           -   Dekofar.HyperConnect.Infrastructure.dll
+-   -           -   Dekofar.HyperConnect.Infrastructure.pdb
+-   -           -   Dekofar.HyperConnect.Integrations.dll
+-   -           -   Dekofar.HyperConnect.Integrations.pdb
+-   -           -   Dekofar.HyperConnect.Shared.dll
+-   -           -   Dekofar.HyperConnect.Shared.pdb
+-   -           -   EntityFramework.dll
+-   -           -   EntityFramework.SqlServer.dll
+-   -           -   FluentValidation.AspNetCore.dll
+-   -           -   FluentValidation.DependencyInjectionExtensions.dll
+-   -           -   FluentValidation.dll
+-   -           -   Hangfire.AspNetCore.dll
+-   -           -   Hangfire.Core.dll
+-   -           -   Hangfire.MemoryStorage.dll
+-   -           -   Hangfire.NetCore.dll
+-   -           -   Humanizer.dll
+-   -           -   MediatR.Contracts.dll
+-   -           -   MediatR.dll
+-   -           -   MediatR.Extensions.Microsoft.DependencyInjection.dll
+-   -           -   Microsoft.AspNet.Identity.Core.dll
+-   -           -   Microsoft.AspNet.Identity.EntityFramework.dll
+-   -           -   Microsoft.AspNetCore.Authentication.JwtBearer.dll
+-   -           -   Microsoft.AspNetCore.Authorization.dll
+-   -           -   Microsoft.AspNetCore.Cryptography.Internal.dll
+-   -           -   Microsoft.AspNetCore.Cryptography.KeyDerivation.dll
+-   -           -   Microsoft.AspNetCore.Identity.EntityFrameworkCore.dll
+-   -           -   Microsoft.AspNetCore.JsonPatch.dll
+-   -           -   Microsoft.AspNetCore.Metadata.dll
+-   -           -   Microsoft.AspNetCore.Mvc.NewtonsoftJson.dll
+-   -           -   Microsoft.Bcl.AsyncInterfaces.dll
+-   -           -   Microsoft.Bcl.TimeProvider.dll
+-   -           -   Microsoft.CodeAnalysis.CSharp.dll
+-   -           -   Microsoft.CodeAnalysis.CSharp.Workspaces.dll
+-   -           -   Microsoft.CodeAnalysis.dll
+-   -           -   Microsoft.CodeAnalysis.Workspaces.dll
+-   -           -   Microsoft.EntityFrameworkCore.Abstractions.dll
+-   -           -   Microsoft.EntityFrameworkCore.Design.dll
+-   -           -   Microsoft.EntityFrameworkCore.dll
+-   -           -   Microsoft.EntityFrameworkCore.Relational.dll
+-   -           -   Microsoft.Extensions.Caching.Abstractions.dll
+-   -           -   Microsoft.Extensions.Caching.Memory.dll
+-   -           -   Microsoft.Extensions.Configuration.Abstractions.dll
+-   -           -   Microsoft.Extensions.DependencyInjection.Abstractions.dll
+-   -           -   Microsoft.Extensions.DependencyInjection.dll
+-   -           -   Microsoft.Extensions.DependencyModel.dll
+-   -           -   Microsoft.Extensions.Diagnostics.Abstractions.dll
+-   -           -   Microsoft.Extensions.Hosting.Abstractions.dll
+-   -           -   Microsoft.Extensions.Identity.Core.dll
+-   -           -   Microsoft.Extensions.Identity.Stores.dll
+-   -           -   Microsoft.Extensions.Logging.Abstractions.dll
+-   -           -   Microsoft.Extensions.Logging.dll
+-   -           -   Microsoft.Extensions.ObjectPool.dll
+-   -           -   Microsoft.Extensions.Options.dll
+-   -           -   Microsoft.Extensions.Primitives.dll
+-   -           -   Microsoft.IdentityModel.Abstractions.dll
+-   -           -   Microsoft.IdentityModel.JsonWebTokens.dll
+-   -           -   Microsoft.IdentityModel.Logging.dll
+-   -           -   Microsoft.IdentityModel.Protocols.dll
+-   -           -   Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+-   -           -   Microsoft.IdentityModel.Tokens.dll
+-   -           -   Microsoft.OpenApi.dll
+-   -           -   Microsoft.Owin.dll
+-   -           -   Mono.TextTemplating.dll
+-   -           -   Newtonsoft.Json.Bson.dll
+-   -           -   Newtonsoft.Json.dll
+-   -           -   Npgsql.dll
+-   -           -   Npgsql.EntityFrameworkCore.PostgreSQL.dll
+-   -           -   Owin.dll
+-   -           -   RestSharp.dll
+-   -           -   Swashbuckle.AspNetCore.Swagger.dll
+-   -           -   Swashbuckle.AspNetCore.SwaggerGen.dll
+-   -           -   Swashbuckle.AspNetCore.SwaggerUI.dll
+-   -           -   System.ClientModel.dll
+-   -           -   System.CodeDom.dll
+-   -           -   System.Composition.AttributedModel.dll
+-   -           -   System.Composition.Convention.dll
+-   -           -   System.Composition.Hosting.dll
+-   -           -   System.Composition.Runtime.dll
+-   -           -   System.Composition.TypedParts.dll
+-   -           -   System.Diagnostics.DiagnosticSource.dll
+-   -           -   System.IdentityModel.Tokens.Jwt.dll
+-   -           -   System.Memory.Data.dll
+-   -           -   System.Net.WebSockets.WebSocketProtocol.dll
+-   -           -   
+-   -           +¦¦¦ca
+-   -           -       Hangfire.Core.resources.dll
+-   -           -       
+-   -           +¦¦¦cs
+-   -           -       Microsoft.CodeAnalysis.CSharp.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+-   -           -       Microsoft.CodeAnalysis.resources.dll
+-   -           -       Microsoft.CodeAnalysis.Workspaces.resources.dll
+-   -           -       
+-   -           +¦¦¦de
+-   -           -       Hangfire.Core.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+-   -           -       Microsoft.CodeAnalysis.resources.dll
+-   -           -       Microsoft.CodeAnalysis.Workspaces.resources.dll
+-   -           -       
+-   -           +¦¦¦es
+-   -           -       Hangfire.Core.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+-   -           -       Microsoft.CodeAnalysis.resources.dll
+-   -           -       Microsoft.CodeAnalysis.Workspaces.resources.dll
+-   -           -       
+-   -           +¦¦¦fa
+-   -           -       Hangfire.Core.resources.dll
+-   -           -       
+-   -           +¦¦¦fr
+-   -           -       Hangfire.Core.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+-   -           -       Microsoft.CodeAnalysis.resources.dll
+-   -           -       Microsoft.CodeAnalysis.Workspaces.resources.dll
+-   -           -       
+-   -           +¦¦¦it
+-   -           -       Microsoft.CodeAnalysis.CSharp.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+-   -           -       Microsoft.CodeAnalysis.resources.dll
+-   -           -       Microsoft.CodeAnalysis.Workspaces.resources.dll
+-   -           -       
+-   -           +¦¦¦ja
+-   -           -       Microsoft.CodeAnalysis.CSharp.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+-   -           -       Microsoft.CodeAnalysis.resources.dll
+-   -           -       Microsoft.CodeAnalysis.Workspaces.resources.dll
+-   -           -       
+-   -           +¦¦¦ko
+-   -           -       Microsoft.CodeAnalysis.CSharp.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+-   -           -       Microsoft.CodeAnalysis.resources.dll
+-   -           -       Microsoft.CodeAnalysis.Workspaces.resources.dll
+-   -           -       
+-   -           +¦¦¦nb
+-   -           -       Hangfire.Core.resources.dll
+-   -           -       
+-   -           +¦¦¦nl
+-   -           -       Hangfire.Core.resources.dll
+-   -           -       
+-   -           +¦¦¦pl
+-   -           -       Microsoft.CodeAnalysis.CSharp.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+-   -           -       Microsoft.CodeAnalysis.resources.dll
+-   -           -       Microsoft.CodeAnalysis.Workspaces.resources.dll
+-   -           -       
+-   -           +¦¦¦pt
+-   -           -       Hangfire.Core.resources.dll
+-   -           -       
+-   -           +¦¦¦pt-BR
+-   -           -       Hangfire.Core.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+-   -           -       Microsoft.CodeAnalysis.resources.dll
+-   -           -       Microsoft.CodeAnalysis.Workspaces.resources.dll
+-   -           -       
+-   -           +¦¦¦pt-PT
+-   -           -       Hangfire.Core.resources.dll
+-   -           -       
+-   -           +¦¦¦publish
+-   -           -       appsettings.Development.json
+-   -           -       appsettings.json
+-   -           -       dekofar-hyperconnect-api.deps.json
+-   -           -       dekofar-hyperconnect-api.runtimeconfig.json
+-   -           -       web.config
+-   -           -       
+-   -           +¦¦¦ru
+-   -           -       Microsoft.CodeAnalysis.CSharp.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+-   -           -       Microsoft.CodeAnalysis.resources.dll
+-   -           -       Microsoft.CodeAnalysis.Workspaces.resources.dll
+-   -           -       
+-   -           +¦¦¦sv
+-   -           -       Hangfire.Core.resources.dll
+-   -           -       
+-   -           +¦¦¦tr
+-   -           -       Microsoft.CodeAnalysis.CSharp.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+-   -           -       Microsoft.CodeAnalysis.resources.dll
+-   -           -       Microsoft.CodeAnalysis.Workspaces.resources.dll
+-   -           -       
+-   -           +¦¦¦tr-TR
+-   -           -       Hangfire.Core.resources.dll
+-   -           -       
+-   -           +¦¦¦zh
+-   -           -       Hangfire.Core.resources.dll
+-   -           -       
+-   -           +¦¦¦zh-Hans
+-   -           -       Microsoft.CodeAnalysis.CSharp.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+-   -           -       Microsoft.CodeAnalysis.resources.dll
+-   -           -       Microsoft.CodeAnalysis.Workspaces.resources.dll
+-   -           -       
+-   -           +¦¦¦zh-Hant
+-   -           -       Microsoft.CodeAnalysis.CSharp.resources.dll
+-   -           -       Microsoft.CodeAnalysis.CSharp.Workspaces.resources.dll
+-   -           -       Microsoft.CodeAnalysis.resources.dll
+-   -           -       Microsoft.CodeAnalysis.Workspaces.resources.dll
+-   -           -       
+-   -           L¦¦¦zh-TW
+-   -                   Hangfire.Core.resources.dll
+-   -                   
+-   +¦¦¦Controllers
+-   -   -   StatusController.cs
+-   -   -   
+-   -   +¦¦¦Account
+-   -   -       AccountController.cs
+-   -   -       PinDto.cs
+-   -   -       
+-   -   +¦¦¦Admin
+-   -   -       AdminStatsController.cs
+-   -   -       AllowedAdminIpsController.cs
+-   -   -       BlacklistController.cs
+-   -   -       BulkActionsController.cs
+-   -   -       CalendarTasksController.cs
+-   -   -       DashboardController.cs
+-   -   -       DeploymentsController.cs
+-   -   -       UserActivityController.cs
+-   -   -       
+-   -   +¦¦¦Auth
+-   -   -       AuthController.cs
+-   -   -       
+-   -   +¦¦¦Discounts
+-   -   -       DiscountsController.cs
+-   -   -       
+-   -   +¦¦¦Integrations
+-   -   -   +¦¦¦NetGsm
+-   -   -   -   L¦¦¦sms
+-   -   -   -           SmsController.cs
+-   -   -   -           SmsInboxController.cs
+-   -   -   -           
+-   -   -   L¦¦¦Shopify
+-   -   -           ShopifyController.cs
+-   -   -           ShopifyWebhookController.cs
+-   -   -           
+-   -   +¦¦¦Kargo
+-   -   -   +¦¦¦Dhl
+-   -   -   -   -   DhlKargoController.cs
+-   -   -   -   -   
+-   -   -   -   +¦¦¦BulkQuery
+-   -   -   -   -       BulkQueryController.cs
+-   -   -   -   -       
+-   -   -   -   +¦¦¦CBSInfo
+-   -   -   -   -       CbsInfoController.cs
+-   -   -   -   -       
+-   -   -   -   L¦¦¦StandardQuery
+-   -   -   -           StandardQueryController.cs
+-   -   -   -           
+-   -   -   L¦¦¦ptt
+-   -   -           PttDeleteController.cs
+-   -   -           PttShipmentController.cs
+-   -   -           PttTrackingController.cs
+-   -   -           
+-   -   +¦¦¦ManualOrders
+-   -   -       ManualOrdersController.cs
+-   -   -       
+-   -   +¦¦¦Moderation
+-   -   -       ModerationRulesController.cs
+-   -   -       
+-   -   +¦¦¦Notes
+-   -   -       NotesController.cs
+-   -   -       
+-   -   +¦¦¦Notifications
+-   -   -       UserNotificationsController.cs
+-   -   -       
+-   -   +¦¦¦OrderCommissions
+-   -   -       OrderCommissionsController.cs
+-   -   -       
+-   -   +¦¦¦Permissions
+-   -   -       PermissionsController.cs
+-   -   -       
+-   -   +¦¦¦ResponseTemplates
+-   -   -       ResponseTemplatesController.cs
+-   -   -       
+-   -   +¦¦¦Roles
+-   -   -       RolesController.cs
+-   -   -       
+-   -   +¦¦¦Support
+-   -   -       SupportCategoriesController.cs
+-   -   -       SupportTicketsController.cs
+-   -   -       
+-   -   +¦¦¦System
+-   -   -       HealthController.cs
+-   -   -       PinCoversController.cs
+-   -   -       PingController.cs
+-   -   -       SettingsController.cs
+-   -   -       
+-   -   +¦¦¦UiPreferences
+-   -   -       UiPreferencesController.cs
+-   -   -       
+-   -   +¦¦¦UserMessages
+-   -   -       UserMessagesController.cs
+-   -   -       
+-   -   +¦¦¦Users
+-   -   -       UsersController.cs
+-   -   -       
+-   -   L¦¦¦WorkSessions
+-   -           WorkSessionsController.cs
+-   -           
+-   +¦¦¦Hubs
+-   -       ChatHub.cs
+-   -       LiveChatHub.cs
+-   -       NotificationHub.cs
+-   -       SupportHub.cs
+-   -       
+-   +¦¦¦obj
+-   -   -   dekofar-hyperconnect-api.csproj.nuget.dgspec.json
+-   -   -   dekofar-hyperconnect-api.csproj.nuget.g.props
+-   -   -   dekofar-hyperconnect-api.csproj.nuget.g.targets
+-   -   -   project.assets.json
+-   -   -   project.nuget.cache
+-   -   -   
+-   -   L¦¦¦Debug
+-   -       L¦¦¦net8.0
+-   -           -   .NETCoreApp,Version=v8.0.AssemblyAttributes.cs
+-   -           -   apphost.exe
+-   -           -   dekofar-.1B3DCC48.Up2Date
+-   -           -   dekofar-hyperconnect-api.AssemblyInfo.cs
+-   -           -   dekofar-hyperconnect-api.AssemblyInfoInputs.cache
+-   -           -   dekofar-hyperconnect-api.assets.cache
+-   -           -   dekofar-hyperconnect-api.csproj.AssemblyReference.cache
+-   -           -   dekofar-hyperconnect-api.csproj.CoreCompileInputs.cache
+-   -           -   dekofar-hyperconnect-api.csproj.FileListAbsolute.txt
+-   -           -   dekofar-hyperconnect-api.dll
+-   -           -   dekofar-hyperconnect-api.GeneratedMSBuildEditorConfig.editorconfig
+-   -           -   dekofar-hyperconnect-api.genruntimeconfig.cache
+-   -           -   dekofar-hyperconnect-api.GlobalUsings.g.cs
+-   -           -   dekofar-hyperconnect-api.MvcApplicationPartsAssemblyInfo.cache
+-   -           -   dekofar-hyperconnect-api.MvcApplicationPartsAssemblyInfo.cs
+-   -           -   dekofar-hyperconnect-api.pdb
+-   -           -   dekofar-hyperconnect-api.sourcelink.json
+-   -           -   dekofar-hyperconnect-api.xml
+-   -           -   rpswa.dswa.cache.json
+-   -           -   staticwebassets.build.json
+-   -           -   staticwebassets.removed.txt
+-   -           -   
+-   -           +¦¦¦ref
+-   -           -       dekofar-hyperconnect-api.dll
+-   -           -       
+-   -           +¦¦¦refint
+-   -           -       dekofar-hyperconnect-api.dll
+-   -           -       
+-   -           L¦¦¦staticwebassets
+-   -                   msbuild.build.dekofar-hyperconnect-api.props
+-   -                   msbuild.buildMultiTargeting.dekofar-hyperconnect-api.props
+-   -                   msbuild.buildTransitive.dekofar-hyperconnect-api.props
+-   -                   
+-   +¦¦¦Properties
+-   -       launchSettings.json
+-   -       
+-   +¦¦¦publish
+-   -   -   appsettings.Development.json
+-   -   -   appsettings.json
+-   -   -   AutoMapper.dll
+-   -   -   AutoMapper.Extensions.Microsoft.DependencyInjection.dll
+-   -   -   Azure.Core.dll
+-   -   -   Bogus.dll
+-   -   -   dekofar-hyperconnect-api.deps.json
+-   -   -   dekofar-hyperconnect-api.dll
+-   -   -   dekofar-hyperconnect-api.exe
+-   -   -   dekofar-hyperconnect-api.pdb
+-   -   -   dekofar-hyperconnect-api.runtimeconfig.json
+-   -   -   dekofar-hyperconnect-api.xml
+-   -   -   Dekofar.HyperConnect.Application.dll
+-   -   -   Dekofar.HyperConnect.Application.pdb
+-   -   -   Dekofar.HyperConnect.Domain.dll
+-   -   -   Dekofar.HyperConnect.Domain.pdb
+-   -   -   Dekofar.HyperConnect.Infrastructure.dll
+-   -   -   Dekofar.HyperConnect.Infrastructure.pdb
+-   -   -   Dekofar.HyperConnect.Integrations.dll
+-   -   -   Dekofar.HyperConnect.Integrations.pdb
+-   -   -   Dekofar.HyperConnect.Shared.dll
+-   -   -   Dekofar.HyperConnect.Shared.pdb
+-   -   -   EntityFramework.dll
+-   -   -   EntityFramework.SqlServer.dll
+-   -   -   FluentValidation.AspNetCore.dll
+-   -   -   FluentValidation.DependencyInjectionExtensions.dll
+-   -   -   FluentValidation.dll
+-   -   -   Hangfire.AspNetCore.dll
+-   -   -   Hangfire.Core.dll
+-   -   -   Hangfire.MemoryStorage.dll
+-   -   -   Hangfire.NetCore.dll
+-   -   -   MediatR.Contracts.dll
+-   -   -   MediatR.dll
+-   -   -   MediatR.Extensions.Microsoft.DependencyInjection.dll
+-   -   -   Microsoft.AspNet.Identity.Core.dll
+-   -   -   Microsoft.AspNet.Identity.EntityFramework.dll
+-   -   -   Microsoft.AspNetCore.Authentication.JwtBearer.dll
+-   -   -   Microsoft.AspNetCore.Authorization.dll
+-   -   -   Microsoft.AspNetCore.Cryptography.Internal.dll
+-   -   -   Microsoft.AspNetCore.Cryptography.KeyDerivation.dll
+-   -   -   Microsoft.AspNetCore.Identity.EntityFrameworkCore.dll
+-   -   -   Microsoft.AspNetCore.JsonPatch.dll
+-   -   -   Microsoft.AspNetCore.Metadata.dll
+-   -   -   Microsoft.AspNetCore.Mvc.NewtonsoftJson.dll
+-   -   -   Microsoft.Bcl.AsyncInterfaces.dll
+-   -   -   Microsoft.Bcl.TimeProvider.dll
+-   -   -   Microsoft.EntityFrameworkCore.Abstractions.dll
+-   -   -   Microsoft.EntityFrameworkCore.dll
+-   -   -   Microsoft.EntityFrameworkCore.Relational.dll
+-   -   -   Microsoft.Extensions.Caching.Abstractions.dll
+-   -   -   Microsoft.Extensions.Caching.Memory.dll
+-   -   -   Microsoft.Extensions.Configuration.Abstractions.dll
+-   -   -   Microsoft.Extensions.DependencyInjection.Abstractions.dll
+-   -   -   Microsoft.Extensions.DependencyInjection.dll
+-   -   -   Microsoft.Extensions.Diagnostics.Abstractions.dll
+-   -   -   Microsoft.Extensions.Hosting.Abstractions.dll
+-   -   -   Microsoft.Extensions.Identity.Core.dll
+-   -   -   Microsoft.Extensions.Identity.Stores.dll
+-   -   -   Microsoft.Extensions.Logging.Abstractions.dll
+-   -   -   Microsoft.Extensions.Logging.dll
+-   -   -   Microsoft.Extensions.ObjectPool.dll
+-   -   -   Microsoft.Extensions.Options.dll
+-   -   -   Microsoft.Extensions.Primitives.dll
+-   -   -   Microsoft.IdentityModel.Abstractions.dll
+-   -   -   Microsoft.IdentityModel.JsonWebTokens.dll
+-   -   -   Microsoft.IdentityModel.Logging.dll
+-   -   -   Microsoft.IdentityModel.Protocols.dll
+-   -   -   Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+-   -   -   Microsoft.IdentityModel.Tokens.dll
+-   -   -   Microsoft.OpenApi.dll
+-   -   -   Microsoft.Owin.dll
+-   -   -   Newtonsoft.Json.Bson.dll
+-   -   -   Newtonsoft.Json.dll
+-   -   -   Npgsql.dll
+-   -   -   Npgsql.EntityFrameworkCore.PostgreSQL.dll
+-   -   -   Owin.dll
+-   -   -   RestSharp.dll
+-   -   -   Swashbuckle.AspNetCore.Swagger.dll
+-   -   -   Swashbuckle.AspNetCore.SwaggerGen.dll
+-   -   -   Swashbuckle.AspNetCore.SwaggerUI.dll
+-   -   -   System.ClientModel.dll
+-   -   -   System.Diagnostics.DiagnosticSource.dll
+-   -   -   System.IdentityModel.Tokens.Jwt.dll
+-   -   -   System.Memory.Data.dll
+-   -   -   System.Net.WebSockets.WebSocketProtocol.dll
+-   -   -   web.config
+-   -   -   
+-   -   +¦¦¦ca
+-   -   -       Hangfire.Core.resources.dll
+-   -   -       
+-   -   +¦¦¦de
+-   -   -       Hangfire.Core.resources.dll
+-   -   -       
+-   -   +¦¦¦es
+-   -   -       Hangfire.Core.resources.dll
+-   -   -       
+-   -   +¦¦¦fa
+-   -   -       Hangfire.Core.resources.dll
+-   -   -       
+-   -   +¦¦¦fr
+-   -   -       Hangfire.Core.resources.dll
+-   -   -       
+-   -   +¦¦¦nb
+-   -   -       Hangfire.Core.resources.dll
+-   -   -       
+-   -   +¦¦¦nl
+-   -   -       Hangfire.Core.resources.dll
+-   -   -       
+-   -   +¦¦¦pt
+-   -   -       Hangfire.Core.resources.dll
+-   -   -       
+-   -   +¦¦¦pt-BR
+-   -   -       Hangfire.Core.resources.dll
+-   -   -       
+-   -   +¦¦¦pt-PT
+-   -   -       Hangfire.Core.resources.dll
+-   -   -       
+-   -   +¦¦¦sv
+-   -   -       Hangfire.Core.resources.dll
+-   -   -       
+-   -   +¦¦¦tr-TR
+-   -   -       Hangfire.Core.resources.dll
+-   -   -       
+-   -   +¦¦¦zh
+-   -   -       Hangfire.Core.resources.dll
+-   -   -       
+-   -   L¦¦¦zh-TW
+-   -           Hangfire.Core.resources.dll
+-   -           
+-   L¦¦¦Services
+-           NotificationService.cs
+-           
++¦¦¦Dekofar.HyperConnect.Application
+-   -   AssemblyReference.cs
+-   -   Dekofar.HyperConnect.Application.csproj
+-   -   DependencyInjection.cs
+-   -   
+-   +¦¦¦AllowedAdminIps
+-   -   L¦¦¦DTOs
+-   -           AllowedAdminIpDto.cs
+-   -           
+-   +¦¦¦AuditLogs
+-   -   +¦¦¦Commands
+-   -   -       CreateAuditLogCommand.cs
+-   -   -       
+-   -   L¦¦¦Handlers
+-   -           CreateAuditLogHandler.cs
+-   -           
+-   +¦¦¦Auth
+-   -       LoginRequest.cs
+-   -       RegisterRequest.cs
+-   -       
+-   +¦¦¦bin
+-   -   L¦¦¦Debug
+-   -       L¦¦¦net8.0
+-   -               Dekofar.HyperConnect.Application.deps.json
+-   -               Dekofar.HyperConnect.Application.dll
+-   -               Dekofar.HyperConnect.Application.pdb
+-   -               Dekofar.HyperConnect.Domain.dll
+-   -               Dekofar.HyperConnect.Domain.pdb
+-   -               
+-   +¦¦¦Common
+-   -   +¦¦¦Dtos
+-   -   -       BulkActionDto.cs
+-   -   -       
+-   -   +¦¦¦Interfaces
+-   -   -       IActivityLogger.cs
+-   -   -       IApplicationDbContext.cs
+-   -   -       IBadgeService.cs
+-   -   -       ICurrentUserService.cs
+-   -   -       IFileStorageService.cs
+-   -   -       IJobStatsService.cs
+-   -   -       INotificationService.cs
+-   -   -       IRepository.cs
+-   -   -       IUserNotificationService.cs
+-   -   -       IWorkSessionService.cs
+-   -   -       
+-   -   L¦¦¦Models
+-   -           PagedResult.cs
+-   -           
+-   +¦¦¦Dashboard
+-   -   L¦¦¦DTOs
+-   -           DashboardSummaryDto.cs
+-   -           MonthlyCommissionDto.cs
+-   -           SalesOverTimeDto.cs
+-   -           TicketActivityDto.cs
+-   -           TopProductDto.cs
+-   -           TopSellerDto.cs
+-   -           
+-   +¦¦¦Discounts
+-   -   +¦¦¦Commands
+-   -   -       CreateDiscountCommand.cs
+-   -   -       DeleteDiscountCommand.cs
+-   -   -       UpdateDiscountCommand.cs
+-   -   -       
+-   -   +¦¦¦DTOs
+-   -   -       DiscountDto.cs
+-   -   -       
+-   -   +¦¦¦Handlers
+-   -   -       CreateDiscountHandler.cs
+-   -   -       DeleteDiscountHandler.cs
+-   -   -       GetAllDiscountsHandler.cs
+-   -   -       UpdateDiscountHandler.cs
+-   -   -       
+-   -   L¦¦¦Queries
+-   -           GetAllDiscountsQuery.cs
+-   -           
+-   +¦¦¦Features
+-   -   L¦¦¦Common
+-   -       L¦¦¦Handlers
+-   -               GenericCommandHandlers.cs
+-   -               
+-   +¦¦¦Interfaces
+-   -       IAllowedAdminIpService.cs
+-   -       IDashboardService.cs
+-   -       IModerationService.cs
+-   -       ITokenService.cs
+-   -       IUserService.cs
+-   -       
+-   +¦¦¦ManualOrders
+-   -   +¦¦¦Commands
+-   -   -       CreateManualOrderCommand.cs
+-   -   -       
+-   -   +¦¦¦DTOs
+-   -   -       ManualOrderDto.cs
+-   -   -       
+-   -   L¦¦¦Handlers
+-   -           CreateManualOrderHandler.cs
+-   -           
+-   +¦¦¦ModerationRules
+-   -   +¦¦¦Commands
+-   -   -       CreateModerationRuleCommand.cs
+-   -   -       DeleteModerationRuleCommand.cs
+-   -   -       UpdateModerationRuleCommand.cs
+-   -   -       
+-   -   +¦¦¦DTOs
+-   -   -       ModerationRuleDto.cs
+-   -   -       
+-   -   +¦¦¦Handlers
+-   -   -       CreateModerationRuleHandler.cs
+-   -   -       DeleteModerationRuleHandler.cs
+-   -   -       GetModerationRulesHandler.cs
+-   -   -       UpdateModerationRuleHandler.cs
+-   -   -       
+-   -   L¦¦¦Queries
+-   -           GetModerationRulesQuery.cs
+-   -           
+-   +¦¦¦Notes
+-   -   +¦¦¦Commands
+-   -   -       AddNoteCommand.cs
+-   -   -       
+-   -   +¦¦¦DTOs
+-   -   -       NoteDto.cs
+-   -   -       
+-   -   +¦¦¦Handlers
+-   -   -       AddNoteHandler.cs
+-   -   -       GetNotesByTargetHandler.cs
+-   -   -       
+-   -   L¦¦¦Queries
+-   -           GetNotesByTargetQuery.cs
+-   -           
+-   +¦¦¦obj
+-   -   -   Dekofar.HyperConnect.Application.csproj.nuget.dgspec.json
+-   -   -   Dekofar.HyperConnect.Application.csproj.nuget.g.props
+-   -   -   Dekofar.HyperConnect.Application.csproj.nuget.g.targets
+-   -   -   project.assets.json
+-   -   -   project.nuget.cache
+-   -   -   
+-   -   L¦¦¦Debug
+-   -       L¦¦¦net8.0
+-   -           -   .NETCoreApp,Version=v8.0.AssemblyAttributes.cs
+-   -           -   Dekofar..6B1D5B87.Up2Date
+-   -           -   Dekofar.HyperConnect.Application.AssemblyInfo.cs
+-   -           -   Dekofar.HyperConnect.Application.AssemblyInfoInputs.cache
+-   -           -   Dekofar.HyperConnect.Application.assets.cache
+-   -           -   Dekofar.HyperConnect.Application.csproj.AssemblyReference.cache
+-   -           -   Dekofar.HyperConnect.Application.csproj.CoreCompileInputs.cache
+-   -           -   Dekofar.HyperConnect.Application.csproj.FileListAbsolute.txt
+-   -           -   Dekofar.HyperConnect.Application.dll
+-   -           -   Dekofar.HyperConnect.Application.GeneratedMSBuildEditorConfig.editorconfig
+-   -           -   Dekofar.HyperConnect.Application.GlobalUsings.g.cs
+-   -           -   Dekofar.HyperConnect.Application.pdb
+-   -           -   Dekofar.HyperConnect.Application.sourcelink.json
+-   -           -   
+-   -           +¦¦¦ref
+-   -           -       Dekofar.HyperConnect.Application.dll
+-   -           -       
+-   -           L¦¦¦refint
+-   -                   Dekofar.HyperConnect.Application.dll
+-   -                   
+-   +¦¦¦OrderCommissions
+-   -   +¦¦¦Commands
+-   -   -       CreateOrderCommissionCommand.cs
+-   -   -       
+-   -   +¦¦¦DTOs
+-   -   -       OrderCommissionDto.cs
+-   -   -       
+-   -   +¦¦¦Handlers
+-   -   -       CreateOrderCommissionHandler.cs
+-   -   -       
+-   -   L¦¦¦Queries
+-   -           GetCommissionsByUserQuery.cs
+-   -           
+-   +¦¦¦ResponseTemplates
+-   -   +¦¦¦Commands
+-   -   -       CreateResponseTemplateCommand.cs
+-   -   -       DeleteResponseTemplateCommand.cs
+-   -   -       UpdateResponseTemplateCommand.cs
+-   -   -       
+-   -   +¦¦¦DTOs
+-   -   -       ResponseTemplateDto.cs
+-   -   -       
+-   -   +¦¦¦Handlers
+-   -   -       CreateResponseTemplateHandler.cs
+-   -   -       DeleteResponseTemplateHandler.cs
+-   -   -       GetResponseTemplateByIdHandler.cs
+-   -   -       GetResponseTemplatesHandler.cs
+-   -   -       UpdateResponseTemplateHandler.cs
+-   -   -       
+-   -   L¦¦¦Queries
+-   -           GetResponseTemplateByIdQuery.cs
+-   -           GetResponseTemplatesQuery.cs
+-   -           
+-   +¦¦¦Roles
+-   -   +¦¦¦Commands
+-   -   -   L¦¦¦CreateRole
+-   -   -           CreateRoleCommand.cs
+-   -   -           CreateRoleCommandHandler.cs
+-   -   -           
+-   -   L¦¦¦Queries
+-   -       L¦¦¦GetRoles
+-   -               GetRolesQuery.cs
+-   -               GetRolesQueryHandler.cs
+-   -               
+-   +¦¦¦Services
+-   -       DashboardService.cs
+-   -       ModerationService.cs
+-   -       TokenService.cs
+-   -       
+-   +¦¦¦SupportCategories
+-   -   +¦¦¦Commands
+-   -   -       AssignRolesToSupportCategoryCommand.cs
+-   -   -       CreateSupportCategoryCommand.cs
+-   -   -       DeleteSupportCategoryCommand.cs
+-   -   -       UpdateSupportCategoryCommand.cs
+-   -   -       
+-   -   +¦¦¦DTOs
+-   -   -       SupportCategoryDto.cs
+-   -   -       
+-   -   +¦¦¦Handlers
+-   -   -       AssignRolesToSupportCategoryHandler.cs
+-   -   -       CreateSupportCategoryHandler.cs
+-   -   -       DeleteSupportCategoryHandler.cs
+-   -   -       GetAllSupportCategoriesHandler.cs
+-   -   -       UpdateSupportCategoryHandler.cs
+-   -   -       
+-   -   L¦¦¦Queries
+-   -           GetAllSupportCategoriesQuery.cs
+-   -           
+-   +¦¦¦SupportTickets
+-   -   +¦¦¦Commands
+-   -   -       AssignSupportTicketCommand.cs
+-   -   -       CreateSupportTicketCommand.cs
+-   -   -       ReplySupportTicketCommand.cs
+-   -   -       UpdateSupportTicketStatusCommand.cs
+-   -   -       
+-   -   +¦¦¦DTOs
+-   -   -       SupportTicketDto.cs
+-   -   -       SupportTicketReplyDto.cs
+-   -   -       
+-   -   +¦¦¦Handlers
+-   -   -       AssignSupportTicketHandler.cs
+-   -   -       CreateSupportTicketHandler.cs
+-   -   -       ReplySupportTicketHandler.cs
+-   -   -       UpdateSupportTicketStatusHandler.cs
+-   -   -       
+-   -   L¦¦¦Queries
+-   -           GetAllSupportTicketsQuery.cs
+-   -           GetAllSupportTicketsQueryHandler.cs
+-   -           GetMyTicketsQuery.cs
+-   -           GetMyTicketsQueryHandler.cs
+-   -           GetTicketByIdQuery.cs
+-   -           GetTicketByIdQueryHandler.cs
+-   -           
+-   +¦¦¦UIPreferences
+-   -   +¦¦¦Commands
+-   -   -       UpsertUserUiPreferenceCommand.cs
+-   -   -       
+-   -   +¦¦¦DTOs
+-   -   -       UserUiPreferenceDto.cs
+-   -   -       
+-   -   +¦¦¦Handlers
+-   -   -       GetUserUiPreferenceHandler.cs
+-   -   -       UpsertUserUiPreferenceHandler.cs
+-   -   -       
+-   -   L¦¦¦Queries
+-   -           GetUserUiPreferenceQuery.cs
+-   -           
+-   +¦¦¦UserMessages
+-   -   +¦¦¦Commands
+-   -   -       MarkMessagesAsReadCommand.cs
+-   -   -       SendUserMessageCommand.cs
+-   -   -       
+-   -   +¦¦¦DTOs
+-   -   -       UserMessageDto.cs
+-   -   -       
+-   -   +¦¦¦Handlers
+-   -   -       GetChatMessagesHandler.cs
+-   -   -       GetUnreadMessageCountHandler.cs
+-   -   -       MarkMessagesAsReadHandler.cs
+-   -   -       SendUserMessageHandler.cs
+-   -   -       
+-   -   L¦¦¦Queries
+-   -           GetChatMessagesQuery.cs
+-   -           GetUnreadMessageCountQuery.cs
+-   -           
+-   L¦¦¦Users
+-       +¦¦¦Commands
+-       -   -   AssignRolesToUserCommand.cs
+-       -   -   ChangePasswordCommand.cs
+-       -   -   DeleteUserCommand.cs
+-       -   -   RemoveProfileImageCommand.cs
+-       -   -   ResetPasswordCommand.cs
+-       -   -   UpdateUserCommand.cs
+-       -   -   UploadProfileImageCommand.cs
+-       -   -   
+-       -   +¦¦¦AssignRole
+-       -   -       RoleRequest.cs
+-       -   -       
+-       -   L¦¦¦AssignRoles
+-       -           AssignRolesCommand.cs
+-       -           AssignRolesCommandHandler.cs
+-       -           
+-       +¦¦¦DTOs
+-       -       ProfileSummaryDto.cs
+-       -       SalesSummaryDto.cs
+-       -       UserDto.cs
+-       -       UserProfileDto.cs
+-       -       
+-       L¦¦¦Queries
+-               GetAllUsersWithRolesQuery.cs
+-               GetUserProfileQuery.cs
+-               
++¦¦¦Dekofar.HyperConnect.Domain
+-   -   Dekofar.HyperConnect.Domain.csproj
+-   -   
+-   +¦¦¦bin
+-   -   L¦¦¦Debug
+-   -       L¦¦¦net8.0
+-   -               Dekofar.HyperConnect.Domain.deps.json
+-   -               Dekofar.HyperConnect.Domain.dll
+-   -               Dekofar.HyperConnect.Domain.pdb
+-   -               
+-   +¦¦¦Common
+-   -       BaseEntity.cs
+-   -       
+-   +¦¦¦DTOs
+-   -       AssignRolesRequest.cs
+-   -       ChangeUserRoleRequest.cs
+-   -       CreateRoleRequest.cs
+-   -       
+-   +¦¦¦Entities
+-   -   -   ActivityLog.cs
+-   -   -   AllowedAdminIp.cs
+-   -   -   ApplicationUser.cs
+-   -   -   AppUser.cs
+-   -   -   AuditLog.cs
+-   -   -   BlacklistEntry.cs
+-   -   -   CalendarTask.cs
+-   -   -   Commission.cs
+-   -   -   DeploymentLog.cs
+-   -   -   Discount.cs
+-   -   -   JobStat.cs
+-   -   -   ManualOrder.cs
+-   -   -   ManualOrderItem.cs
+-   -   -   ModerationLog.cs
+-   -   -   ModerationRule.cs
+-   -   -   Note.cs
+-   -   -   Order.cs
+-   -   -   OrderCommission.cs
+-   -   -   Permission.cs
+-   -   -   PinCoverImage.cs
+-   -   -   ResponseTemplate.cs
+-   -   -   RolePermission.cs
+-   -   -   SupportCategory.cs
+-   -   -   SupportCategoryRole.cs
+-   -   -   SupportTicket.cs
+-   -   -   SupportTicketReply.cs
+-   -   -   UserBadge.cs
+-   -   -   UserMessage.cs
+-   -   -   UserNotification.cs
+-   -   -   UserUIPreference.cs
+-   -   -   WorkSession.cs
+-   -   -   
+-   -   L¦¦¦Orders
+-   -           OrderTag.cs
+-   -           Tag.cs
+-   -           
+-   L¦¦¦obj
+-       -   Dekofar.HyperConnect.Domain.csproj.nuget.dgspec.json
+-       -   Dekofar.HyperConnect.Domain.csproj.nuget.g.props
+-       -   Dekofar.HyperConnect.Domain.csproj.nuget.g.targets
+-       -   project.assets.json
+-       -   project.nuget.cache
+-       -   
+-       L¦¦¦Debug
+-           L¦¦¦net8.0
+-               -   .NETCoreApp,Version=v8.0.AssemblyAttributes.cs
+-               -   Dekofar.HyperConnect.Domain.AssemblyInfo.cs
+-               -   Dekofar.HyperConnect.Domain.AssemblyInfoInputs.cache
+-               -   Dekofar.HyperConnect.Domain.assets.cache
+-               -   Dekofar.HyperConnect.Domain.csproj.AssemblyReference.cache
+-               -   Dekofar.HyperConnect.Domain.csproj.CoreCompileInputs.cache
+-               -   Dekofar.HyperConnect.Domain.csproj.FileListAbsolute.txt
+-               -   Dekofar.HyperConnect.Domain.dll
+-               -   Dekofar.HyperConnect.Domain.GeneratedMSBuildEditorConfig.editorconfig
+-               -   Dekofar.HyperConnect.Domain.GlobalUsings.g.cs
+-               -   Dekofar.HyperConnect.Domain.pdb
+-               -   Dekofar.HyperConnect.Domain.sourcelink.json
+-               -   
+-               +¦¦¦ref
+-               -       Dekofar.HyperConnect.Domain.dll
+-               -       
+-               L¦¦¦refint
+-                       Dekofar.HyperConnect.Domain.dll
+-                       
++¦¦¦Dekofar.HyperConnect.Infrastructure
+-   -   Dekofar.HyperConnect.Infrastructure.csproj
+-   -   
+-   +¦¦¦bin
+-   -   L¦¦¦Debug
+-   -       L¦¦¦net8.0
+-   -               Dekofar.HyperConnect.Application.dll
+-   -               Dekofar.HyperConnect.Application.pdb
+-   -               Dekofar.HyperConnect.Domain.dll
+-   -               Dekofar.HyperConnect.Domain.pdb
+-   -               Dekofar.HyperConnect.Infrastructure.deps.json
+-   -               Dekofar.HyperConnect.Infrastructure.dll
+-   -               Dekofar.HyperConnect.Infrastructure.pdb
+-   -               Dekofar.HyperConnect.Infrastructure.runtimeconfig.json
+-   -               Dekofar.HyperConnect.Integrations.dll
+-   -               Dekofar.HyperConnect.Integrations.pdb
+-   -               
+-   +¦¦¦Jobs
+-   -       DhlShopifySyncJob.cs
+-   -       IRecurringJob.cs
+-   -       SupportTicketJobService.cs
+-   -       
+-   +¦¦¦Migrations
+-   -       20250819205132_AddAvatarUrlToUsers.cs
+-   -       20250819205132_AddAvatarUrlToUsers.Designer.cs
+-   -       20250819205548_InitialCreate.cs
+-   -       20250819205548_InitialCreate.Designer.cs
+-   -       20250826212719_AddJobStatsTable.cs
+-   -       20250826212719_AddJobStatsTable.Designer.cs
+-   -       ApplicationDbContextModelSnapshot.cs
+-   -       
+-   +¦¦¦obj
+-   -   -   Dekofar.HyperConnect.Infrastructure.csproj.nuget.dgspec.json
+-   -   -   Dekofar.HyperConnect.Infrastructure.csproj.nuget.g.props
+-   -   -   Dekofar.HyperConnect.Infrastructure.csproj.nuget.g.targets
+-   -   -   project.assets.json
+-   -   -   project.nuget.cache
+-   -   -   
+-   -   L¦¦¦Debug
+-   -       L¦¦¦net8.0
+-   -           -   .NETCoreApp,Version=v8.0.AssemblyAttributes.cs
+-   -           -   Dekofar..83FF31F5.Up2Date
+-   -           -   Dekofar.HyperConnect.Infrastructure.AssemblyInfo.cs
+-   -           -   Dekofar.HyperConnect.Infrastructure.AssemblyInfoInputs.cache
+-   -           -   Dekofar.HyperConnect.Infrastructure.assets.cache
+-   -           -   Dekofar.HyperConnect.Infrastructure.csproj.AssemblyReference.cache
+-   -           -   Dekofar.HyperConnect.Infrastructure.csproj.CoreCompileInputs.cache
+-   -           -   Dekofar.HyperConnect.Infrastructure.csproj.FileListAbsolute.txt
+-   -           -   Dekofar.HyperConnect.Infrastructure.dll
+-   -           -   Dekofar.HyperConnect.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+-   -           -   Dekofar.HyperConnect.Infrastructure.genruntimeconfig.cache
+-   -           -   Dekofar.HyperConnect.Infrastructure.GlobalUsings.g.cs
+-   -           -   Dekofar.HyperConnect.Infrastructure.pdb
+-   -           -   Dekofar.HyperConnect.Infrastructure.sourcelink.json
+-   -           -   
+-   -           +¦¦¦ref
+-   -           -       Dekofar.HyperConnect.Infrastructure.dll
+-   -           -       
+-   -           L¦¦¦refint
+-   -                   Dekofar.HyperConnect.Infrastructure.dll
+-   -                   
+-   +¦¦¦Persistence
+-   -   -   ApplicationDbContext.cs
+-   -   -   DesignTimeDbContextFactory.cs
+-   -   -   
+-   -   L¦¦¦Repositories
+-   -           GenericRepository.cs
+-   -           
+-   +¦¦¦Seeders
+-   -       TestDataSeeder.cs
+-   -       
+-   +¦¦¦ServiceRegistration
+-   -       DependencyInjection.cs
+-   -       
+-   L¦¦¦Services
+-           ActivityLogger.cs
+-           AllowedAdminIpService.cs
+-           BadgeService.cs
+-           CurrentUserService.cs
+-           JobStatsService.cs
+-           LocalFileStorageService.cs
+-           SeedData.cs
+-           UserNotificationService.cs
+-           UserService.cs
+-           WorkSessionService.cs
+-           
++¦¦¦Dekofar.HyperConnect.Integrations
+-   -   Dekofar.HyperConnect.Integrations.csproj
+-   -   
+-   +¦¦¦bin
+-   -   L¦¦¦Debug
+-   -       L¦¦¦net8.0
+-   -               Dekofar.HyperConnect.Domain.dll
+-   -               Dekofar.HyperConnect.Domain.pdb
+-   -               Dekofar.HyperConnect.Integrations.deps.json
+-   -               Dekofar.HyperConnect.Integrations.dll
+-   -               Dekofar.HyperConnect.Integrations.pdb
+-   -               
+-   +¦¦¦Kargo
+-   -   +¦¦¦Dhl
+-   -   -   +¦¦¦Auth
+-   -   -   -   +¦¦¦Interfaces
+-   -   -   -   -       IAuthService.cs
+-   -   -   -   -       
+-   -   -   -   +¦¦¦Models
+-   -   -   -   -       TokenRequest.cs
+-   -   -   -   -       TokenResponse.cs
+-   -   -   -   -       
+-   -   -   -   L¦¦¦Services
+-   -   -   -           AuthService.cs
+-   -   -   -           
+-   -   -   +¦¦¦Bulk Query
+-   -   -   -   +¦¦¦Interfaces
+-   -   -   -   -       IDeliveredShipmentService.cs
+-   -   -   -   -       IShipmentByDateDetailService.cs
+-   -   -   -   -       IShipmentByDateService.cs
+-   -   -   -   -       IStatusChangedShipmentService.cs
+-   -   -   -   -       
+-   -   -   -   +¦¦¦Models
+-   -   -   -   -       DeliveredShipmentResponse.cs
+-   -   -   -   -       ShipmentByDateDetailResponse.cs
+-   -   -   -   -       ShipmentByDateResponse.cs
+-   -   -   -   -       StatusChangedShipmentResponse.cs
+-   -   -   -   -       
+-   -   -   -   L¦¦¦Services
+-   -   -   -           DeliveredShipmentService.cs
+-   -   -   -           ShipmentByDateDetailService.cs
+-   -   -   -           ShipmentByDateService.cs
+-   -   -   -           StatusChangedShipmentService.cs
+-   -   -   -           
+-   -   -   +¦¦¦CBSInfo
+-   -   -   -   +¦¦¦Interfaces
+-   -   -   -   -       ICbsInfoService.cs
+-   -   -   -   -       
+-   -   -   -   +¦¦¦Models
+-   -   -   -   -       CityResponse.cs
+-   -   -   -   -       DistrictResponse.cs
+-   -   -   -   -       NeighborhoodResponse.cs
+-   -   -   -   -       
+-   -   -   -   L¦¦¦Services
+-   -   -   -           CbsInfoService.cs
+-   -   -   -           
+-   -   -   L¦¦¦StandardQuery
+-   -   -       +¦¦¦Interfaces
+-   -   -       -       IGetOrderService.cs
+-   -   -       -       IGetShipmentByShipmentIdService.cs
+-   -   -       -       IGetShipmentService.cs
+-   -   -       -       IGetShipmentStatusByReferenceIdService.cs
+-   -   -       -       IGetShipmentStatusByShipmentIdService.cs
+-   -   -       -       ITrackShipmentByReferenceIdService.cs
+-   -   -       -       ITrackShipmentByShipmentIdService.cs
+-   -   -       -       
+-   -   -       +¦¦¦Models
+-   -   -       -       CommonModels.cs
+-   -   -       -       GetOrderResponse.cs
+-   -   -       -       GetShipmentResponse.cs
+-   -   -       -       GetShipmentStatusResponse.cs
+-   -   -       -       TrackShipmentResponse.cs
+-   -   -       -       
+-   -   -       L¦¦¦Services
+-   -   -               GetOrderService.cs
+-   -   -               GetShipmentByShipmentIdService.cs
+-   -   -               GetShipmentService.cs
+-   -   -               GetShipmentStatusByReferenceIdService.cs
+-   -   -               GetShipmentStatusByShipmentIdService.cs
+-   -   -               TrackShipmentByReferenceIdService.cs
+-   -   -               TrackShipmentByShipmentIdService.cs
+-   -   -               
+-   -   L¦¦¦Ptt
+-   -       +¦¦¦Auth
+-   -       -       IPttAuthService.cs
+-   -       -       PttAuthService.cs
+-   -       -       
+-   -       +¦¦¦Common
+-   -       -       PttError.cs
+-   -       -       ShipmentDto.cs
+-   -       -       TrackingEventDto.cs
+-   -       -       
+-   -       +¦¦¦Shipment
+-   -       -   +¦¦¦Interfaces
+-   -       -   -       IPttDeleteService.cs
+-   -       -   -       IPttShipmentService.cs
+-   -       -   -       IPttTrackingService.cs
+-   -       -   -       
+-   -       -   +¦¦¦Models
+-   -       -   -   +¦¦¦Requests
+-   -       -   -   -       CancelShipmentRequest.cs
+-   -       -   -   -       CreateShipmentRequest.cs
+-   -       -   -   -       DeleteByReferenceRequest.cs
+-   -       -   -   -       PickupRequest.cs
+-   -       -   -   -       PttShipmentRequest.cs
+-   -       -   -   -       
+-   -       -   -   L¦¦¦Responses
+-   -       -   -           CancelShipmentResponse.cs
+-   -       -   -           CreateShipmentResponse.cs
+-   -       -   -           DeleteByReferenceResponse.cs
+-   -       -   -           PickupResponse.cs
+-   -       -   -           PttDeleteResponse.cs
+-   -       -   -           PttKabulResponse.cs
+-   -       -   -           PttTrackingResponse.cs
+-   -       -   -           
+-   -       -   L¦¦¦Services
+-   -       -           PttDeleteService.cs
+-   -       -           PttShipmentService.cs
+-   -       -           PttTrackingService.cs
+-   -       -           
+-   -       L¦¦¦Utils
+-   -               BarcodeGenerator.cs
+-   -               SoapEnvelopeBuilder.cs
+-   -               
+-   +¦¦¦NetGsm
+-   -   +¦¦¦Interfaces
+-   -   -   L¦¦¦sms
+-   -   -           INetGsmSmsService.cs
+-   -   -           
+-   -   +¦¦¦Models
+-   -   -   L¦¦¦sms
+-   -   -           SmsInboxRequest.cs
+-   -   -           SmsInboxResponse.cs
+-   -   -           SmsSendRequest.cs
+-   -   -           
+-   -   L¦¦¦Services
+-   -       L¦¦¦sms
+-   -               NetGsmSmsInboxService.cs
+-   -               NetGsmSmsSendService.cs
+-   -               
+-   +¦¦¦obj
+-   -   -   Dekofar.HyperConnect.Integrations.csproj.nuget.dgspec.json
+-   -   -   Dekofar.HyperConnect.Integrations.csproj.nuget.g.props
+-   -   -   Dekofar.HyperConnect.Integrations.csproj.nuget.g.targets
+-   -   -   project.assets.json
+-   -   -   project.nuget.cache
+-   -   -   
+-   -   L¦¦¦Debug
+-   -       L¦¦¦net8.0
+-   -           -   .NETCoreApp,Version=v8.0.AssemblyAttributes.cs
+-   -           -   Dekofar..82EE5F16.Up2Date
+-   -           -   Dekofar.HyperConnect.Integrations.AssemblyInfo.cs
+-   -           -   Dekofar.HyperConnect.Integrations.AssemblyInfoInputs.cache
+-   -           -   Dekofar.HyperConnect.Integrations.assets.cache
+-   -           -   Dekofar.HyperConnect.Integrations.csproj.AssemblyReference.cache
+-   -           -   Dekofar.HyperConnect.Integrations.csproj.CoreCompileInputs.cache
+-   -           -   Dekofar.HyperConnect.Integrations.csproj.FileListAbsolute.txt
+-   -           -   Dekofar.HyperConnect.Integrations.dll
+-   -           -   Dekofar.HyperConnect.Integrations.GeneratedMSBuildEditorConfig.editorconfig
+-   -           -   Dekofar.HyperConnect.Integrations.GlobalUsings.g.cs
+-   -           -   Dekofar.HyperConnect.Integrations.pdb
+-   -           -   Dekofar.HyperConnect.Integrations.sourcelink.json
+-   -           -   
+-   -           +¦¦¦ref
+-   -           -       Dekofar.HyperConnect.Integrations.dll
+-   -           -       
+-   -           L¦¦¦refint
+-   -                   Dekofar.HyperConnect.Integrations.dll
+-   -                   
+-   L¦¦¦Shopify
+-       -   ShopifyIntegration.cs
+-       -   
+-       +¦¦¦Interfaces
+-       -       IShopifyService.cs
+-       -       
+-       +¦¦¦Models
+-       -   -   ShopifyPagedResponse.cs
+-       -   -   
+-       -   L¦¦¦Shopify
+-       -       -   .editorconfig
+-       -       -   Address.cs
+-       -       -   BillingAddress.cs
+-       -       -   Customer.cs
+-       -       -   Fulfillment.cs
+-       -       -   LineItem.cs
+-       -       -   NoteAttribute.cs
+-       -       -   Order.cs
+-       -       -   OrderSearchFilter.cs
+-       -       -   OrdersResponse.cs
+-       -       -   PagedResult.cs
+-       -       -   ShopifyImage.cs
+-       -       -   ShopifyOrdersResponse.cs
+-       -       -   ShopifyProduct.cs
+-       -       -   ShopifyVariant.cs
+-       -       -   Variant.cs
+-       -       -   
+-       -       L¦¦¦Dto
+-       -               AddressDto.cs
+-       -               CreateOrderRequest.cs
+-       -               CustomerDto.cs
+-       -               FulfillmentCreateRequest.cs
+-       -               LineItemDto.cs
+-       -               ProductDto.cs
+-       -               ShopifyGraphQlPagedResult.cs
+-       -               ShopifyOrderDetailDto.cs
+-       -               ShopifyOrderItemSummaryDto.cs
+-       -               ShopifyOrderLiteDto.cs
+-       -               UpdateOrderNoteRequest.cs
+-       -               UpdateOrderTagsRequest.cs
+-       -               
+-       +¦¦¦Services
+-       -       ShopifyService.cs
+-       -       
+-       L¦¦¦Utils
+-               ShopifyHmacValidator.cs
+-               
++¦¦¦Dekofar.HyperConnect.Shared
+-   -   Dekofar.HyperConnect.Shared.csproj
+-   -   
+-   +¦¦¦bin
+-   -   L¦¦¦Debug
+-   -       L¦¦¦net8.0
+-   -               Dekofar.HyperConnect.Shared.deps.json
+-   -               Dekofar.HyperConnect.Shared.dll
+-   -               Dekofar.HyperConnect.Shared.pdb
+-   -               
+-   L¦¦¦obj
+-       -   Dekofar.HyperConnect.Shared.csproj.nuget.dgspec.json
+-       -   Dekofar.HyperConnect.Shared.csproj.nuget.g.props
+-       -   Dekofar.HyperConnect.Shared.csproj.nuget.g.targets
+-       -   project.assets.json
+-       -   project.nuget.cache
+-       -   
+-       L¦¦¦Debug
+-           L¦¦¦net8.0
+-               -   .NETCoreApp,Version=v8.0.AssemblyAttributes.cs
+-               -   Dekofar.HyperConnect.Shared.AssemblyInfo.cs
+-               -   Dekofar.HyperConnect.Shared.AssemblyInfoInputs.cache
+-               -   Dekofar.HyperConnect.Shared.assets.cache
+-               -   Dekofar.HyperConnect.Shared.csproj.CoreCompileInputs.cache
+-               -   Dekofar.HyperConnect.Shared.csproj.FileListAbsolute.txt
+-               -   Dekofar.HyperConnect.Shared.dll
+-               -   Dekofar.HyperConnect.Shared.GeneratedMSBuildEditorConfig.editorconfig
+-               -   Dekofar.HyperConnect.Shared.GlobalUsings.g.cs
+-               -   Dekofar.HyperConnect.Shared.pdb
+-               -   Dekofar.HyperConnect.Shared.sourcelink.json
+-               -   
+-               +¦¦¦ref
+-               -       Dekofar.HyperConnect.Shared.dll
+-               -       
+-               L¦¦¦refint
+-                       Dekofar.HyperConnect.Shared.dll
+-                       
++¦¦¦Dekofar.HyperConnect.Tests
+-   -   Dekofar.HyperConnect.Tests.csproj
+-   -   
+-   +¦¦¦bin
+-   -   L¦¦¦Debug
+-   -       L¦¦¦net8.0
+-   -               CoverletSourceRootsMapping_Dekofar.HyperConnect.Tests
+-   -               
+-   +¦¦¦obj
+-   -   -   Dekofar.HyperConnect.Tests.csproj.nuget.dgspec.json
+-   -   -   Dekofar.HyperConnect.Tests.csproj.nuget.g.props
+-   -   -   Dekofar.HyperConnect.Tests.csproj.nuget.g.targets
+-   -   -   project.assets.json
+-   -   -   project.nuget.cache
+-   -   -   
+-   -   L¦¦¦Debug
+-   -       L¦¦¦net8.0
+-   -           -   .NETCoreApp,Version=v8.0.AssemblyAttributes.cs
+-   -           -   Dekofar.HyperConnect.Tests.AssemblyInfo.cs
+-   -           -   Dekofar.HyperConnect.Tests.AssemblyInfoInputs.cache
+-   -           -   Dekofar.HyperConnect.Tests.assets.cache
+-   -           -   Dekofar.HyperConnect.Tests.csproj.AssemblyReference.cache
+-   -           -   Dekofar.HyperConnect.Tests.GeneratedMSBuildEditorConfig.editorconfig
+-   -           -   
+-   -           +¦¦¦ref
+-   -           L¦¦¦refint
+-   L¦¦¦Services
+-           DashboardServiceTests.cs
+-           
+L¦¦¦docs
+        full_backend_prompt.md
+        

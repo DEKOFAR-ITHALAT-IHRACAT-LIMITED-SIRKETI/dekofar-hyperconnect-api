@@ -38,4 +38,8 @@
     <ProjectReference Include="..\Dekofar.HyperConnect.Shared\Dekofar.HyperConnect.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Controllers\NewFolder\" />
+  </ItemGroup>
+
 </Project>

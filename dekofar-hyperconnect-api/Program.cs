@@ -8,6 +8,12 @@ using Dekofar.HyperConnect.Application.Services;
 using Dekofar.HyperConnect.Infrastructure.Jobs;
 using Dekofar.HyperConnect.Infrastructure.ServiceRegistration;
 using Dekofar.HyperConnect.Infrastructure.Services;
+using Dekofar.HyperConnect.Integrations.Meta.Interfaces;
+using Dekofar.HyperConnect.Integrations.Meta.Services;
+using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
+using Dekofar.HyperConnect.Integrations.Meta.Interfaces;
+using Dekofar.HyperConnect.Integrations.Meta.Services;
+using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
 using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
 using Dekofar.HyperConnect.Integrations.Shopify.Services;
 using Hangfire;
@@ -21,15 +27,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
-using System.IO.Compression;                      // ✅ Compression level
 using System.IdentityModel.Tokens.Jwt;
+using System.IO.Compression;                      // ✅ Compression level
 using System.Net;                                 // ✅ DecompressionMethods
 using System.Net.Http;                            // ✅ SocketsHttpHandler
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
-using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
-using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -117,6 +121,15 @@ builder.Services.AddResponseCaching(options =>
     options.MaximumBodySize = 5 * 1024 * 1024; // 5 MB
     options.UseCaseSensitivePaths = false;
 });
+
+builder.Services.AddHttpClient(); // genel factory
+
+builder.Services.AddHttpClient<IFacebookMarketingApiClient, FacebookMarketingApiClient>(client =>
+{
+    client.BaseAddress = new Uri("https://graph.facebook.com/v20.0/");
+});
+
+
 
 builder.Services.AddResponseCompression(options =>
 {

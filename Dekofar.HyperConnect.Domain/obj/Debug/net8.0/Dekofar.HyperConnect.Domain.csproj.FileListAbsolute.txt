@@ -24,3 +24,16 @@ C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\ob
 C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\obj\Debug\net8.0\refint\Dekofar.HyperConnect.Domain.dll
 C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\obj\Debug\net8.0\Dekofar.HyperConnect.Domain.pdb
 C:\Users\kadir\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\obj\Debug\net8.0\ref\Dekofar.HyperConnect.Domain.dll
+C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\bin\Debug\net8.0\Dekofar.HyperConnect.Domain.deps.json
+C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\bin\Debug\net8.0\Dekofar.HyperConnect.Domain.dll
+C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\bin\Debug\net8.0\Dekofar.HyperConnect.Domain.pdb
+C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\obj\Debug\net8.0\Dekofar.HyperConnect.Domain.csproj.AssemblyReference.cache
+C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\obj\Debug\net8.0\Dekofar.HyperConnect.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\obj\Debug\net8.0\Dekofar.HyperConnect.Domain.AssemblyInfoInputs.cache
+C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\obj\Debug\net8.0\Dekofar.HyperConnect.Domain.AssemblyInfo.cs
+C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\obj\Debug\net8.0\Dekofar.HyperConnect.Domain.csproj.CoreCompileInputs.cache
+C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\obj\Debug\net8.0\Dekofar.HyperConnect.Domain.sourcelink.json
+C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\obj\Debug\net8.0\Dekofar.HyperConnect.Domain.dll
+C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\obj\Debug\net8.0\refint\Dekofar.HyperConnect.Domain.dll
+C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\obj\Debug\net8.0\Dekofar.HyperConnect.Domain.pdb
+C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\Dekofar.HyperConnect.Domain\obj\Debug\net8.0\ref\Dekofar.HyperConnect.Domain.dll
