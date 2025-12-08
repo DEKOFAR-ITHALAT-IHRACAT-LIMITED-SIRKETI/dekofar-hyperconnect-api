@@ -232,14 +232,14 @@ namespace Dekofar.API.Controllers.Integrations
         [ResponseCache(Duration = 30, Location = ResponseCacheLocation.Any,
             VaryByQueryKeys = new[] { "days", "status", "financial", "fulfillment" })]
         public async Task<IActionResult> GetOrderItemsSummary(
-            [FromQuery] int days = 30,
+            [FromQuery] int days = 7,
             [FromQuery] string? status = "open",
             [FromQuery] string? financial = "pending,authorized,paid,partially_paid,partially_refunded",
             [FromQuery] string? fulfillment = "unfulfilled,partial",
             CancellationToken ct = default)
         {
             // Guardrails
-            if (days <= 0) days = 30;
+            if (days <= 0) days = 7;
             if (days > 365) days = 365;
 
             var end = DateTime.UtcNow;

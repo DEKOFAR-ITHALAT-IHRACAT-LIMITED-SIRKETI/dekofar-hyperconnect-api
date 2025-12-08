@@ -576,3 +576,4 @@ C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\dekofar-hyperconnect-api\
 C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.pdb
 C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.genruntimeconfig.cache
 C:\Users\recep\Downloads\WORK\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\ref\dekofar-hyperconnect-api.dll
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\dekofar-hyperconnect-api\obj\Debug\net8.0\dekofar-hyperconnect-api.MvcApplicationPartsAssemblyInfo.cs
