@@ -428,6 +428,10 @@
               "target": "Package",
               "version": "[35.0.1, )"
             },
+            "HtmlAgilityPack": {
+              "target": "Package",
+              "version": "[1.12.4, )"
+            },
             "Microsoft.AspNetCore.Authentication.JwtBearer": {
               "target": "Package",
               "version": "[8.0.0, )"
@@ -459,6 +463,10 @@
             "Npgsql.EntityFrameworkCore.PostgreSQL": {
               "target": "Package",
               "version": "[8.0.4, )"
+            },
+            "SixLabors.ImageSharp": {
+              "target": "Package",
+              "version": "[3.1.12, )"
             }
           },
           "imports": [

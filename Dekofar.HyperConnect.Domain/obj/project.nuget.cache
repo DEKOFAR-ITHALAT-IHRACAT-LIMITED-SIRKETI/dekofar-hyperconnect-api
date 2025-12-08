@@ -25,8 +25,10 @@
     {
       "code": "NU1701",
       "level": "Warning",
+      "message": "Package 'EntityFramework 6.1.0' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
+      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj",
       "warningLevel": 1,
-      "message": "'EntityFramework 6.1.0' paketi, proje hedef çerçevesi 'net8.0' yerine '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' kullanılarak geri yüklendi. Bu paket projenizle tamamen uyumlu olmayabilir.",
+      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj",
       "libraryId": "EntityFramework",
       "targetGraphs": [
         "net8.0"
@@ -35,8 +37,10 @@
     {
       "code": "NU1701",
       "level": "Warning",
+      "message": "Package 'Microsoft.AspNet.Identity.Core 2.2.4' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
+      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj",
       "warningLevel": 1,
-      "message": "'Microsoft.AspNet.Identity.Core 2.2.4' paketi, proje hedef çerçevesi 'net8.0' yerine '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' kullanılarak geri yüklendi. Bu paket projenizle tamamen uyumlu olmayabilir.",
+      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj",
       "libraryId": "Microsoft.AspNet.Identity.Core",
       "targetGraphs": [
         "net8.0"
@@ -45,8 +49,10 @@
     {
       "code": "NU1701",
       "level": "Warning",
+      "message": "Package 'Microsoft.AspNet.Identity.EntityFramework 2.2.4' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
+      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj",
       "warningLevel": 1,
-      "message": "'Microsoft.AspNet.Identity.EntityFramework 2.2.4' paketi, proje hedef çerçevesi 'net8.0' yerine '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' kullanılarak geri yüklendi. Bu paket projenizle tamamen uyumlu olmayabilir.",
+      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj",
       "libraryId": "Microsoft.AspNet.Identity.EntityFramework",
       "targetGraphs": [
         "net8.0"

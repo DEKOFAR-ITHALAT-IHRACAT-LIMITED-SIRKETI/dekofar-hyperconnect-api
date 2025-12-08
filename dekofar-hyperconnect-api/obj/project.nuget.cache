@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "w99LPV+eaMs=",
+  "dgSpecHash": "+aGYMFD5nio=",
   "success": true,
   "projectFilePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
   "expectedPackageFiles": [
@@ -16,6 +16,7 @@
     "C:\\Users\\recep\\.nuget\\packages\\hangfire.core\\1.8.7\\hangfire.core.1.8.7.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\hangfire.memorystorage\\1.8.0\\hangfire.memorystorage.1.8.0.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\hangfire.netcore\\1.8.7\\hangfire.netcore.1.8.7.nupkg.sha512",
+    "C:\\Users\\recep\\.nuget\\packages\\htmlagilitypack\\1.12.4\\htmlagilitypack.1.12.4.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\mediatr\\13.0.0\\mediatr.13.0.0.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\mediatr.contracts\\2.0.1\\mediatr.contracts.2.0.1.nupkg.sha512",
@@ -95,6 +96,7 @@
     "C:\\Users\\recep\\.nuget\\packages\\npgsql.entityframeworkcore.postgresql\\8.0.4\\npgsql.entityframeworkcore.postgresql.8.0.4.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\owin\\1.0.0\\owin.1.0.0.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\restsharp\\112.1.0\\restsharp.112.1.0.nupkg.sha512",
+    "C:\\Users\\recep\\.nuget\\packages\\sixlabors.imagesharp\\3.1.12\\sixlabors.imagesharp.3.1.12.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\swashbuckle.aspnetcore\\6.5.0\\swashbuckle.aspnetcore.6.5.0.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\swashbuckle.aspnetcore.swagger\\6.5.0\\swashbuckle.aspnetcore.swagger.6.5.0.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\swashbuckle.aspnetcore.swaggergen\\6.5.0\\swashbuckle.aspnetcore.swaggergen.6.5.0.nupkg.sha512",
@@ -122,19 +124,21 @@
     "C:\\Users\\recep\\.nuget\\packages\\system.text.encodings.web\\8.0.0\\system.text.encodings.web.8.0.0.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\system.text.json\\8.0.0\\system.text.json.8.0.0.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\system.threading.channels\\8.0.0\\system.threading.channels.8.0.0.nupkg.sha512",
-    "C:\\Users\\recep\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.18\\microsoft.netcore.app.runtime.win-x64.8.0.18.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\microsoft.netcore.app.runtime.linux-x64\\8.0.18\\microsoft.netcore.app.runtime.linux-x64.8.0.18.nupkg.sha512",
-    "C:\\Users\\recep\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.18\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.18.nupkg.sha512",
+    "C:\\Users\\recep\\.nuget\\packages\\microsoft.netcore.app.host.linux-x64\\8.0.18\\microsoft.netcore.app.host.linux-x64.8.0.18.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.18\\microsoft.aspnetcore.app.runtime.win-x64.8.0.18.nupkg.sha512",
-    "C:\\Users\\recep\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.linux-x64\\8.0.18\\microsoft.aspnetcore.app.runtime.linux-x64.8.0.18.nupkg.sha512",
-    "C:\\Users\\recep\\.nuget\\packages\\microsoft.netcore.app.host.linux-x64\\8.0.18\\microsoft.netcore.app.host.linux-x64.8.0.18.nupkg.sha512"
+    "C:\\Users\\recep\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.18\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.18.nupkg.sha512",
+    "C:\\Users\\recep\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.18\\microsoft.netcore.app.runtime.win-x64.8.0.18.nupkg.sha512",
+    "C:\\Users\\recep\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.linux-x64\\8.0.18\\microsoft.aspnetcore.app.runtime.linux-x64.8.0.18.nupkg.sha512"
   ],
   "logs": [
     {
       "code": "NU1603",
       "level": "Warning",
+      "message": "dekofar-hyperconnect-api depends on Hangfire.MemoryStorage (>= 1.7.5) but Hangfire.MemoryStorage 1.7.5 was not found. Hangfire.MemoryStorage 1.8.0 was resolved instead.",
+      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "warningLevel": 1,
-      "message": "dekofar-hyperconnect-api, Hangfire.MemoryStorage (>= 1.7.5) öğesine bağımlı ancak Hangfire.MemoryStorage 1.7.5 bulunamadı. Yaklaşık bir en iyi eşleşme olan Hangfire.MemoryStorage 1.8.0 çözümlendi.",
+      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "libraryId": "Hangfire.MemoryStorage",
       "targetGraphs": [
         "net8.0",
@@ -145,8 +149,10 @@
     {
       "code": "NU1603",
       "level": "Warning",
+      "message": "dekofar-hyperconnect-api depends on Microsoft.IdentityModel.Tokens (>= 8.0.5) but Microsoft.IdentityModel.Tokens 8.0.5 was not found. Microsoft.IdentityModel.Tokens 8.1.0 was resolved instead.",
+      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "warningLevel": 1,
-      "message": "dekofar-hyperconnect-api, Microsoft.IdentityModel.Tokens (>= 8.0.5) öğesine bağımlı ancak Microsoft.IdentityModel.Tokens 8.0.5 bulunamadı. Yaklaşık bir en iyi eşleşme olan Microsoft.IdentityModel.Tokens 8.1.0 çözümlendi.",
+      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "libraryId": "Microsoft.IdentityModel.Tokens",
       "targetGraphs": [
         "net8.0",
@@ -157,8 +163,10 @@
     {
       "code": "NU1603",
       "level": "Warning",
+      "message": "dekofar-hyperconnect-api depends on System.IdentityModel.Tokens.Jwt (>= 8.0.5) but System.IdentityModel.Tokens.Jwt 8.0.5 was not found. System.IdentityModel.Tokens.Jwt 8.1.0 was resolved instead.",
+      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "warningLevel": 1,
-      "message": "dekofar-hyperconnect-api, System.IdentityModel.Tokens.Jwt (>= 8.0.5) öğesine bağımlı ancak System.IdentityModel.Tokens.Jwt 8.0.5 bulunamadı. Yaklaşık bir en iyi eşleşme olan System.IdentityModel.Tokens.Jwt 8.1.0 çözümlendi.",
+      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
         "net8.0",
@@ -169,8 +177,10 @@
     {
       "code": "NU1608",
       "level": "Warning",
+      "message": "Detected package version outside of dependency constraint: MediatR.Extensions.Microsoft.DependencyInjection 11.1.0 requires MediatR (>= 11.0.0 && < 12.0.0) but version MediatR 13.0.0 was resolved.",
+      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "warningLevel": 1,
-      "message": "Bağımlılık kısıtlaması dışında algılanan paket sürümü: MediatR.Extensions.Microsoft.DependencyInjection 11.1.0, MediatR (>= 11.0.0 && < 12.0.0) gerektiriyor ancak sürüm MediatR 13.0.0 çözümlenmiş.",
+      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "libraryId": "MediatR",
       "targetGraphs": [
         "net8.0",
@@ -181,8 +191,10 @@
     {
       "code": "NU1701",
       "level": "Warning",
+      "message": "Package 'EntityFramework 6.1.0' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
+      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "warningLevel": 1,
-      "message": "'EntityFramework 6.1.0' paketi, proje hedef çerçevesi 'net8.0' yerine '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' kullanılarak geri yüklendi. Bu paket projenizle tamamen uyumlu olmayabilir.",
+      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "libraryId": "EntityFramework",
       "targetGraphs": [
         "net8.0"
@@ -191,8 +203,10 @@
     {
       "code": "NU1701",
       "level": "Warning",
+      "message": "Package 'Microsoft.AspNet.Identity.Core 2.2.4' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
+      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "warningLevel": 1,
-      "message": "'Microsoft.AspNet.Identity.Core 2.2.4' paketi, proje hedef çerçevesi 'net8.0' yerine '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' kullanılarak geri yüklendi. Bu paket projenizle tamamen uyumlu olmayabilir.",
+      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "libraryId": "Microsoft.AspNet.Identity.Core",
       "targetGraphs": [
         "net8.0"
@@ -201,8 +215,10 @@
     {
       "code": "NU1701",
       "level": "Warning",
+      "message": "Package 'Microsoft.AspNet.Identity.EntityFramework 2.2.4' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
+      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "warningLevel": 1,
-      "message": "'Microsoft.AspNet.Identity.EntityFramework 2.2.4' paketi, proje hedef çerçevesi 'net8.0' yerine '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' kullanılarak geri yüklendi. Bu paket projenizle tamamen uyumlu olmayabilir.",
+      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "libraryId": "Microsoft.AspNet.Identity.EntityFramework",
       "targetGraphs": [
         "net8.0"
@@ -211,8 +227,10 @@
     {
       "code": "NU1701",
       "level": "Warning",
+      "message": "Package 'Microsoft.Owin 4.2.3' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
+      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "warningLevel": 1,
-      "message": "'Microsoft.Owin 4.2.3' paketi, proje hedef çerçevesi 'net8.0' yerine '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' kullanılarak geri yüklendi. Bu paket projenizle tamamen uyumlu olmayabilir.",
+      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "libraryId": "Microsoft.Owin",
       "targetGraphs": [
         "net8.0"
@@ -221,8 +239,10 @@
     {
       "code": "NU1701",
       "level": "Warning",
+      "message": "Package 'Owin 1.0.0' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
+      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "warningLevel": 1,
-      "message": "'Owin 1.0.0' paketi, proje hedef çerçevesi 'net8.0' yerine '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' kullanılarak geri yüklendi. Bu paket projenizle tamamen uyumlu olmayabilir.",
+      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "libraryId": "Owin",
       "targetGraphs": [
         "net8.0"

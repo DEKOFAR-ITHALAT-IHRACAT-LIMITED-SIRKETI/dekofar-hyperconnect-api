@@ -1,11 +1,13 @@
 ﻿using Dekofar.HyperConnect.Application;
 using Dekofar.HyperConnect.Application.Common.Interfaces;
 using Dekofar.HyperConnect.Application.Interfaces;
+using Dekofar.HyperConnect.Application.MediaDownloader.Interfaces;
 using Dekofar.HyperConnect.Domain.Entities;
 using Dekofar.HyperConnect.Infrastructure.Jobs;
 using Dekofar.HyperConnect.Infrastructure.Persistence;
 using Dekofar.HyperConnect.Infrastructure.Persistence.Repositories;
 using Dekofar.HyperConnect.Infrastructure.Services;
+using Dekofar.HyperConnect.Infrastructure.Services.MediaDownloader;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Auth.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.Auth.Services;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.BulkQuery;
@@ -108,6 +110,14 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             // 🔑 Token & kullanıcı servisleri
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IUserService, UserService>();
+
+
+            // 📦 Memory cache (Media Downloader önizleme ID -> URL eşlemesi için)
+            services.AddMemoryCache();
+
+            // 📥 Media Downloader (preview + zip download)
+            services.AddScoped<IMediaDownloaderService, MediaDownloaderService>();
+
 
             // ✅ MediatR
             services.AddMediatR(cfg =>
