@@ -10,7 +10,6 @@ using Dekofar.HyperConnect.Infrastructure.ServiceRegistration;
 using Dekofar.HyperConnect.Infrastructure.Services;
 using Dekofar.HyperConnect.Integrations.Meta.Interfaces;
 using Dekofar.HyperConnect.Integrations.Meta.Services;
-using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
 using Dekofar.HyperConnect.Integrations.Meta.Interfaces;
 using Dekofar.HyperConnect.Integrations.Meta.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;

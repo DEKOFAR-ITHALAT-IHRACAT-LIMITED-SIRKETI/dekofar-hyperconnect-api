@@ -22,14 +22,22 @@ using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Shipment.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Shipment.Services;
 using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Services;
-using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
+using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
+using Dekofar.HyperConnect.Integrations.Shopify.Abstractions.Ports;
+using Dekofar.HyperConnect.Integrations.Shopify.Clients.Rest;
+using Dekofar.HyperConnect.Integrations.Shopify.UseCases.Orders;
+using Dekofar.HyperConnect.Integrations.Shopify.UseCases.Sms;
+using Dekofar.HyperConnect.Integrations.Sms;
+using Dekofar.HyperConnect.Integrations.Sms.Abstractions;
+using Dekofar.HyperConnect.Integrations.Sms.NetGsm;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using SendShippedOrdersBulkSmsUseCase = Dekofar.HyperConnect.Integrations.Shopify.UseCases.Sms.SendShippedOrdersBulkSmsUseCase;
 
 namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
 {
@@ -103,9 +111,23 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
             services.AddScoped<IAllowedAdminIpService, AllowedAdminIpService>();
 
-            // 📞 NetGSM servisleri
-            services.AddTransient<INetGsmSmsService, NetGsmSmsInboxService>();
-            services.AddTransient<INetGsmSmsService, NetGsmSmsSendService>();
+            // 📞 NetGSM SMS servisleri
+            services.AddHttpClient();
+
+            services.AddScoped<INetGsmSmsSendService, NetGsmSmsSendService>();
+            services.AddScoped<INetGsmSmsInboxService, NetGsmSmsInboxService>();
+
+
+            // Shopify
+            services.AddHttpClient<IShopifyOrderPort, ShopifyRestClient>();
+            services.AddScoped<IGetFulfilledOrdersUseCase, GetFulfilledOrdersUseCase>();
+
+            // SMS
+            services.AddScoped<ISmsSender, NetGsmSmsSender>();
+            services.AddScoped<ISendShippedOrdersBulkSmsUseCase, SendShippedOrdersBulkSmsUseCase>();
+
+
+
 
             // 🔑 Token & kullanıcı servisleri
             services.AddScoped<ITokenService, TokenService>();
