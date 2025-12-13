@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "eHeIzfkHqnE=",
+  "dgSpecHash": "nkpQvb5snMI=",
   "success": true,
-  "projectFilePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
+  "projectFilePath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\recep\\.nuget\\packages\\automapper\\12.0.1\\automapper.12.0.1.nupkg.sha512",
     "C:\\Users\\recep\\.nuget\\packages\\automapper.extensions.microsoft.dependencyinjection\\12.0.0\\automapper.extensions.microsoft.dependencyinjection.12.0.0.nupkg.sha512",
@@ -88,9 +88,9 @@
       "code": "NU1608",
       "level": "Warning",
       "message": "Detected package version outside of dependency constraint: MediatR.Extensions.Microsoft.DependencyInjection 11.1.0 requires MediatR (>= 11.0.0 && < 12.0.0) but version MediatR 13.0.0 was resolved.",
-      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
+      "projectPath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
       "warningLevel": 1,
-      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
+      "filePath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
       "libraryId": "MediatR",
       "targetGraphs": [
         "net8.0"
@@ -100,9 +100,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "Package 'EntityFramework 6.1.0' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
-      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
+      "projectPath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
       "warningLevel": 1,
-      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
+      "filePath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
       "libraryId": "EntityFramework",
       "targetGraphs": [
         "net8.0"
@@ -112,9 +112,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "Package 'Microsoft.AspNet.Identity.Core 2.2.4' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
-      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
+      "projectPath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
       "warningLevel": 1,
-      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
+      "filePath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
       "libraryId": "Microsoft.AspNet.Identity.Core",
       "targetGraphs": [
         "net8.0"
@@ -124,9 +124,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "Package 'Microsoft.AspNet.Identity.EntityFramework 2.2.4' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
-      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
+      "projectPath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
       "warningLevel": 1,
-      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
+      "filePath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
       "libraryId": "Microsoft.AspNet.Identity.EntityFramework",
       "targetGraphs": [
         "net8.0"
@@ -136,9 +136,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "Package 'Microsoft.Owin 4.2.3' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
-      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
+      "projectPath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
       "warningLevel": 1,
-      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
+      "filePath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
       "libraryId": "Microsoft.Owin",
       "targetGraphs": [
         "net8.0"
@@ -148,9 +148,9 @@
       "code": "NU1701",
       "level": "Warning",
       "message": "Package 'Owin 1.0.0' was restored using '.NETFramework,Version=v4.6.1, .NETFramework,Version=v4.6.2, .NETFramework,Version=v4.7, .NETFramework,Version=v4.7.1, .NETFramework,Version=v4.7.2, .NETFramework,Version=v4.8, .NETFramework,Version=v4.8.1' instead of the project target framework 'net8.0'. This package may not be fully compatible with your project.",
-      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
+      "projectPath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
       "warningLevel": 1,
-      "filePath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
+      "filePath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj",
       "libraryId": "Owin",
       "targetGraphs": [
         "net8.0"

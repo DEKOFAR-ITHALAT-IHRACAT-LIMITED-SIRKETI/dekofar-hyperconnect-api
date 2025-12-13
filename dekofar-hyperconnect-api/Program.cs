@@ -33,6 +33,7 @@ using System.Net.Http;                            // ✅ SocketsHttpHandler
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
+using Dekofar.HyperConnect.Integrations.NetGsm.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -110,6 +111,10 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddSignalR();
+
+builder.Services.Configure<NetGsmOptions>(
+    builder.Configuration.GetSection("NetGsm"));
+
 
 //
 // 🧠 Response Caching & Compression (🔑 Controller’daki [ResponseCache] için gerekli)

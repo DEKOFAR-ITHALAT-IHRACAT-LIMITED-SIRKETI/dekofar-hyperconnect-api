@@ -17,6 +17,7 @@ namespace Dekofar.HyperConnect.Integrations.NetGsm.Services.sms
         private readonly IConfiguration _configuration;
         private readonly ILogger<NetGsmSmsSendService> _logger;
         private readonly HttpClient _httpClient;
+        private readonly string _defaultHeader;
 
         public NetGsmSmsSendService(
             IConfiguration configuration,
@@ -29,6 +30,7 @@ namespace Dekofar.HyperConnect.Integrations.NetGsm.Services.sms
 
             var user = _configuration["NetGsm:Username"];
             var pass = _configuration["NetGsm:Password"];
+            _defaultHeader = _configuration["NetGsm:DefaultHeader"] ?? "DEKOFAR LTD";
 
             var auth = Convert.ToBase64String(
                 Encoding.UTF8.GetBytes($"{user}:{pass}")
@@ -56,16 +58,21 @@ namespace Dekofar.HyperConnect.Integrations.NetGsm.Services.sms
 
             var url = _configuration["NetGsm:SendSmsBaseUrl"];
 
-            // 🔑 Otomatik encoding seçimi
+            // 🔑 Otomatik encoding (Türkçe karakter varsa UNICODE)
             var encoding = request.Messages.Any(m =>
                 m.Msg.Any(c => "çğıİöşüÇĞÖŞÜ".Contains(c)))
                     ? "UNICODE"
                     : "DEFAULT";
 
+            // ✅ Header garanti altına alındı
+            var msgHeader = string.IsNullOrWhiteSpace(request.MsgHeader)
+                ? _defaultHeader
+                : request.MsgHeader;
+
             // 🔴 NETGSM V2 REST – DOĞRU BODY
             var body = new
             {
-                msgheader = request.MsgHeader,
+                msgheader = msgHeader,
                 encoding = encoding,
                 messages = request.Messages.Select(m => new
                 {

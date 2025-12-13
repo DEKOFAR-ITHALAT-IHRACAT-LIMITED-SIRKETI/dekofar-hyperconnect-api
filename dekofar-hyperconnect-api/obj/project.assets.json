@@ -10270,17 +10270,17 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
+      "projectUniqueName": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "projectName": "dekofar-hyperconnect-api",
-      "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
+      "projectPath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api.csproj",
       "packagesPath": "C:\\Users\\recep\\.nuget\\packages\\",
-      "outputPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\obj\\",
+      "outputPath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\dekofar-hyperconnect-api\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\NuGet.Config",
+        "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\NuGet.Config",
         "C:\\Users\\recep\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
@@ -10295,20 +10295,20 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Application\\Dekofar.HyperConnect.Application.csproj": {
-              "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Application\\Dekofar.HyperConnect.Application.csproj"
+            "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Application\\Dekofar.HyperConnect.Application.csproj": {
+              "projectPath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Application\\Dekofar.HyperConnect.Application.csproj"
             },
-            "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj": {
-              "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj"
+            "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj": {
+              "projectPath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj"
             },
-            "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj": {
-              "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj"
+            "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj": {
+              "projectPath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Infrastructure\\Dekofar.HyperConnect.Infrastructure.csproj"
             },
-            "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Integrations\\Dekofar.HyperConnect.Integrations.csproj": {
-              "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Integrations\\Dekofar.HyperConnect.Integrations.csproj"
+            "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Integrations\\Dekofar.HyperConnect.Integrations.csproj": {
+              "projectPath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Integrations\\Dekofar.HyperConnect.Integrations.csproj"
             },
-            "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Shared\\Dekofar.HyperConnect.Shared.csproj": {
-              "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Shared\\Dekofar.HyperConnect.Shared.csproj"
+            "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Shared\\Dekofar.HyperConnect.Shared.csproj": {
+              "projectPath": "C:\\Users\\recep\\Downloads\\WORK\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Shared\\Dekofar.HyperConnect.Shared.csproj"
             }
           }
         }
@@ -10397,27 +10397,27 @@
         "downloadDependencies": [
           {
             "name": "Microsoft.AspNetCore.App.Runtime.linux-x64",
-            "version": "[8.0.18, 8.0.18]"
+            "version": "[8.0.20, 8.0.20]"
           },
           {
             "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-            "version": "[8.0.18, 8.0.18]"
+            "version": "[8.0.20, 8.0.20]"
           },
           {
             "name": "Microsoft.NETCore.App.Host.linux-x64",
-            "version": "[8.0.18, 8.0.18]"
+            "version": "[8.0.20, 8.0.20]"
           },
           {
             "name": "Microsoft.NETCore.App.Runtime.linux-x64",
-            "version": "[8.0.18, 8.0.18]"
+            "version": "[8.0.20, 8.0.20]"
           },
           {
             "name": "Microsoft.NETCore.App.Runtime.win-x64",
-            "version": "[8.0.18, 8.0.18]"
+            "version": "[8.0.20, 8.0.20]"
           },
           {
             "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
-            "version": "[8.0.18, 8.0.18]"
+            "version": "[8.0.20, 8.0.20]"
           }
         ],
         "frameworkReferences": {
@@ -10428,7 +10428,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.412/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.414/PortableRuntimeIdentifierGraph.json"
       }
     },
     "runtimes": {

@@ -31,6 +31,7 @@ using Dekofar.HyperConnect.Integrations.Shopify.UseCases.Sms;
 using Dekofar.HyperConnect.Integrations.Sms;
 using Dekofar.HyperConnect.Integrations.Sms.Abstractions;
 using Dekofar.HyperConnect.Integrations.Sms.NetGsm;
+using Dekofar.HyperConnect.Integrations.Sms.Templates;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -126,7 +127,11 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<ISmsSender, NetGsmSmsSender>();
             services.AddScoped<ISendShippedOrdersBulkSmsUseCase, SendShippedOrdersBulkSmsUseCase>();
 
+            services.AddScoped<
+    IPreviewShippedOrdersSmsUseCase,
+    PreviewShippedOrdersSmsUseCase>();
 
+            services.AddScoped<ISmsTemplateResolver, SmsTemplateResolver>();
 
 
             // 🔑 Token & kullanıcı servisleri

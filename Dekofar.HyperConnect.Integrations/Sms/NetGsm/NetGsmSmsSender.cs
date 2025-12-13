@@ -13,11 +13,14 @@ namespace Dekofar.HyperConnect.Integrations.Sms.NetGsm
             _netGsm = netGsm;
         }
 
-        public async Task SendAsync(string phone, string message, CancellationToken ct)
+        public async Task<SmsSendResponse> SendAsync(
+            string phone,
+            string message,
+            CancellationToken ct = default)
         {
-            await _netGsm.SendAsync(new SmsSendRequest
+            var request = new SmsSendRequest
             {
-                MsgHeader = null, // default header appsettings’ten gelir
+                MsgHeader = null, // ✅ DefaultHeader appsettings’ten gelir
                 Messages = new List<SmsMessageItem>
                 {
                     new SmsMessageItem
@@ -26,7 +29,10 @@ namespace Dekofar.HyperConnect.Integrations.Sms.NetGsm
                         Msg = message
                     }
                 }
-            });
+            };
+
+            // 🔥 ALT SERVİSTEN GELEN SONUCU AYNEN DÖN
+            return await _netGsm.SendAsync(request);
         }
     }
 }

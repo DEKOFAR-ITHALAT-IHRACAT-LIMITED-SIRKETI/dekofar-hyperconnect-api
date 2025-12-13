@@ -35,23 +35,28 @@ public class ShopifyRestClient : IShopifyOrderPort
 
     /// <summary>
     /// Belirtilen zaman aralığında fulfillment (kargoya veriliş) tarihi olan siparişleri getirir.
-    /// created_at DEĞİL, fulfillment.created_at baz alınır (Shopify için doğru yaklaşım).
-    /// sms_sent tag’i olanlar otomatik elenir.
+    /// ✔ created_at DEĞİL
+    /// ✔ fulfillment.created_at baz alınır
+    /// ✔ sms_sent tag’i olanlar Shopify tarafında otomatik elenir
     /// </summary>
     public async Task<List<ShippedOrder>> GetFulfilledOrdersAsync(
         DateTime startUtc,
         DateTime endUtc,
         CancellationToken ct = default)
     {
+        // Shopify order search: sms_sent tag hariç
+        var query = Uri.EscapeDataString("-tag:sms_sent");
+
         var url =
             $"/admin/api/2024-04/orders.json" +
             $"?status=any" +
             $"&updated_at_min={startUtc:o}" +
             $"&updated_at_max={endUtc:o}" +
+            $"&query={query}" +
             $"&limit=250";
 
         _logger.LogInformation(
-            "📦 Shopify fulfilled orders fetch → {Start} - {End}",
+            "📦 Shopify fulfilled orders fetch (SMS NOT SENT) → {Start} - {End}",
             startUtc, endUtc);
 
         var resp = await _httpClient.GetAsync(url, ct);
@@ -64,43 +69,46 @@ public class ShopifyRestClient : IShopifyOrderPort
             return new();
 
         var result = raw.Orders
-            // 1️⃣ sms_sent tag’i olanları ele
+            // ✅ sadece fulfilled
             .Where(o =>
-                string.IsNullOrWhiteSpace(o.Tags) ||
-                !o.Tags.Contains("sms_sent", StringComparison.OrdinalIgnoreCase)
-            )
-            // 2️⃣ Fulfillment var mı?
-            .Where(o =>
+                string.Equals(
+                    o.FulfillmentStatus,
+                    "fulfilled",
+                    StringComparison.OrdinalIgnoreCase) &&
                 o.Fulfillments != null &&
                 o.Fulfillments.Any()
             )
-            // 3️⃣ Fulfillment tarihi aralıkta mı?
+            // ✅ fulfillment tarihi aralıkta mı
             .Where(o =>
                 o.Fulfillments!.Any(f =>
                     f.CreatedAt >= startUtc &&
                     f.CreatedAt <= endUtc
                 )
             )
-            // 4️⃣ Internal modele map
+            // ✅ internal modele map
             .Select(o => new ShippedOrder
             {
                 OrderId = o.Id,
                 OrderNumber = o.Name,
                 Phone = o.Customer?.Phone,
-                TrackingNumbers = o.Fulfillments!
-                    .SelectMany(f => f.TrackingNumbers ?? Enumerable.Empty<string>())
-                    .Distinct()
+                Trackings = o.Fulfillments!
+                    .SelectMany(f =>
+                        f.TrackingNumbers?.Select(t => new ShippedTracking
+                        {
+                            TrackingNumber = t,
+                            Company = f.TrackingCompany,
+                            TrackingUrl = f.TrackingUrl
+                        }) ?? Enumerable.Empty<ShippedTracking>()
+                    )
+                    .DistinctBy(t => t.TrackingNumber)
                     .ToList()
             })
-            // 5️⃣ Güvenlik filtreleri
-            .Where(o =>
-                !string.IsNullOrWhiteSpace(o.Phone) &&
-                o.TrackingNumbers.Any()
-            )
+            // ✅ tracking yoksa SMS atılmaz
+            .Where(o => o.Trackings.Any())
             .ToList();
 
         _logger.LogInformation(
-            "✅ Shopify fulfilled orders found: {Count}",
+            "✅ SMS gönderilmemiş fulfilled sipariş sayısı: {Count}",
             result.Count);
 
         return result;
@@ -110,10 +118,14 @@ public class ShopifyRestClient : IShopifyOrderPort
     /// Shopify siparişine tag ekler (idempotent).
     /// Örn: sms_sent
     /// </summary>
-    public async Task AddOrderTagAsync(long orderId, string tag, CancellationToken ct)
+    public async Task AddOrderTagAsync(
+        long orderId,
+        string tag,
+        CancellationToken ct)
     {
         var getResp = await _httpClient.GetAsync(
-            $"/admin/api/2024-04/orders/{orderId}.json", ct);
+            $"/admin/api/2024-04/orders/{orderId}.json",
+            ct);
 
         getResp.EnsureSuccessStatusCode();
 
@@ -123,7 +135,7 @@ public class ShopifyRestClient : IShopifyOrderPort
         string existingTags = wrapper.order.tags ?? "";
 
         if (existingTags.Contains(tag, StringComparison.OrdinalIgnoreCase))
-            return; // ✅ zaten ekli
+            return; // ✅ zaten ekli → idempotent
 
         var newTags = string.IsNullOrWhiteSpace(existingTags)
             ? tag
@@ -152,6 +164,7 @@ public class ShopifyRestClient : IShopifyOrderPort
 
         _logger.LogInformation(
             "🏷️ Shopify order {OrderId} tagged with {Tag}",
-            orderId, tag);
+            orderId,
+            tag);
     }
 }

@@ -10,13 +10,16 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
     {
         private readonly IGetFulfilledOrdersUseCase _getFulfilledOrdersUseCase;
         private readonly ISendShippedOrdersBulkSmsUseCase _sendShippedOrdersBulkSmsUseCase;
+        private readonly IPreviewShippedOrdersSmsUseCase _previewShippedOrdersSmsUseCase;
 
         public ShopifyOrdersController(
             IGetFulfilledOrdersUseCase getFulfilledOrdersUseCase,
-            ISendShippedOrdersBulkSmsUseCase sendShippedOrdersBulkSmsUseCase)
+            ISendShippedOrdersBulkSmsUseCase sendShippedOrdersBulkSmsUseCase,
+            IPreviewShippedOrdersSmsUseCase previewShippedOrdersSmsUseCase)
         {
             _getFulfilledOrdersUseCase = getFulfilledOrdersUseCase;
             _sendShippedOrdersBulkSmsUseCase = sendShippedOrdersBulkSmsUseCase;
+            _previewShippedOrdersSmsUseCase = previewShippedOrdersSmsUseCase;
         }
 
         /// <summary>
@@ -40,7 +43,7 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
         [HttpGet("fulfilled/today")]
         public async Task<IActionResult> Today(CancellationToken ct)
         {
-            // TR şimdi
+            // Türkiye saati
             var trNow = DateTime.UtcNow.AddHours(3);
 
             // TR 00:00 → UTC
@@ -51,6 +54,26 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
                 .ExecuteAsync(startUtc, endUtc, ct);
 
             return Ok(result);
+        }
+
+        /// <summary>
+        /// SMS gönderimi ÖNCESİ ön izleme (dry-run)
+        /// Kimlere / kaç SMS gidecek gösterir
+        /// </summary>
+        [HttpGet("fulfilled/sms-preview")]
+        public async Task<IActionResult> PreviewSms(CancellationToken ct)
+        {
+            var endUtc = DateTime.UtcNow;
+            var startUtc = endUtc.AddHours(-24);
+
+            var preview = await _previewShippedOrdersSmsUseCase
+                .ExecuteAsync(startUtc, endUtc, ct);
+
+            return Ok(new
+            {
+                TotalSms = preview.Count,
+                Items = preview
+            });
         }
 
         /// <summary>
