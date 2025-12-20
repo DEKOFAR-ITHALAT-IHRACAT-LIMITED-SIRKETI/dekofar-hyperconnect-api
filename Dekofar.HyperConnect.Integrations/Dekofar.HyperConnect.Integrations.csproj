@@ -19,15 +19,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <EditorConfigFiles Remove="D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Integrations\Shopify\Models\Shopify\.editorconfig" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <None Include="D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Integrations\Shopify\Models\Shopify\.editorconfig" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Kargo\Ptt\Tracking\" />
+	  <Folder Include="cargo\Common\" />
+	  <Folder Include="cargo\Ptt\Tracking\" />
+	  <Folder Include="Common\Http\" />
 	</ItemGroup>
 
 

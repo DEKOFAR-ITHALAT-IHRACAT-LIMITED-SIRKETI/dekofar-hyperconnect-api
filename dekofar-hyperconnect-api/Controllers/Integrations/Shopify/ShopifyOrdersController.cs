@@ -1,5 +1,5 @@
-﻿using Dekofar.HyperConnect.Integrations.Shopify.UseCases.Orders;
-using Dekofar.HyperConnect.Integrations.Shopify.UseCases.Sms;
+﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders;
+using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
@@ -8,83 +8,105 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
     [Route("api/integrations/shopify/orders")]
     public class ShopifyOrdersController : ControllerBase
     {
-        private readonly IGetFulfilledOrdersUseCase _getFulfilledOrdersUseCase;
-        private readonly ISendShippedOrdersBulkSmsUseCase _sendShippedOrdersBulkSmsUseCase;
-        private readonly IPreviewShippedOrdersSmsUseCase _previewShippedOrdersSmsUseCase;
+        private readonly ShopifyOrderReportService _reportService;
 
         public ShopifyOrdersController(
-            IGetFulfilledOrdersUseCase getFulfilledOrdersUseCase,
-            ISendShippedOrdersBulkSmsUseCase sendShippedOrdersBulkSmsUseCase,
-            IPreviewShippedOrdersSmsUseCase previewShippedOrdersSmsUseCase)
+            ShopifyOrderReportService reportService)
         {
-            _getFulfilledOrdersUseCase = getFulfilledOrdersUseCase;
-            _sendShippedOrdersBulkSmsUseCase = sendShippedOrdersBulkSmsUseCase;
-            _previewShippedOrdersSmsUseCase = previewShippedOrdersSmsUseCase;
+            _reportService = reportService;
         }
 
         /// <summary>
-        /// Son 24 saat içinde kargoya verilmiş (fulfilled) siparişler
+        /// 🔍 TEST
+        /// Açık (open) siparişleri listeler
+        /// Opsiyonel: tag filtresi
+        ///
+        /// Örnek:
+        /// /api/integrations/shopify/orders/open
+        /// /api/integrations/shopify/orders/open?tag=SMS_SENT
+        /// /api/integrations/shopify/orders/open?tag=
         /// </summary>
-        [HttpGet("fulfilled/last-24-hours")]
-        public async Task<IActionResult> Last24Hours(CancellationToken ct)
+        [HttpGet("open")]
+        public async Task<IActionResult> GetOpenOrders(
+            [FromQuery] string? tag,
+            CancellationToken ct)
         {
-            var endUtc = DateTime.UtcNow;
-            var startUtc = endUtc.AddHours(-24);
+            var filter = new OrderItemReportFilter
+            {
+                Tag = tag
+            };
 
-            var result = await _getFulfilledOrdersUseCase
-                .ExecuteAsync(startUtc, endUtc, ct);
-
-            return Ok(result);
-        }
-
-        /// <summary>
-        /// Bugün (Türkiye saati) kargoya verilmiş siparişler
-        /// </summary>
-        [HttpGet("fulfilled/today")]
-        public async Task<IActionResult> Today(CancellationToken ct)
-        {
-            // Türkiye saati
-            var trNow = DateTime.UtcNow.AddHours(3);
-
-            // TR 00:00 → UTC
-            var startUtc = trNow.Date.AddHours(-3);
-            var endUtc = trNow;
-
-            var result = await _getFulfilledOrdersUseCase
-                .ExecuteAsync(startUtc, endUtc, ct);
-
-            return Ok(result);
-        }
-
-        /// <summary>
-        /// SMS gönderimi ÖNCESİ ön izleme (dry-run)
-        /// Kimlere / kaç SMS gidecek gösterir
-        /// </summary>
-        [HttpGet("fulfilled/sms-preview")]
-        public async Task<IActionResult> PreviewSms(CancellationToken ct)
-        {
-            var endUtc = DateTime.UtcNow;
-            var startUtc = endUtc.AddHours(-24);
-
-            var preview = await _previewShippedOrdersSmsUseCase
-                .ExecuteAsync(startUtc, endUtc, ct);
+            var result = await _reportService
+                .GetOpenOrdersByTagAsync(filter, ct);
 
             return Ok(new
             {
-                TotalSms = preview.Count,
-                Items = preview
+                Count = result.Count,
+                Items = result
             });
         }
 
         /// <summary>
-        /// Fulfilled siparişler için toplu SMS gönderir
-        /// (sms_sent tag’i olmayanlara)
+        /// 🔍 TEST
+        /// Açık siparişlerden sadece ETİKETSİZ olanlar
         /// </summary>
-        [HttpPost("fulfilled/send-sms")]
-        public async Task<IActionResult> SendFulfilledSms(CancellationToken ct)
+        [HttpGet("open/no-tag")]
+        public async Task<IActionResult> GetOpenOrdersWithoutTag(
+            CancellationToken ct)
         {
-            await _sendShippedOrdersBulkSmsUseCase.ExecuteAsync(ct);
-            return Ok("📨 SMS gönderimi tamamlandı");
+            var filter = new OrderItemReportFilter
+            {
+                Tag = "" // -tag:*
+            };
+
+            var result = await _reportService
+                .GetOpenOrdersByTagAsync(filter, ct);
+
+            return Ok(new
+            {
+                Count = result.Count,
+                Items = result
+            });
+        }
+
+        /// <summary>
+        /// 🔍 TEST
+        /// Açık siparişlerden BELİRLİ TAG’e sahip olanlar
+        /// </summary>
+        [HttpGet("open/by-tag/{tag}")]
+        public async Task<IActionResult> GetOpenOrdersByTag(
+            [FromRoute] string tag,
+            CancellationToken ct)
+        {
+            var filter = new OrderItemReportFilter
+            {
+                Tag = tag
+            };
+
+            var result = await _reportService
+                .GetOpenOrdersByTagAsync(filter, ct);
+
+            return Ok(new
+            {
+                Tag = tag,
+                Count = result.Count,
+                Items = result
+            });
+        }
+
+        /// <summary>
+        /// 🔍 TEST
+        /// Sadece rapor motorunun ayakta olup olmadığını kontrol eder
+        /// </summary>
+        [HttpGet("health")]
+        public IActionResult Health()
+        {
+            return Ok(new
+            {
+                Status = "OK",
+                Service = "ShopifyOrderReportService",
+                Time = DateTime.UtcNow
+            });
         }
     }
 }
