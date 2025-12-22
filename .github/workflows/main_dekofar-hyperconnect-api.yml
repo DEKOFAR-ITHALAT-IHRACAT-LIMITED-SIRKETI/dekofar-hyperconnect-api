@@ -20,20 +20,35 @@ jobs:
       contents: read
 
     steps:
+      # =====================================================
+      # 📥 CHECKOUT
+      # =====================================================
       - name: 📥 Checkout source code
         uses: actions/checkout@v4
 
+      # =====================================================
+      # 🛠️ SETUP DOTNET
+      # =====================================================
       - name: 🛠️ Set up .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
+      # =====================================================
+      # 📦 RESTORE
+      # =====================================================
       - name: 📦 Restore dependencies
         run: dotnet restore ${{ env.PROJECT_PATH }}
 
+      # =====================================================
+      # 🏗️ BUILD
+      # =====================================================
       - name: 🏗️ Build
         run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
 
+      # =====================================================
+      # 🚀 PUBLISH
+      # =====================================================
       - name: 🚀 Publish (self-contained linux-x64)
         run: |
           dotnet publish ${{ env.PROJECT_PATH }} \
@@ -43,22 +58,31 @@ jobs:
             --self-contained true \
             /p:PublishSingleFile=false
 
+      # =====================================================
+      # 📦 ZIP ARTIFACT
+      # =====================================================
       - name: 📦 Zip publish output
         run: |
           cd ${{ env.PUBLISH_DIR }}
-          zip -r ../app.zip ./*
+          zip -r ../app.zip .
 
+      # =====================================================
+      # 🔐 AZURE LOGIN
+      # =====================================================
       - name: 🔐 Login to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A551B4260ACB48F183D3F79D46124047 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_36F1DF128C72499E8428BA9650CB35AA }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1E6236A3803E492591D3CCAF1A2B122B }}
-          auth-type: 'SERVICE_PRINCIPAL'
+          auth-type: SERVICE_PRINCIPAL
 
+      # =====================================================
+      # 🚀 DEPLOY
+      # =====================================================
       - name: 🚀 Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          slot-name: 'Production'
+          slot-name: Production
           package: app.zip
