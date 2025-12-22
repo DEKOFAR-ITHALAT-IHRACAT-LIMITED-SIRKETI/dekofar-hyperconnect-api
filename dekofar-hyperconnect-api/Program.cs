@@ -13,8 +13,6 @@ using Dekofar.HyperConnect.Integrations.Meta.Services;
 using Dekofar.HyperConnect.Integrations.Meta.Interfaces;
 using Dekofar.HyperConnect.Integrations.Meta.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
-using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
-using Dekofar.HyperConnect.Integrations.Shopify.Services;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using MediatR;
@@ -90,15 +88,7 @@ builder.Services.AddScoped(typeof(INotificationService), typeof(NotificationServ
 builder.Services.AddScoped(typeof(IDashboardService), typeof(DashboardService));
 builder.Services.AddScoped(typeof(IModerationService), typeof(ModerationService));
 
-// ✅ Shopify HttpClient: otomatik gzip/deflate, connection pooling (servis içinde header’lar zaten set ediliyor)
-builder.Services.AddHttpClient<IShopifyService, ShopifyService>()
-    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-    {
-        AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-        PooledConnectionLifetime = TimeSpan.FromMinutes(10),
-        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(5),
-        MaxConnectionsPerServer = 10
-    });
+
 
 //
 // 📡 Controllers & JSON

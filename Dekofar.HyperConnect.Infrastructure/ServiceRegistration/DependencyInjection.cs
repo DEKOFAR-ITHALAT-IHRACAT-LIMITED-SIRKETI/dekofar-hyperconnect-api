@@ -24,30 +24,37 @@ using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
-using Dekofar.HyperConnect.Integrations.Shopify.Clients;
+using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
+using Dekofar.HyperConnect.Integrations.Shopify.Clients.Rest;
 using Dekofar.HyperConnect.Integrations.Shopify.Common;
-using Dekofar.HyperConnect.Integrations.Shopify.Orders;
+using Dekofar.HyperConnect.Integrations.Shopify.Customers.Services;
+using Dekofar.HyperConnect.Integrations.Shopify.Fulfillment.Services;
+using Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
+using Dekofar.HyperConnect.Integrations.Shopify.Products.Services;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Net.Http.Headers;
 
 namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
 {
     public static class DependencyInjection
     {
-        public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddInfrastructure(
+            this IServiceCollection services,
+            IConfiguration configuration)
         {
-            // 📦 DbContext
+            // -------------------- DB --------------------
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
 
-            // 📦 IApplicationDbContext implementasyonu
-            services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+            services.AddScoped<IApplicationDbContext>(sp =>
+                sp.GetRequiredService<ApplicationDbContext>());
 
-            // 🔐 Identity (ApplicationUser + Role<Guid>)
+            // -------------------- Identity --------------------
             services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
             {
                 options.Password.RequireDigit = true;
@@ -59,7 +66,7 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-            // 🔑 DHL servisleri
+            // -------------------- DHL --------------------
             services.AddScoped<IShipmentByDateService, ShipmentByDateService>();
             services.AddScoped<IDeliveredShipmentService, DeliveredShipmentService>();
             services.AddScoped<IStatusChangedShipmentService, StatusChangedShipmentService>();
@@ -67,7 +74,6 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<ICbsInfoService, CbsInfoService>();
             services.AddScoped<IAuthService, AuthService>();
 
-            // 📦 DHL StandardQuery servisleri
             services.AddScoped<IGetOrderService, GetOrderService>();
             services.AddScoped<IGetShipmentService, GetShipmentService>();
             services.AddScoped<IGetShipmentByShipmentIdService, GetShipmentByShipmentIdService>();
@@ -76,24 +82,13 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<ITrackShipmentByReferenceIdService, TrackShipmentByReferenceIdService>();
             services.AddScoped<ITrackShipmentByShipmentIdService, TrackShipmentByShipmentIdService>();
 
-            // 📦 PTT servisleri
-            // 📦 PTT servisleri
-            services.AddScoped<IPttAuthService, PttAuthService>(); // önce Auth
-            services.AddHttpClient<IPttShipmentService, PttShipmentService>(); // gönderi yükleme
-            services.AddHttpClient<IPttDeleteService, PttDeleteService>();     // silme
-            services.AddHttpClient<IPttTrackingService, PttTrackingService>(); // 🔹 takip
+            // -------------------- PTT --------------------
+            services.AddScoped<IPttAuthService, PttAuthService>();
+            services.AddHttpClient<IPttShipmentService, PttShipmentService>();
+            services.AddHttpClient<IPttDeleteService, PttDeleteService>();
+            services.AddHttpClient<IPttTrackingService, PttTrackingService>();
 
-
-            // ileride: services.AddHttpClient<IPttDeleteService, PttDeleteService>();
-
-            // 📦 Job Stats
-            services.AddScoped<IJobStatsService, JobStatsService>();
-
-            // 📦 Recurring Job (DHL → Shopify sync job)
-            services.AddScoped<IRecurringJob, DhlShopifySyncJob>();
-            services.AddScoped<DhlShopifySyncJob>(); // direkt job enjekte etmek için
-
-            // JWT authentication Program.cs’de
+            // -------------------- Genel --------------------
             services.AddHttpContextAccessor();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IFileStorageService, LocalFileStorageService>();
@@ -102,43 +97,52 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IBadgeService, BadgeService>();
             services.AddScoped<IWorkSessionService, WorkSessionService>();
 
-            // 🌐 Genel repo & IP servisleri
             services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
             services.AddScoped<IAllowedAdminIpService, AllowedAdminIpService>();
 
-            // 📞 NetGSM SMS servisleri
-            services.AddHttpClient();
-
+            // -------------------- NetGSM --------------------
             services.AddScoped<INetGsmSmsSendService, NetGsmSmsSendService>();
             services.AddScoped<INetGsmSmsInboxService, NetGsmSmsInboxService>();
 
-
+            // -------------------- Shopify Options --------------------
             services.Configure<ShopifyOptions>(
                 configuration.GetSection("Shopify"));
 
-            services.AddHttpClient<ShopifyRestClient>();
-            services.AddHttpClient<ShopifyGraphQlClient>();
+            // -------------------- Shopify HTTP Clients --------------------
+            services.AddHttpClient<ShopifyGraphQlClient>((sp, client) =>
+            {
+                var cfg = sp.GetRequiredService<IConfiguration>();
 
-            services.AddScoped<ShopifyOrderService>();
+                client.BaseAddress = new Uri(cfg["Shopify:BaseUrl"]!);
+                client.DefaultRequestHeaders.Add(
+                    "X-Shopify-Access-Token",
+                    cfg["Shopify:AccessToken"]!);
+                client.DefaultRequestHeaders.Accept.Add(
+                    new MediaTypeWithQualityHeaderValue("application/json"));
+            });
+
+
+
+
+            // -------------------- Shopify Services (KRİTİK) --------------------
             services.AddScoped<ShopifyOrderReportService>();
+            services.AddScoped<ShopifyCustomerService>();
+            services.AddScoped<ShopifyProductService>();
+            services.AddScoped<ShopifyFulfillmentService>();
 
-
-            // 🔑 Token & kullanıcı servisleri
+            // -------------------- Auth / Token --------------------
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IUserService, UserService>();
 
-
-            // 📦 Memory cache (Media Downloader önizleme ID -> URL eşlemesi için)
+            // -------------------- Cache & Media --------------------
             services.AddMemoryCache();
-
-            // 📥 Media Downloader (preview + zip download)
             services.AddScoped<IMediaDownloaderService, MediaDownloaderService>();
 
-
-            // ✅ MediatR
+            // -------------------- MediatR --------------------
             services.AddMediatR(cfg =>
             {
-                cfg.RegisterServicesFromAssembly(typeof(Application.AssemblyReference).Assembly);
+                cfg.RegisterServicesFromAssembly(
+                    typeof(Application.AssemblyReference).Assembly);
             });
 
             return services;

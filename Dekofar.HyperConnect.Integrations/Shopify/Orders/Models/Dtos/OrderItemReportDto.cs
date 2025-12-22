@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Models
+﻿namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Models.Dtos
 {
     public class OrderItemReportDto
     {
@@ -15,9 +9,8 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Models
         public string? ProductTitle { get; set; }
         public string? VariantTitle { get; set; }
         public string? Sku { get; set; }
-        public int Quantity { get; set; }
 
-        public string? ImageUrl { get; set; }
+        public int Quantity { get; set; }
         public List<string> OrderTags { get; set; } = new();
     }
 }

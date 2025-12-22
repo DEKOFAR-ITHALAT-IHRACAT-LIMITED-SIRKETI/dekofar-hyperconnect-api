@@ -78,45 +78,6 @@ namespace dekofar_hyperconnect_api.Controllers.Kargo.Dhl
             return Ok(new { message = "✅ DHL → Shopify senkron çalıştırıldı." });
         }
 
-        /// <summary>
-        /// Son 7 gün için DHL → Shopify senkron job’unu çalıştırır.
-        /// </summary>
-        [HttpPost("sync-last7days")]
-        public async Task<IActionResult> SyncLast7Days(
-            [FromServices] DhlShopifySyncJob job,
-            CancellationToken ct = default)
-        {
-            var allResults = new List<object>();
-            int successCount = 0;
-            int failCount = 0;
 
-            for (int i = 0; i < 7; i++)
-            {
-                var date = DateTime.Today.AddDays(-i);
-                var results = await job.RunForDateAsync(date, ct);
-
-                foreach (var r in results)
-                {
-                    if (r.Success) successCount++;
-                    else failCount++;
-
-                    allResults.Add(new
-                    {
-                        Date = date.ToString("yyyy-MM-dd"),
-                        TrackingNo = r.TrackingNumber,
-                        ShopifyOrderId = r.ShopifyOrderId,
-                        Status = r.Success ? "OK" : "FAIL",
-                        Error = r.Error
-                    });
-                }
-            }
-
-            return Ok(new
-            {
-                SuccessCount = successCount,
-                FailCount = failCount,
-                Details = allResults
-            });
-        }
     }
 }

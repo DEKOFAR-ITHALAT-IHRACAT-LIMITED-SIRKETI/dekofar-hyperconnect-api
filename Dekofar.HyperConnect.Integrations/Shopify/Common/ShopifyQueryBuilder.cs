@@ -1,44 +1,34 @@
-﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
+﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models.Filters;
 using System.Collections.Generic;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Common
 {
     /// <summary>
-    /// Shopify search query string builder
+    /// Shopify Orders Search Query Builder
+    /// NOT: Açık / kapalı / kargo durumu burada yapılmaz.
+    /// Sadece basit tag filtreleri kullanılır.
     /// </summary>
     public static class ShopifyQueryBuilder
     {
-        /// <summary>
-        /// OrderItemReportFilter nesnesinden
-        /// Shopify search query üretir.
-        /// </summary>
-        public static string Build(OrderItemReportFilter filter)
+        public static string Build(OrderItemReportFilter? filter)
         {
-            var parts = new List<string>
-            {
-                "status:open"
-            };
+            var parts = new List<string>();
 
-            if (filter == null)
-                return string.Join(" ", parts);
-
-            // Tag filtresi
-            if (filter.Tag != null)
+            if (filter?.Tag != null)
             {
                 if (filter.Tag == "")
-                    parts.Add("-tag:*");        // etiketsizler
+                {
+                    // etiketsiz siparişler
+                    parts.Add("-tag:*");
+                }
                 else
+                {
                     parts.Add($"tag:{filter.Tag}");
+                }
             }
 
-            // Finansal durum
-            if (!string.IsNullOrWhiteSpace(filter.FinancialStatusCsv))
-                parts.Add($"financial_status:{filter.FinancialStatusCsv}");
-
-            // Fulfillment durum
-            if (!string.IsNullOrWhiteSpace(filter.FulfillmentStatusCsv))
-                parts.Add($"fulfillment_status:{filter.FulfillmentStatusCsv}");
-
+            // boş string dönebilir → bu BİLİNÇLİ
+            // tüm siparişleri almak için
             return string.Join(" ", parts);
         }
     }

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Dekofar.HyperConnect.Integrations.Shopify.Products
+namespace Dekofar.HyperConnect.Integrations.Shopify.Products.Services
 {
-    internal class ShopifyProductService
+    public class ShopifyProductService
     {
     }
 }

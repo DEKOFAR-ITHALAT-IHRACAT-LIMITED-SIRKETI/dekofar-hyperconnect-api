@@ -22,6 +22,9 @@
 	  <Folder Include="cargo\Common\" />
 	  <Folder Include="cargo\Ptt\Tracking\" />
 	  <Folder Include="Common\Http\" />
+	  <Folder Include="Shopify\Customers\Models\" />
+	  <Folder Include="Shopify\Fulfillment\Models\" />
+	  <Folder Include="Shopify\Products\Models\" />
 	</ItemGroup>
 
 
