@@ -29,6 +29,7 @@ using Dekofar.HyperConnect.Integrations.Shopify.Clients.Rest;
 using Dekofar.HyperConnect.Integrations.Shopify.Common;
 using Dekofar.HyperConnect.Integrations.Shopify.Customers.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Fulfillment.Services;
+using Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
 using Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Products.Services;
 using MediatR;
@@ -144,6 +145,21 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
                 cfg.RegisterServicesFromAssembly(
                     typeof(Application.AssemblyReference).Assembly);
             });
+
+
+
+
+            // -------------------- Shopify Order Auto Tagging --------------------
+
+            services.AddScoped<ShopifyOrderTagEngine>();
+            services.AddScoped<ShopifyOrderAutoTagService>();
+
+
+            services.AddScoped<IOrderTagRule, TestOrderStatusRule>();
+            services.AddScoped<IOrderTagRule, AddressCheckRule>();
+            services.AddScoped<IOrderTagRule, DhlRule>();
+            services.AddScoped<IOrderTagRule, RepeatCustomerRule>();
+
 
             return services;
         }
