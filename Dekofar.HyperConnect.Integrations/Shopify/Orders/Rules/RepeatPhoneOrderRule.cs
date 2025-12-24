@@ -4,16 +4,6 @@ using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
 
-/// <summary>
-/// Aynı telefon numarasıyla
-/// EN AZ 2 ADET GÖNDERİLMEMİŞ (UNFULFILLED) sipariş varsa
-/// → TÜM BU SİPARİŞLER ARA1 yapılır
-///
-/// Tek gönderilmemiş sipariş varsa
-/// → KURALA TAKILMAZ (DHL / PTT olabilir)
-///
-/// Gönderilmiş (FULFILLED) siparişlere ASLA dokunulmaz
-/// </summary>
 public class RepeatPhoneOrderRule : IOrderTagRule
 {
     private readonly ShopifyGraphQlClient _graphQl;
@@ -39,14 +29,14 @@ public class RepeatPhoneOrderRule : IOrderTagRule
         if (string.IsNullOrWhiteSpace(currentOrderId))
             return null;
 
-        // 🔍 Aynı telefonla siparişleri getir
         var query = @"
 query ($query: String!) {
-  orders(first: 10, query: $query) {
+  orders(first: 20, query: $query) {
     edges {
       node {
         id
         displayFulfillmentStatus
+        financialStatus
         tags
       }
     }
@@ -61,65 +51,44 @@ query ($query: String!) {
         var edges =
             json["data"]?["orders"]?["edges"] as JArray;
 
-        if (edges == null || edges.Count == 0)
+        if (edges == null)
             return null;
 
-        // 🔑 SADECE GÖNDERİLMEMİŞLERİ AL
-        var unfulfilledOrders = edges
+        // ✅ TEKİL + GERÇEK GÖNDERİLMEMİŞ SİPARİŞLER
+        var unfulfilledOrderIds = edges
             .Select(e => e["node"])
             .Where(n =>
-                n?["displayFulfillmentStatus"]?.ToString()
-                    .Equals("UNFULFILLED", StringComparison.OrdinalIgnoreCase) == true)
+                n?["displayFulfillmentStatus"]?.ToString() == "UNFULFILLED" &&
+                n?["financialStatus"]?.ToString() == "PENDING")
+            .Select(n => n?["id"]?.ToString())
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct() // 🔴 KRİTİK SATIR
             .ToList();
 
-        // ❗ EN AZ 2 ADET OLMALI
-        if (unfulfilledOrders.Count < 2)
+        // ❗ GERÇEKTEN 2 FARKLI SİPARİŞ YOKSA ÇIK
+        if (unfulfilledOrderIds.Count < 2)
             return null;
 
-        // 🔁 DİĞER GÖNDERİLMEMİŞ SİPARİŞLERİ ARA1 YAP
-        foreach (var node in unfulfilledOrders)
+        // 🔁 DİĞER SİPARİŞLERİ ARA1 YAP
+        foreach (var orderId in unfulfilledOrderIds)
         {
-            var orderId = node?["id"]?.ToString();
-            if (string.IsNullOrWhiteSpace(orderId))
-                continue;
-
-            // Kendisi hariç
             if (orderId == currentOrderId)
                 continue;
 
-            await AddAra1TagIfNotExistsAsync(
-                node!,
-                orderId,
-                ct);
+            await AddAra1TagAsync(orderId!, ct);
         }
 
-        // 🔴 BU SİPARİŞ DE ARA1
         return new OrderTagResult
         {
             Tag = "ara1",
-            Reason = "Aynı telefon numarasıyla birden fazla gönderilmemiş sipariş"
+            Reason = "Aynı telefon numarasıyla birden fazla açık ve gönderilmemiş sipariş"
         };
     }
 
-    // --------------------------------------------------
-    // 🔧 YARDIMCI: ARA1 YOKSA EKLE
-    // --------------------------------------------------
-    private async Task AddAra1TagIfNotExistsAsync(
-        JToken node,
+    private async Task AddAra1TagAsync(
         string orderId,
         CancellationToken ct)
     {
-        var existingTags =
-            node["tags"]?.ToString() ?? string.Empty;
-
-        if (existingTags
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Any(t => t.Trim()
-                .Equals("ara1", StringComparison.OrdinalIgnoreCase)))
-        {
-            return; // zaten var
-        }
-
         var mutation = @"
 mutation ($id: ID!, $tags: [String!]!) {
   tagsAdd(id: $id, tags: $tags) {
