@@ -1,13 +1,18 @@
 ﻿using Newtonsoft.Json.Linq;
-using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
 using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
+using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
 
 /// <summary>
 /// Aynı telefon numarasıyla
-/// GÖNDERİLMEMİŞ (unfulfilled) birden fazla sipariş varsa
-/// → HER İKİ SİPARİŞ DE ara1 olur
+/// EN AZ 2 ADET GÖNDERİLMEMİŞ (UNFULFILLED) sipariş varsa
+/// → TÜM BU SİPARİŞLER ARA1 yapılır
+///
+/// Tek gönderilmemiş sipariş varsa
+/// → KURALA TAKILMAZ (DHL / PTT olabilir)
+///
+/// Gönderilmiş (FULFILLED) siparişlere ASLA dokunulmaz
 /// </summary>
 public class RepeatPhoneOrderRule : IOrderTagRule
 {
@@ -34,16 +39,14 @@ public class RepeatPhoneOrderRule : IOrderTagRule
         if (string.IsNullOrWhiteSpace(currentOrderId))
             return null;
 
-        // ✅ SADECE UNFULFILLED SİPARİŞLER
-        var searchQuery =
-            $"phone:{phone} fulfillment_status:unfulfilled";
-
-        var gql = @"
+        // 🔍 Aynı telefonla siparişleri getir
+        var query = @"
 query ($query: String!) {
   orders(first: 10, query: $query) {
     edges {
       node {
         id
+        displayFulfillmentStatus
         tags
       }
     }
@@ -51,60 +54,68 @@ query ($query: String!) {
 }";
 
         var json = await _graphQl.ExecuteAsync(
-            gql,
-            new { query = searchQuery },
+            query,
+            new { query = $"phone:{phone}" },
             ct);
 
         var edges =
             json["data"]?["orders"]?["edges"] as JArray;
 
-        // Tek sipariş varsa → tekrar yok
-        if (edges == null || edges.Count <= 1)
+        if (edges == null || edges.Count == 0)
             return null;
 
-        bool anotherUnfulfilledExists = false;
+        // 🔑 SADECE GÖNDERİLMEMİŞLERİ AL
+        var unfulfilledOrders = edges
+            .Select(e => e["node"])
+            .Where(n =>
+                n?["displayFulfillmentStatus"]?.ToString()
+                    .Equals("UNFULFILLED", StringComparison.OrdinalIgnoreCase) == true)
+            .ToList();
 
-        foreach (var edge in edges)
+        // ❗ EN AZ 2 ADET OLMALI
+        if (unfulfilledOrders.Count < 2)
+            return null;
+
+        // 🔁 DİĞER GÖNDERİLMEMİŞ SİPARİŞLERİ ARA1 YAP
+        foreach (var node in unfulfilledOrders)
         {
-            var node = edge["node"];
-            if (node == null)
-                continue;
-
-            var orderId = node["id"]?.ToString();
+            var orderId = node?["id"]?.ToString();
             if (string.IsNullOrWhiteSpace(orderId))
                 continue;
 
-            // Kendisi değilse → diğer unfulfilled sipariş
-            if (!orderId.Equals(currentOrderId, StringComparison.OrdinalIgnoreCase))
-            {
-                anotherUnfulfilledExists = true;
+            // Kendisi hariç
+            if (orderId == currentOrderId)
+                continue;
 
-                // 🔁 ESKİ UNFULFILLED SİPARİŞE ara1 EKLE
-                await AddAra1IfMissingAsync(orderId, node, ct);
-            }
+            await AddAra1TagIfNotExistsAsync(
+                node!,
+                orderId,
+                ct);
         }
 
-        if (!anotherUnfulfilledExists)
-            return null;
-
-        // 🔴 BU SİPARİŞ DE ara1
+        // 🔴 BU SİPARİŞ DE ARA1
         return new OrderTagResult
         {
             Tag = "ara1",
-            Reason = "Aynı telefon numarasıyla gönderilmemiş tekrar sipariş"
+            Reason = "Aynı telefon numarasıyla birden fazla gönderilmemiş sipariş"
         };
     }
 
-    private async Task AddAra1IfMissingAsync(
-        string orderId,
+    // --------------------------------------------------
+    // 🔧 YARDIMCI: ARA1 YOKSA EKLE
+    // --------------------------------------------------
+    private async Task AddAra1TagIfNotExistsAsync(
         JToken node,
+        string orderId,
         CancellationToken ct)
     {
-        var tagsRaw = node["tags"]?.ToString() ?? "";
+        var existingTags =
+            node["tags"]?.ToString() ?? string.Empty;
 
-        if (tagsRaw
+        if (existingTags
             .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Any(t => t.Trim().Equals("ara1", StringComparison.OrdinalIgnoreCase)))
+            .Any(t => t.Trim()
+                .Equals("ara1", StringComparison.OrdinalIgnoreCase)))
         {
             return; // zaten var
         }
