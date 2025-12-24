@@ -16,18 +16,13 @@ public class ShopifyOrderReprocessService
         _autoTag = autoTag;
     }
 
-    /// <summary>
-    /// Son 24 saat içindeki:
-    /// - ödeme bekleyen
-    /// - gönderilmemiş
-    /// siparişleri kurallara göre yeniden etiketler
-    /// </summary>
     public async Task<int> ReprocessLastDayAsync(CancellationToken ct)
     {
-        // ✅ Shopify GraphQL search ISO datetime ister
-        var since = DateTime.UtcNow
-            .AddDays(-1)
-            .ToString("yyyy-MM-ddTHH:mm:ssZ");
+        // 🔑 Shopify search query → SON 24 SAAT
+        var since =
+            DateTime.UtcNow
+                .AddDays(-1)
+                .ToString("yyyy-MM-ddTHH:mm:ssZ");
 
         var queryString =
             $"created_at:>={since} financial_status:pending fulfillment_status:unfulfilled";
@@ -74,6 +69,18 @@ query ($query: String!) {
         if (edges == null || edges.Count == 0)
             return 0;
 
+        // 📌 Telefon numarasına göre sayım
+        var phoneGroups = edges
+            .Select(e => e["node"])
+            .OfType<JObject>()
+            .GroupBy(o =>
+                o["shippingAddress"]?["phone"]?.ToString())
+            .Where(g => !string.IsNullOrWhiteSpace(g.Key))
+            .ToDictionary(
+                g => g.Key!,
+                g => g.Count()
+            );
+
         int processed = 0;
 
         foreach (var edge in edges)
@@ -81,8 +88,9 @@ query ($query: String!) {
             if (edge["node"] is not JObject gqlOrder)
                 continue;
 
-            // 🔁 GraphQL → REST benzeri payload
-            var normalized = NormalizeGraphQlOrder(gqlOrder);
+            var normalized = NormalizeGraphQlOrder(
+                gqlOrder,
+                phoneGroups);
 
             await _autoTag.ApplyAutoTagsAsync(normalized, ct);
             processed++;
@@ -91,34 +99,39 @@ query ($query: String!) {
         return processed;
     }
 
-    /// <summary>
-    /// Shopify GraphQL Order → mevcut Rule sisteminin beklediği format
-    /// </summary>
-    private static JObject NormalizeGraphQlOrder(JObject node)
+    // 🔄 GraphQL → REST payload formatına çevir
+    private static JObject NormalizeGraphQlOrder(
+        JObject node,
+        Dictionary<string, int> phoneGroups)
     {
+        var phone =
+            node["shippingAddress"]?["phone"]?.ToString();
+
+        phoneGroups.TryGetValue(
+            phone ?? string.Empty,
+            out var repeatCount);
+
         return new JObject
         {
-            // Shopify mutation için gerekli
             ["admin_graphql_api_id"] = node["id"],
 
-            // Kurallar için
-            ["total_weight"] = node["totalWeight"] ?? 0,
+            ["total_weight"] = node["totalWeight"],
 
             ["total_price"] =
-                node["totalPriceSet"]?["shopMoney"]?["amount"] ?? "0",
+                node["totalPriceSet"]?["shopMoney"]?["amount"],
 
             ["shipping_address"] = new JObject
             {
-                ["address1"] = node["shippingAddress"]?["address1"] ?? "",
-                ["city"] = node["shippingAddress"]?["city"] ?? "",
-                ["phone"] = node["shippingAddress"]?["phone"] ?? "",
-                ["country_code"] = node["shippingAddress"]?["countryCode"] ?? ""
+                ["address1"] = node["shippingAddress"]?["address1"],
+                ["city"] = node["shippingAddress"]?["city"],
+                ["phone"] = phone,
+                ["country_code"] = node["shippingAddress"]?["countryCode"]
             },
 
             ["customer"] = new JObject
             {
                 ["orders_count"] =
-                    node["customer"]?["numberOfOrders"] ?? 0
+                    node["customer"]?["numberOfOrders"]
             },
 
             ["line_items"] = new JArray(
@@ -126,10 +139,12 @@ query ($query: String!) {
                     .Select(e => new JObject
                     {
                         ["product_id"] =
-                            e["node"]?["product"]?["id"] ?? ""
-                    })
-                ?? Enumerable.Empty<JObject>()
-            )
+                            e["node"]?["product"]?["id"]
+                    }) ?? Enumerable.Empty<JObject>()
+            ),
+
+            // ⭐ RULE’LAR İÇİN EKSTRA METADATA
+            ["__repeat_phone_count"] = repeatCount
         };
     }
 }
