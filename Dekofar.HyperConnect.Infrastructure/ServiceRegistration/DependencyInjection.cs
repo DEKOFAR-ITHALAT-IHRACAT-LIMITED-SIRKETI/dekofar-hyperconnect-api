@@ -25,7 +25,6 @@ using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
 using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
-using Dekofar.HyperConnect.Integrations.Shopify.Clients.Rest;
 using Dekofar.HyperConnect.Integrations.Shopify.Common;
 using Dekofar.HyperConnect.Integrations.Shopify.Customers.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Fulfillment.Services;
@@ -97,7 +96,6 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IUserNotificationService, UserNotificationService>();
             services.AddScoped<IBadgeService, BadgeService>();
             services.AddScoped<IWorkSessionService, WorkSessionService>();
-
             services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
             services.AddScoped<IAllowedAdminIpService, AllowedAdminIpService>();
 
@@ -109,7 +107,7 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.Configure<ShopifyOptions>(
                 configuration.GetSection("Shopify"));
 
-            // -------------------- Shopify HTTP Clients --------------------
+            // -------------------- Shopify HTTP Client --------------------
             services.AddHttpClient<ShopifyGraphQlClient>((sp, client) =>
             {
                 var cfg = sp.GetRequiredService<IConfiguration>();
@@ -122,14 +120,29 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
                     new MediaTypeWithQualityHeaderValue("application/json"));
             });
 
-
-
-
-            // -------------------- Shopify Services (KRİTİK) --------------------
+            // -------------------- Shopify Core Services --------------------
             services.AddScoped<ShopifyOrderReportService>();
             services.AddScoped<ShopifyCustomerService>();
             services.AddScoped<ShopifyProductService>();
             services.AddScoped<ShopifyFulfillmentService>();
+
+            // -------------------- ORDER AUTO TAG RULES (TEK ALGORİTMA) --------------------
+
+            // 🔴 İPTAL – EN ÖNCE
+            services.AddScoped<IOrderTagRule, CancelKeywordRule>();
+
+            // 🟠 ARA1 – MANUEL KONTROL
+            services.AddScoped<IOrderTagRule, MultiProductRule>();
+            services.AddScoped<IOrderTagRule, HighAmountRule>();
+            services.AddScoped<IOrderTagRule, ShortAddressRule>();
+            services.AddScoped<IOrderTagRule, BranchKeywordRule>();
+
+            // 🟢 KARGO KARARI – EN SON
+            services.AddScoped<IOrderTagRule, ShippingDecisionRule>();
+
+            // 🧠 ENGINE + SERVICE
+            services.AddScoped<ShopifyOrderTagEngine>();
+            services.AddScoped<ShopifyOrderAutoTagService>();
 
             // -------------------- Auth / Token --------------------
             services.AddScoped<ITokenService, TokenService>();
@@ -145,21 +158,6 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
                 cfg.RegisterServicesFromAssembly(
                     typeof(Application.AssemblyReference).Assembly);
             });
-
-
-
-
-            // -------------------- Shopify Order Auto Tagging --------------------
-
-            services.AddScoped<ShopifyOrderTagEngine>();
-            services.AddScoped<ShopifyOrderAutoTagService>();
-
-
-            services.AddScoped<IOrderTagRule, TestOrderStatusRule>();
-            services.AddScoped<IOrderTagRule, AddressCheckRule>();
-            services.AddScoped<IOrderTagRule, DhlRule>();
-            services.AddScoped<IOrderTagRule, RepeatCustomerRule>();
-
 
             return services;
         }

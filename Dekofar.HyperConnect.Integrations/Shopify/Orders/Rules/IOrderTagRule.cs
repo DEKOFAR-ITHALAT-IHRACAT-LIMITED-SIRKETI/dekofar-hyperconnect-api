@@ -20,4 +20,5 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules
             JObject order,
             CancellationToken ct);
     }
+
 }
