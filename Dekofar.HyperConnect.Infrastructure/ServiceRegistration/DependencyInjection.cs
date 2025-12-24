@@ -83,7 +83,6 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<ITrackShipmentByShipmentIdService, TrackShipmentByShipmentIdService>();
 
             // 🔴 KRİTİK – EKSİK OLAN BUYDU
-            services.AddScoped<IRecurringJob, RecurringJob>();
             // ⬆️ Eğer sınıf adı farklıysa (DhlRecurringJob vb.) onu yaz
 
             // -------------------- PTT --------------------
