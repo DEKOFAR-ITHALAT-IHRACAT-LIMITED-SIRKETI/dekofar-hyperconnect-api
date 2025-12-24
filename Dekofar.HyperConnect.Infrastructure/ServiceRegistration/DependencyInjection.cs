@@ -137,6 +137,7 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IOrderTagRule, MultiProductRule>();    // çok ürün
             services.AddScoped<IOrderTagRule, HighAmountRule>();      // ≥ 3000 TL
             services.AddScoped<IOrderTagRule, RepeatCustomerRule>();  // tekrar sipariş
+            services.AddScoped<IOrderTagRule, RepeatPhoneOrderRule>();
 
             // 🟢 3) KARGO KARARI – HER ZAMAN EN SON
             services.AddScoped<IOrderTagRule, ShippingDecisionRule>(); // dhl / ptt
@@ -144,6 +145,8 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             // 🧠 ENGINE + AUTO TAG SERVICE
             services.AddScoped<ShopifyOrderTagEngine>();
             services.AddScoped<ShopifyOrderAutoTagService>();
+            services.AddScoped<ShopifyOrderReprocessService>();
+
 
             // -------------------- Auth / Token --------------------
             services.AddScoped<ITokenService, TokenService>();

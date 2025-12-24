@@ -1,24 +1,11 @@
-﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Newtonsoft.Json.Linq;
+using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
 
-namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules
+namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
+
+public interface IOrderTagRule
 {
-    /// <summary>
-    /// Shopify siparişi için otomatik etiket kuralı
-    /// </summary>
-    public interface IOrderTagRule
-    {
-        /// <summary>
-        /// Sipariş payload'ını değerlendirir ve
-        /// eklenmesi gereken etiketleri döner
-        /// </summary>
-        Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct);
-
-    }
-
+    Task<OrderTagResult?> EvaluateAsync(
+        JObject order,
+        CancellationToken ct);
 }

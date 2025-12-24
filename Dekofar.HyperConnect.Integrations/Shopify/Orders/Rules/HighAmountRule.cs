@@ -17,12 +17,12 @@ public class HighAmountRule : IOrderTagRule
                 ? price
                 : 0;
 
-        if (total >= 3000)
+        if (total >= 2000)
         {
             return Task.FromResult<OrderTagResult?>(new OrderTagResult
             {
                 Tag = "ara1",
-                Reason = "Sipariş tutarı 3000 TL ve üzeri"
+                Reason = "Sipariş tutarı 2000 TL ve üzeri"
             });
         }
 

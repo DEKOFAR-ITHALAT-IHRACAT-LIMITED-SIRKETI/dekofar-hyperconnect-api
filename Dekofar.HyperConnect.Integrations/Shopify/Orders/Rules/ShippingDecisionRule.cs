@@ -1,41 +1,43 @@
-﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
+using System.Text.RegularExpressions;
+using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
 
 public class ShippingDecisionRule : IOrderTagRule
 {
-    private static readonly string[] VillageKeywords =
-    {
-        "köy", "köyü", "mezra"
-    };
+    // Gerçek "köy" tespiti (Ortaköy yakalanmaz)
+    private static readonly Regex VillageRegex =
+        new(@"\bköy\b|\bköyü\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
     {
-        var address =
-            order["shipping_address"]?["address1"]?
-                .ToString()?.ToLowerInvariant() ?? "";
-
-        var phone =
-            order["shipping_address"]?["phone"]?.ToString();
-
-        // telefon yoksa veya adres kısa ise DHL/PTT kararı verilmez
-        if (string.IsNullOrWhiteSpace(phone) || address.Length < 10)
+        var addressObj = order["shipping_address"];
+        if (addressObj == null)
             return Task.FromResult<OrderTagResult?>(null);
 
-        if (VillageKeywords.Any(k => address.Contains(k)))
+        var address =
+            addressObj["address1"]?.ToString()?.ToLowerInvariant() ?? "";
+
+        var city =
+            addressObj["city"]?.ToString()?.ToLowerInvariant() ?? "";
+
+        // 🟡 PTT → SADECE gerçek köy + İstanbul dışı
+        if (VillageRegex.IsMatch(address) &&
+            !city.Contains("istanbul"))
         {
             return Task.FromResult<OrderTagResult?>(new OrderTagResult
             {
                 Tag = "ptt",
-                Reason = "Adres köy/mezra içeriyor"
+                Reason = "Adres gerçek köy ve İstanbul dışı"
             });
         }
 
+        // 🟢 DHL → VARSAYILAN
         return Task.FromResult<OrderTagResult?>(new OrderTagResult
         {
             Tag = "dhl",
-            Reason = "Adres uygun, telefon mevcut"
+            Reason = "Varsayılan DHL (şehir içi / temiz adres)"
         });
     }
 }

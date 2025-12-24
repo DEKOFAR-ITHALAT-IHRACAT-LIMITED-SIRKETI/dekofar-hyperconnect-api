@@ -13,18 +13,21 @@ public class ShopifyOrderTagEngine
         _rules = rules;
     }
 
-    // 🔥 TEK ETİKET – İLK KAZANAN
     public async Task<OrderTagResult?> CalculateAsync(
         JObject order,
         CancellationToken ct)
     {
+        var results = new List<OrderTagResult>();
+
         foreach (var rule in _rules)
         {
             var result = await rule.EvaluateAsync(order, ct);
             if (result != null)
-                return result;
+                results.Add(result);
         }
 
-        return null;
+        return results
+            .OrderByDescending(x => x.Priority)
+            .FirstOrDefault();
     }
 }
