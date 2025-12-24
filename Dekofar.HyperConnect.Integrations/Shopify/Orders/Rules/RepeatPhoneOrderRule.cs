@@ -4,6 +4,11 @@ using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
 
+/// <summary>
+/// Aynı telefon numarasıyla
+/// 2+ AÇIK + GÖNDERİLMEMİŞ + ÖDEME BEKLEYEN sipariş varsa
+/// → HER İKİSİ DE ARA1
+/// </summary>
 public class RepeatPhoneOrderRule : IOrderTagRule
 {
     private readonly ShopifyGraphQlClient _graphQl;
@@ -29,14 +34,14 @@ public class RepeatPhoneOrderRule : IOrderTagRule
         if (string.IsNullOrWhiteSpace(currentOrderId))
             return null;
 
-        var query = @"
+        var gql = @"
 query ($query: String!) {
   orders(first: 20, query: $query) {
     edges {
       node {
         id
         displayFulfillmentStatus
-        financialStatus
+        displayFinancialStatus
         tags
       }
     }
@@ -44,7 +49,7 @@ query ($query: String!) {
 }";
 
         var json = await _graphQl.ExecuteAsync(
-            query,
+            gql,
             new { query = $"phone:{phone}" },
             ct);
 
@@ -54,30 +59,31 @@ query ($query: String!) {
         if (edges == null)
             return null;
 
-        // ✅ TEKİL + GERÇEK GÖNDERİLMEMİŞ SİPARİŞLER
-        var unfulfilledOrderIds = edges
+        // ✅ GERÇEK AÇIK + GÖNDERİLMEMİŞ + BEKLEYENLER
+        var validOrderIds = edges
             .Select(e => e["node"])
             .Where(n =>
                 n?["displayFulfillmentStatus"]?.ToString() == "UNFULFILLED" &&
-                n?["financialStatus"]?.ToString() == "PENDING")
+                n?["displayFinancialStatus"]?.ToString() == "PENDING")
             .Select(n => n?["id"]?.ToString())
             .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Distinct() // 🔴 KRİTİK SATIR
+            .Distinct() // 🔴 KRİTİK
             .ToList();
 
-        // ❗ GERÇEKTEN 2 FARKLI SİPARİŞ YOKSA ÇIK
-        if (unfulfilledOrderIds.Count < 2)
+        // ❗ GERÇEKTEN 2 SİPARİŞ YOKSA → HİÇBİR ŞEY YAPMA
+        if (validOrderIds.Count < 2)
             return null;
 
-        // 🔁 DİĞER SİPARİŞLERİ ARA1 YAP
-        foreach (var orderId in unfulfilledOrderIds)
+        // 🔁 DİĞER AÇIK SİPARİŞLERİ ARA1 YAP
+        foreach (var orderId in validOrderIds)
         {
             if (orderId == currentOrderId)
                 continue;
 
-            await AddAra1TagAsync(orderId!, ct);
+            await AddAra1TagIfNotExistsAsync(orderId!, ct);
         }
 
+        // 🔴 BU SİPARİŞ DE ARA1
         return new OrderTagResult
         {
             Tag = "ara1",
@@ -85,16 +91,14 @@ query ($query: String!) {
         };
     }
 
-    private async Task AddAra1TagAsync(
+    private async Task AddAra1TagIfNotExistsAsync(
         string orderId,
         CancellationToken ct)
     {
         var mutation = @"
 mutation ($id: ID!, $tags: [String!]!) {
   tagsAdd(id: $id, tags: $tags) {
-    userErrors {
-      message
-    }
+    userErrors { message }
   }
 }";
 
