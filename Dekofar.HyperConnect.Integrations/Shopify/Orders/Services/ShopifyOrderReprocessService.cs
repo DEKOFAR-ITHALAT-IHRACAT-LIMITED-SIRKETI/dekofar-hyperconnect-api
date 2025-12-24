@@ -3,10 +3,6 @@ using Newtonsoft.Json.Linq;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
 
-/// <summary>
-/// Son 24 saat içindeki açık + ödeme bekleyen siparişleri
-/// kurallara göre yeniden etiketler
-/// </summary>
 public class ShopifyOrderReprocessService
 {
     private readonly ShopifyGraphQlClient _graphQl;
@@ -22,24 +18,24 @@ public class ShopifyOrderReprocessService
 
     public async Task<int> ReprocessLastDayAsync(CancellationToken ct)
     {
-        // ✅ GRAPHQL – DOĞRU FIELD İSİMLERİ
+        var since =
+            DateTime.UtcNow
+                .AddDays(-1)
+                .ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+        var queryString =
+            $"created_at:>={since} financial_status:pending fulfillment_status:unfulfilled";
+
         var gql = @"
-query {
-  orders(
-    first: 50
-    query: ""created_at:>=-1d financial_status:pending fulfillment_status:unfulfilled""
-  ) {
+query ($query: String!) {
+  orders(first: 50, query: $query) {
     edges {
       node {
         id
-        createdAt
         totalWeight
         totalPriceSet {
-          shopMoney {
-            amount
-          }
+          shopMoney { amount }
         }
-        tags
         shippingAddress {
           address1
           city
@@ -52,9 +48,7 @@ query {
         lineItems(first: 20) {
           edges {
             node {
-              product {
-                id
-              }
+              product { id }
             }
           }
         }
@@ -63,7 +57,10 @@ query {
   }
 }";
 
-        var json = await _graphQl.ExecuteAsync(gql, null, ct);
+        var json = await _graphQl.ExecuteAsync(
+            gql,
+            new { query = queryString },
+            ct);
 
         var edges =
             json["data"]?["orders"]?["edges"] as JArray;
@@ -78,7 +75,6 @@ query {
             if (edge["node"] is not JObject gqlOrder)
                 continue;
 
-            // 🔁 GraphQL → REST benzeri JSON’a çevir
             var normalized = NormalizeGraphQlOrder(gqlOrder);
 
             await _autoTag.ApplyAutoTagsAsync(normalized, ct);
@@ -88,10 +84,6 @@ query {
         return processed;
     }
 
-    /// <summary>
-    /// GraphQL order objesini mevcut rule’ların
-    /// beklediği REST formatına çevirir
-    /// </summary>
     private static JObject NormalizeGraphQlOrder(JObject node)
     {
         return new JObject
