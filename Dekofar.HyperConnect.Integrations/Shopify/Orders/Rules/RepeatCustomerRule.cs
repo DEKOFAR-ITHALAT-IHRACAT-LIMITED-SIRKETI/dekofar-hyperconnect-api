@@ -1,34 +1,25 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
+using Newtonsoft.Json.Linq;
 
-namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules
+namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
+
+public class RepeatCustomerRule : IOrderTagRule
 {
-    /// <summary>
-    /// Müşterinin daha önce sipariş verip vermediğini kontrol eder
-    /// </summary>
-    public class RepeatCustomerRule : IOrderTagRule
+    public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
     {
-        public Task<IEnumerable<string>> EvaluateAsync(
-            JObject order,
-            CancellationToken ct)
+        var ordersCount =
+            order["customer"]?["orders_count"]?.Value<int>() ?? 0;
+
+        // Son 10 gün kontrolü daha sonra eklenebilir
+        if (ordersCount > 1)
         {
-            var ordersCount =
-                order["customer"]?["orders_count"]?.Value<int>() ?? 0;
-
-            // İlk sipariş = 1
-            if (ordersCount > 1)
+            return Task.FromResult<OrderTagResult?>(new OrderTagResult
             {
-                return Task.FromResult<IEnumerable<string>>(new[]
-                {
-                    "TEKRAR_SIPARIS"
-                });
-            }
-
-            return Task.FromResult(Enumerable.Empty<string>());
+                Tag = "ara1",
+                Reason = "Tekrar sipariş veren müşteri"
+            });
         }
+
+        return Task.FromResult<OrderTagResult?>(null);
     }
 }

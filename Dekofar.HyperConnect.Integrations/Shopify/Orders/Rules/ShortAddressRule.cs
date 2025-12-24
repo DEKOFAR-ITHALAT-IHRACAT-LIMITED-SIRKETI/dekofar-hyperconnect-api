@@ -1,16 +1,24 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
+using Newtonsoft.Json.Linq;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
 
 public class ShortAddressRule : IOrderTagRule
 {
-    public Task<IEnumerable<string>> EvaluateAsync(JObject order, CancellationToken ct)
+    public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
     {
         var address =
             order["shipping_address"]?["address1"]?.ToString() ?? "";
 
-        return address.Length < 10
-            ? Task.FromResult<IEnumerable<string>>(new[] { "ara1" })
-            : Task.FromResult(Enumerable.Empty<string>());
+        if (address.Length < 10)
+        {
+            return Task.FromResult<OrderTagResult?>(new OrderTagResult
+            {
+                Tag = "ara1",
+                Reason = "Adres çok kısa"
+            });
+        }
+
+        return Task.FromResult<OrderTagResult?>(null);
     }
 }

@@ -1,31 +1,34 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
+using Newtonsoft.Json.Linq;
 
-namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules
+namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
+
+public class CancelKeywordRule : IOrderTagRule
 {
-    public class CancelKeywordRule : IOrderTagRule
+    private static readonly string[] ForbiddenWords =
     {
-        private static readonly string[] ForbiddenWords =
-        {
-        "iptal", "deneme", "test", "fake", "sahte", "dolandırıc"
+        "iptal", "deneme", "test", "sahte", "fake"
     };
 
-        public Task<IEnumerable<string>> EvaluateAsync(JObject order, CancellationToken ct)
+    public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
+    {
+        var text = string.Join(" ",
+            order["note"]?.ToString(),
+            order["shipping_address"]?["address1"]?.ToString(),
+            order["line_items"]?.Select(i => i["title"]?.ToString())
+        ).ToLowerInvariant();
+
+        var hit = ForbiddenWords.FirstOrDefault(w => text.Contains(w));
+
+        if (hit != null)
         {
-            var text = string.Join(" ",
-                order["note"]?.ToString(),
-                order["shipping_address"]?["address1"]?.ToString(),
-                order["line_items"]?.Select(i => i["title"]?.ToString())
-            ).ToLowerInvariant();
-
-            if (ForbiddenWords.Any(w => text.Contains(w)))
-                return Task.FromResult<IEnumerable<string>>(new[] { "iptal" });
-
-            return Task.FromResult(Enumerable.Empty<string>());
+            return Task.FromResult<OrderTagResult?>(new OrderTagResult
+            {
+                Tag = "iptal",
+                Reason = $"Yasaklı kelime bulundu: {hit}"
+            });
         }
+
+        return Task.FromResult<OrderTagResult?>(null);
     }
 }

@@ -1,26 +1,28 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
+using Newtonsoft.Json.Linq;
 
-namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules
+namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
+
+public class MultiProductRule : IOrderTagRule
 {
-    public class MultiProductRule : IOrderTagRule
+    public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
     {
-        public Task<IEnumerable<string>> EvaluateAsync(JObject order, CancellationToken ct)
-        {
-            var distinctProducts =
-                order["line_items"]?
-                    .Select(li => li["product_id"]?.ToString())
-                    .Where(id => !string.IsNullOrEmpty(id))
-                    .Distinct()
-                    .Count() ?? 0;
+        var distinctProducts =
+            order["line_items"]?
+                .Select(li => li["product_id"]?.ToString())
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct()
+                .Count() ?? 0;
 
-            return distinctProducts > 1
-                ? Task.FromResult<IEnumerable<string>>(new[] { "ara1" })
-                : Task.FromResult(Enumerable.Empty<string>());
+        if (distinctProducts > 1)
+        {
+            return Task.FromResult<OrderTagResult?>(new OrderTagResult
+            {
+                Tag = "ara1",
+                Reason = "Birden fazla ürün çeşidi"
+            });
         }
+
+        return Task.FromResult<OrderTagResult?>(null);
     }
 }

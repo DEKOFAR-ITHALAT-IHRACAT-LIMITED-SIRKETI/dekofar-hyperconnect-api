@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,9 +17,8 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules
         /// Sipariş payload'ını değerlendirir ve
         /// eklenmesi gereken etiketleri döner
         /// </summary>
-        Task<IEnumerable<string>> EvaluateAsync(
-            JObject order,
-            CancellationToken ct);
+        Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct);
+
     }
 
 }

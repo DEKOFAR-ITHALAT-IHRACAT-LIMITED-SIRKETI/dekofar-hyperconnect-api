@@ -1,11 +1,12 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
+using Newtonsoft.Json.Linq;
 using System.Globalization;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
 
 public class HighAmountRule : IOrderTagRule
 {
-    public Task<IEnumerable<string>> EvaluateAsync(JObject order, CancellationToken ct)
+    public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
     {
         var total =
             decimal.TryParse(
@@ -16,8 +17,15 @@ public class HighAmountRule : IOrderTagRule
                 ? price
                 : 0;
 
-        return total >= 3000
-            ? Task.FromResult<IEnumerable<string>>(new[] { "ara1" })
-            : Task.FromResult(Enumerable.Empty<string>());
+        if (total >= 3000)
+        {
+            return Task.FromResult<OrderTagResult?>(new OrderTagResult
+            {
+                Tag = "ara1",
+                Reason = "Sipariş tutarı 3000 TL ve üzeri"
+            });
+        }
+
+        return Task.FromResult<OrderTagResult?>(null);
     }
 }

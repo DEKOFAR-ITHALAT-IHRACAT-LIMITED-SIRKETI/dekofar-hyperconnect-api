@@ -128,19 +128,20 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
 
             // -------------------- ORDER AUTO TAG RULES (TEK ALGORİTMA) --------------------
 
-            // 🔴 İPTAL – EN ÖNCE
+            // 🔴 1) İPTAL – EN YÜKSEK ÖNCELİK
             services.AddScoped<IOrderTagRule, CancelKeywordRule>();
 
-            // 🟠 ARA1 – MANUEL KONTROL
-            services.AddScoped<IOrderTagRule, MultiProductRule>();
-            services.AddScoped<IOrderTagRule, HighAmountRule>();
-            services.AddScoped<IOrderTagRule, ShortAddressRule>();
-            services.AddScoped<IOrderTagRule, BranchKeywordRule>();
+            // 🟠 2) ARA1 – MANUEL KONTROL GEREKTİRENLER
+            services.AddScoped<IOrderTagRule, BranchKeywordRule>();   // şube / teslim al
+            services.AddScoped<IOrderTagRule, ShortAddressRule>();    // adres < 10
+            services.AddScoped<IOrderTagRule, MultiProductRule>();    // çok ürün
+            services.AddScoped<IOrderTagRule, HighAmountRule>();      // ≥ 3000 TL
+            services.AddScoped<IOrderTagRule, RepeatCustomerRule>();  // tekrar sipariş
 
-            // 🟢 KARGO KARARI – EN SON
-            services.AddScoped<IOrderTagRule, ShippingDecisionRule>();
+            // 🟢 3) KARGO KARARI – HER ZAMAN EN SON
+            services.AddScoped<IOrderTagRule, ShippingDecisionRule>(); // dhl / ptt
 
-            // 🧠 ENGINE + SERVICE
+            // 🧠 ENGINE + AUTO TAG SERVICE
             services.AddScoped<ShopifyOrderTagEngine>();
             services.AddScoped<ShopifyOrderAutoTagService>();
 
@@ -160,6 +161,7 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             });
 
             return services;
+
         }
     }
 }
