@@ -18,13 +18,8 @@ public class ShopifyOrderReprocessService
 
     public async Task<int> ReprocessLastDayAsync(CancellationToken ct)
     {
-        var since =
-            DateTime.UtcNow
-                .AddDays(-1)
-                .ToString("yyyy-MM-ddTHH:mm:ssZ");
-
-        var queryString =
-            $"created_at:>={since} financial_status:pending fulfillment_status:unfulfilled";
+        var since = DateTime.UtcNow.AddDays(-1)
+            .ToString("yyyy-MM-ddTHH:mm:ssZ");
 
         var gql = @"
 query ($query: String!) {
@@ -32,10 +27,10 @@ query ($query: String!) {
     edges {
       node {
         id
-        totalWeight
-        totalPriceSet {
-          shopMoney { amount }
-        }
+        createdAt
+        tags
+        displayFulfillmentStatus
+        displayFinancialStatus
         shippingAddress {
           address1
           city
@@ -48,7 +43,9 @@ query ($query: String!) {
         lineItems(first: 20) {
           edges {
             node {
-              product { id }
+              product {
+                id
+              }
             }
           }
         }
@@ -57,66 +54,28 @@ query ($query: String!) {
   }
 }";
 
+        var query = $"created_at:>={since} financial_status:pending fulfillment_status:unfulfilled";
+
         var json = await _graphQl.ExecuteAsync(
             gql,
-            new { query = queryString },
+            new { query },
             ct);
 
-        var edges =
-            json["data"]?["orders"]?["edges"] as JArray;
-
-        if (edges == null || edges.Count == 0)
+        var orders = json["data"]?["orders"]?["edges"] as JArray;
+        if (orders == null)
             return 0;
 
-        int processed = 0;
+        int count = 0;
 
-        foreach (var edge in edges)
+        foreach (var edge in orders)
         {
-            if (edge["node"] is not JObject gqlOrder)
-                continue;
-
-            var normalized = NormalizeGraphQlOrder(gqlOrder);
-
-            await _autoTag.ApplyAutoTagsAsync(normalized, ct);
-            processed++;
+            if (edge["node"] is JObject order)
+            {
+                await _autoTag.ApplyAutoTagsAsync(order, ct);
+                count++;
+            }
         }
 
-        return processed;
-    }
-
-    private static JObject NormalizeGraphQlOrder(JObject node)
-    {
-        return new JObject
-        {
-            ["admin_graphql_api_id"] = node["id"],
-
-            ["total_weight"] = node["totalWeight"],
-
-            ["total_price"] =
-                node["totalPriceSet"]?["shopMoney"]?["amount"],
-
-            ["shipping_address"] = new JObject
-            {
-                ["address1"] = node["shippingAddress"]?["address1"],
-                ["city"] = node["shippingAddress"]?["city"],
-                ["phone"] = node["shippingAddress"]?["phone"],
-                ["country_code"] = node["shippingAddress"]?["countryCode"]
-            },
-
-            ["customer"] = new JObject
-            {
-                ["orders_count"] =
-                    node["customer"]?["numberOfOrders"]
-            },
-
-            ["line_items"] = new JArray(
-                node["lineItems"]?["edges"]?
-                    .Select(e => new JObject
-                    {
-                        ["product_id"] =
-                            e["node"]?["product"]?["id"]
-                    }) ?? Enumerable.Empty<JObject>()
-            )
-        };
+        return count;
     }
 }

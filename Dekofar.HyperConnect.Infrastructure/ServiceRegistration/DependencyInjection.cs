@@ -82,6 +82,10 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<ITrackShipmentByReferenceIdService, TrackShipmentByReferenceIdService>();
             services.AddScoped<ITrackShipmentByShipmentIdService, TrackShipmentByShipmentIdService>();
 
+            // 🔴 KRİTİK – EKSİK OLAN BUYDU
+            services.AddScoped<IRecurringJob, RecurringJob>();
+            // ⬆️ Eğer sınıf adı farklıysa (DhlRecurringJob vb.) onu yaz
+
             // -------------------- PTT --------------------
             services.AddScoped<IPttAuthService, PttAuthService>();
             services.AddHttpClient<IPttShipmentService, PttShipmentService>();
@@ -111,7 +115,6 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddHttpClient<ShopifyGraphQlClient>((sp, client) =>
             {
                 var cfg = sp.GetRequiredService<IConfiguration>();
-
                 client.BaseAddress = new Uri(cfg["Shopify:BaseUrl"]!);
                 client.DefaultRequestHeaders.Add(
                     "X-Shopify-Access-Token",
@@ -126,27 +129,19 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<ShopifyProductService>();
             services.AddScoped<ShopifyFulfillmentService>();
 
-            // -------------------- ORDER AUTO TAG RULES (TEK ALGORİTMA) --------------------
-
-            // 🔴 1) İPTAL – EN YÜKSEK ÖNCELİK
+            // -------------------- ORDER AUTO TAG RULES --------------------
             services.AddScoped<IOrderTagRule, CancelKeywordRule>();
-
-            // 🟠 2) ARA1 – MANUEL KONTROL GEREKTİRENLER
-            services.AddScoped<IOrderTagRule, BranchKeywordRule>();   // şube / teslim al
-            services.AddScoped<IOrderTagRule, ShortAddressRule>();    // adres < 10
-            services.AddScoped<IOrderTagRule, MultiProductRule>();    // çok ürün
-            services.AddScoped<IOrderTagRule, HighAmountRule>();      // ≥ 3000 TL
-            services.AddScoped<IOrderTagRule, RepeatCustomerRule>();  // tekrar sipariş
+            services.AddScoped<IOrderTagRule, BranchKeywordRule>();
+            services.AddScoped<IOrderTagRule, ShortAddressRule>();
+            services.AddScoped<IOrderTagRule, MultiProductRule>();
+            services.AddScoped<IOrderTagRule, HighAmountRule>();
+            services.AddScoped<IOrderTagRule, RepeatCustomerRule>();
             services.AddScoped<IOrderTagRule, RepeatPhoneOrderRule>();
+            services.AddScoped<IOrderTagRule, ShippingDecisionRule>();
 
-            // 🟢 3) KARGO KARARI – HER ZAMAN EN SON
-            services.AddScoped<IOrderTagRule, ShippingDecisionRule>(); // dhl / ptt
-
-            // 🧠 ENGINE + AUTO TAG SERVICE
             services.AddScoped<ShopifyOrderTagEngine>();
             services.AddScoped<ShopifyOrderAutoTagService>();
             services.AddScoped<ShopifyOrderReprocessService>();
-
 
             // -------------------- Auth / Token --------------------
             services.AddScoped<ITokenService, TokenService>();
@@ -164,7 +159,6 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             });
 
             return services;
-
         }
     }
 }
