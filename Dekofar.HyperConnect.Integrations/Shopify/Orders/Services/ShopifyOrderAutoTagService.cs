@@ -17,10 +17,6 @@ public class ShopifyOrderAutoTagService
         _tagEngine = tagEngine;
     }
 
-    /// <summary>
-    /// Siparişi kurallara göre yeniden etiketler
-    /// replaceExistingTags = true → eski etiketleri tamamen siler
-    /// </summary>
     public async Task ApplyAutoTagsAsync(
         JObject order,
         CancellationToken ct,
@@ -32,29 +28,47 @@ public class ShopifyOrderAutoTagService
         if (string.IsNullOrWhiteSpace(orderId))
             return;
 
-        // 🧠 KURALLARI ÇALIŞTIR (TEK SONUÇ)
+        // 🧠 KURALLARI ÇALIŞTIR
         var result =
             await _tagEngine.CalculateAsync(order, ct);
 
         if (result == null)
             return;
 
-        // 🔥 ESKİ ETİKETLERİ SİL
+        // 🧹 ESKİ ETİKETLERİ SİL (TEK TEK)
         if (replaceExistingTags)
         {
-            var clearTagsMutation = @"
-mutation ($id: ID!) {
-  tagsReplace(id: $id, tags: []) {
+            var existingTags =
+                order["tags"]?.ToString();
+
+            if (!string.IsNullOrWhiteSpace(existingTags))
+            {
+                var tagsToRemove = existingTags
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(t => t.Trim())
+                    .ToArray();
+
+                if (tagsToRemove.Length > 0)
+                {
+                    var removeMutation = @"
+mutation ($id: ID!, $tags: [String!]!) {
+  tagsRemove(id: $id, tags: $tags) {
     userErrors { message }
   }
 }";
-            await _graphQl.ExecuteAsync(
-                clearTagsMutation,
-                new { id = orderId },
-                ct);
+                    await _graphQl.ExecuteAsync(
+                        removeMutation,
+                        new
+                        {
+                            id = orderId,
+                            tags = tagsToRemove
+                        },
+                        ct);
+                }
+            }
         }
 
-        // 🏷️ YENİ TEK ETİKET
+        // 🏷️ TEK ETİKET EKLE
         var addTagMutation = @"
 mutation ($id: ID!, $tags: [String!]!) {
   tagsAdd(id: $id, tags: $tags) {
