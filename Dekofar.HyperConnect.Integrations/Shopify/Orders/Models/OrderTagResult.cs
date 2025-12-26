@@ -1,12 +1,26 @@
 ﻿namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
 
+/// <summary>
+/// Bir sipariş için hesaplanan TEK etiket sonucu
+/// </summary>
 public class OrderTagResult
 {
-    public string Tag { get; set; } = null!;
+    /// <summary>
+    /// Atanacak etiket (tek)
+    /// Örn: dhl, ptt, ara1, iptal
+    /// </summary>
+    public required string Tag { get; set; }
 
-    // 🔍 Kuralın sebebi (iptal, ara1 vs.)
+    /// <summary>
+    /// Log / debug amacıyla sebep
+    /// </summary>
     public string? Reason { get; set; }
-
-    // 🧠 Öncelik (yüksek kazanır)
     public int Priority { get; set; }
+
+
+    /// <summary>
+    /// Shopify sipariş NOTU
+    /// (müşteri notunu ezmez, sistem notu olarak eklenir)
+    /// </summary>
+    public string? Note { get; set; }
 }

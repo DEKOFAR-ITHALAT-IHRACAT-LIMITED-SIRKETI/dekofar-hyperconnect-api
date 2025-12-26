@@ -1,85 +1,99 @@
-﻿using Newtonsoft.Json.Linq;
-using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
-using Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
+﻿using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
+using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
+using Newtonsoft.Json.Linq;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
 
 public class ShopifyOrderAutoTagService
 {
-    private readonly ShopifyOrderTagEngine _engine;
     private readonly ShopifyGraphQlClient _graphQl;
+    private readonly ShopifyOrderTagEngine _tagEngine;
 
     public ShopifyOrderAutoTagService(
-        ShopifyOrderTagEngine engine,
-        ShopifyGraphQlClient graphQl)
+        ShopifyGraphQlClient graphQl,
+        ShopifyOrderTagEngine tagEngine)
     {
-        _engine = engine;
         _graphQl = graphQl;
+        _tagEngine = tagEngine;
     }
 
+    /// <summary>
+    /// Siparişi kurallara göre yeniden etiketler
+    /// replaceExistingTags = true → eski etiketleri tamamen siler
+    /// </summary>
     public async Task ApplyAutoTagsAsync(
         JObject order,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool replaceExistingTags = false)
     {
-        var result =
-            await _engine.CalculateAsync(order, ct);
-
-        if (result == null)
-            return;
-
         var orderId =
             order["admin_graphql_api_id"]?.ToString();
 
         if (string.IsNullOrWhiteSpace(orderId))
             return;
 
-        await AddTagAsync(orderId, result.Tag, ct);
+        // 🧠 KURALLARI ÇALIŞTIR (TEK SONUÇ)
+        var result =
+            await _tagEngine.CalculateAsync(order, ct);
 
-        await UpdateNoteAsync(
-            orderId,
-            $"[SİSTEM] {result.Reason}",
-            order["note"]?.ToString(),
-            ct);
-    }
+        if (result == null)
+            return;
 
-    private async Task AddTagAsync(
-        string orderId,
-        string tag,
-        CancellationToken ct)
-    {
-        var mutation = @"
+        // 🔥 ESKİ ETİKETLERİ SİL
+        if (replaceExistingTags)
+        {
+            var clearTagsMutation = @"
+mutation ($id: ID!) {
+  tagsReplace(id: $id, tags: []) {
+    userErrors { message }
+  }
+}";
+            await _graphQl.ExecuteAsync(
+                clearTagsMutation,
+                new { id = orderId },
+                ct);
+        }
+
+        // 🏷️ YENİ TEK ETİKET
+        var addTagMutation = @"
 mutation ($id: ID!, $tags: [String!]!) {
   tagsAdd(id: $id, tags: $tags) {
     userErrors { message }
   }
 }";
-
         await _graphQl.ExecuteAsync(
-            mutation,
-            new { id = orderId, tags = new[] { tag } },
+            addTagMutation,
+            new
+            {
+                id = orderId,
+                tags = new[] { result.Tag }
+            },
             ct);
-    }
 
-    private async Task UpdateNoteAsync(
-        string orderId,
-        string systemNote,
-        string? customerNote,
-        CancellationToken ct)
-    {
-        var finalNote = string.IsNullOrWhiteSpace(customerNote)
-            ? systemNote
-            : $"{systemNote}\n— Müşteri notu:\n{customerNote}";
+        // 📝 NOT EKLE (MÜŞTERİ NOTUNU EZMEZ)
+        if (!string.IsNullOrWhiteSpace(result.Note))
+        {
+            var existingNote =
+                order["note"]?.ToString();
 
-        var mutation = @"
+            var finalNote = string.IsNullOrWhiteSpace(existingNote)
+                ? $"[SİSTEM] {result.Note}"
+                : $"[SİSTEM] {result.Note}\n[MÜŞTERİ NOTU] {existingNote}";
+
+            var noteMutation = @"
 mutation ($id: ID!, $note: String!) {
   orderUpdate(input: { id: $id, note: $note }) {
     userErrors { message }
   }
 }";
-
-        await _graphQl.ExecuteAsync(
-            mutation,
-            new { id = orderId, note = finalNote },
-            ct);
+            await _graphQl.ExecuteAsync(
+                noteMutation,
+                new
+                {
+                    id = orderId,
+                    note = finalNote
+                },
+                ct);
+        }
     }
 }

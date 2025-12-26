@@ -16,9 +16,12 @@ public class ShopifyOrderReprocessService
         _autoTag = autoTag;
     }
 
+    /// <summary>
+    /// Son 24 saatteki açık + gönderilmemiş siparişleri
+    /// BAŞTAN etiketler (eski etiketleri siler)
+    /// </summary>
     public async Task<int> ReprocessLastDayAsync(CancellationToken ct)
     {
-        // 🔑 Shopify search query → SON 24 SAAT
         var since =
             DateTime.UtcNow
                 .AddDays(-1)
@@ -69,17 +72,13 @@ query ($query: String!) {
         if (edges == null || edges.Count == 0)
             return 0;
 
-        // 📌 Telefon numarasına göre sayım
-        var phoneGroups = edges
+        // 📌 Telefon bazlı tekrar sayımı
+        var phoneCounts = edges
             .Select(e => e["node"])
             .OfType<JObject>()
-            .GroupBy(o =>
-                o["shippingAddress"]?["phone"]?.ToString())
+            .GroupBy(o => o["shippingAddress"]?["phone"]?.ToString())
             .Where(g => !string.IsNullOrWhiteSpace(g.Key))
-            .ToDictionary(
-                g => g.Key!,
-                g => g.Count()
-            );
+            .ToDictionary(g => g.Key!, g => g.Count());
 
         int processed = 0;
 
@@ -88,35 +87,35 @@ query ($query: String!) {
             if (edge["node"] is not JObject gqlOrder)
                 continue;
 
-            var normalized = NormalizeGraphQlOrder(
-                gqlOrder,
-                phoneGroups);
+            var normalized =
+                NormalizeGraphQlOrder(gqlOrder, phoneCounts);
 
-            await _autoTag.ApplyAutoTagsAsync(normalized, ct);
+            await _autoTag.ApplyAutoTagsAsync(
+                normalized,
+                ct,
+                replaceExistingTags: true);
+
             processed++;
         }
 
         return processed;
     }
 
-    // 🔄 GraphQL → REST payload formatına çevir
     private static JObject NormalizeGraphQlOrder(
         JObject node,
-        Dictionary<string, int> phoneGroups)
+        Dictionary<string, int> phoneCounts)
     {
         var phone =
             node["shippingAddress"]?["phone"]?.ToString();
 
-        phoneGroups.TryGetValue(
+        phoneCounts.TryGetValue(
             phone ?? string.Empty,
             out var repeatCount);
 
         return new JObject
         {
             ["admin_graphql_api_id"] = node["id"],
-
             ["total_weight"] = node["totalWeight"],
-
             ["total_price"] =
                 node["totalPriceSet"]?["shopMoney"]?["amount"],
 
@@ -143,7 +142,7 @@ query ($query: String!) {
                     }) ?? Enumerable.Empty<JObject>()
             ),
 
-            // ⭐ RULE’LAR İÇİN EKSTRA METADATA
+            // ⭐ RULE METADATA
             ["__repeat_phone_count"] = repeatCount
         };
     }
