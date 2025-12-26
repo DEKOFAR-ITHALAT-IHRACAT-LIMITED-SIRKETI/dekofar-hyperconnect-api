@@ -136,6 +136,7 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IOrderTagRule, HighAmountRule>();
             services.AddScoped<IOrderTagRule, RepeatCustomerRule>();
             services.AddScoped<IOrderTagRule, RepeatPhoneOrderRule>();
+            services.AddScoped<IOrderTagRule, AddressInsufficientRule>();
             services.AddScoped<IOrderTagRule, ShippingDecisionRule>();
 
             services.AddScoped<ShopifyOrderTagEngine>();
