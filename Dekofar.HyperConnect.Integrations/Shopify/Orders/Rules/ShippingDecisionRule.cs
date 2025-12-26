@@ -1,43 +1,82 @@
 ﻿using Newtonsoft.Json.Linq;
-using System.Text.RegularExpressions;
 using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
 
 public class ShippingDecisionRule : IOrderTagRule
 {
-    // Gerçek "köy" tespiti (Ortaköy yakalanmaz)
-    private static readonly Regex VillageRegex =
-        new(@"\bköy\b|\bköyü\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
+    private static readonly string[] VillageKeywords =
     {
-        var addressObj = order["shipping_address"];
-        if (addressObj == null)
-            return Task.FromResult<OrderTagResult?>(null);
+        "köy", "köyü", "mezra"
+    };
 
+    private static readonly string[] WeakAddressKeywords =
+    {
+        "avm",
+        "sinema",
+        "kargo",
+        "kargodan",
+        "şube",
+        "teslim al",
+        "hastane"
+    };
+
+    public Task<OrderTagResult?> EvaluateAsync(
+        JObject order,
+        CancellationToken ct)
+    {
         var address =
-            addressObj["address1"]?.ToString()?.ToLowerInvariant() ?? "";
+            order["shipping_address"]?["address1"]?
+                .ToString()?.ToLowerInvariant() ?? "";
 
-        var city =
-            addressObj["city"]?.ToString()?.ToLowerInvariant() ?? "";
+        var phone =
+            order["shipping_address"]?["phone"]?.ToString();
 
-        // 🟡 PTT → SADECE gerçek köy + İstanbul dışı
-        if (VillageRegex.IsMatch(address) &&
-            !city.Contains("istanbul"))
+        // 🔴 Telefon yok → ARA1
+        if (string.IsNullOrWhiteSpace(phone))
         {
-            return Task.FromResult<OrderTagResult?>(new OrderTagResult
-            {
-                Tag = "ptt",
-                Reason = "Adres gerçek köy ve İstanbul dışı"
-            });
+            return Task.FromResult<OrderTagResult?>(
+                Ara1("Telefon numarası eksik"));
         }
 
-        // 🟢 DHL → VARSAYILAN
-        return Task.FromResult<OrderTagResult?>(new OrderTagResult
+        // 🔴 Çok kısa adres → ARA1
+        if (address.Length < 10)
         {
-            Tag = "dhl",
-            Reason = "Varsayılan DHL (şehir içi / temiz adres)"
-        });
+            return Task.FromResult<OrderTagResult?>(
+                Ara1("Adres çok kısa"));
+        }
+
+        // 🔴 AVM / hastane / şube vb.
+        if (WeakAddressKeywords.Any(k => address.Contains(k)))
+        {
+            return Task.FromResult<OrderTagResult?>(
+                Ara1("Teslimat için yetersiz adres"));
+        }
+
+        // 🟡 Köy → PTT
+        if (VillageKeywords.Any(k => address.Contains(k)))
+        {
+            return Task.FromResult<OrderTagResult?>(
+                new OrderTagResult
+                {
+                    Tag = "ptt",
+                    Reason = "Adres köy/mezra içeriyor"
+                });
+        }
+
+        // 🟢 Varsayılan → DHL
+        return Task.FromResult<OrderTagResult?>(
+            new OrderTagResult
+            {
+                Tag = "dhl",
+                Reason = "Şehir içi temiz adres"
+            });
     }
+
+    private static OrderTagResult Ara1(string reason) =>
+        new()
+        {
+            Tag = "ara1",
+            Reason = reason
+        };
 }
