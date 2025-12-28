@@ -94,19 +94,42 @@ query {
         return processed;
     }
 
-    // ======================================================
-    // GRAPHQL → RULE ENGINE FORMAT (NULL SAFE)
-    // ======================================================
     private static JObject NormalizeGraphQlOrder(
         JObject node,
         Dictionary<string, int> phoneCounts)
     {
         var shipping = node["shippingAddress"] as JObject;
         var customer = node["customer"] as JObject;
-        var lineItems = node["lineItems"]?["edges"] as JArray;
+        var edges = node["lineItems"]?["edges"] as JArray;
 
         var phone = shipping?["phone"]?.ToString();
         phoneCounts.TryGetValue(phone ?? "", out var repeatCount);
+
+        // ✅ LINE ITEMS — %100 SAFE
+        var lineItemsArray = new JArray();
+
+        if (edges != null)
+        {
+            foreach (var e in edges)
+            {
+                if (e is not JObject edgeObj)
+                    continue;
+
+                if (edgeObj["node"] is not JObject nodeObj)
+                    continue;
+
+                var productId =
+                    nodeObj["product"]?["id"]?.ToString();
+
+                if (!string.IsNullOrWhiteSpace(productId))
+                {
+                    lineItemsArray.Add(new JObject
+                    {
+                        ["product_id"] = productId
+                    });
+                }
+            }
+        }
 
         return new JObject
         {
@@ -133,18 +156,11 @@ query {
                     customer?["numberOfOrders"]?.Value<int>() ?? 0
             },
 
-            ["line_items"] = new JArray(
-                lineItems?
-                    .Select(e => e["node"]?["product"]?["id"]?.ToString())
-                    .Where(id => !string.IsNullOrWhiteSpace(id))
-                    .Select(id => new JObject
-                    {
-                        ["product_id"] = id
-                    }) ?? Enumerable.Empty<JObject>()
-            ),
+            ["line_items"] = lineItemsArray,
 
             // ⭐ RULE METADATA
             ["__repeat_phone_count"] = repeatCount
         };
     }
+
 }
