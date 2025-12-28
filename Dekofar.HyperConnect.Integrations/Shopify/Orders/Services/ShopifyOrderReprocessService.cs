@@ -97,29 +97,56 @@ query {
         JObject node,
         Dictionary<string, int> phoneCounts)
     {
-        var shipping = node["shippingAddress"] as JObject;
-        var customer = node["customer"] as JObject;
+        // ---------- SHIPPING ----------
+        JObject? shipping = null;
+        if (node.TryGetValue("shippingAddress", out var shippingToken))
+            shipping = shippingToken as JObject;
+
+        // ---------- CUSTOMER ----------
+        JObject? customer = null;
+        if (node.TryGetValue("customer", out var customerToken))
+            customer = customerToken as JObject;
 
         var phone = shipping?["phone"]?.ToString();
         phoneCounts.TryGetValue(phone ?? "", out var repeatCount);
 
+        // ---------- LINE ITEMS (🔥 KRİTİK DÜZELTME) ----------
         var lineItems = new JArray();
 
-        if (node["lineItems"]?["edges"] is JArray edges)
+        if (node.TryGetValue("lineItems", out var lineItemsToken)
+            && lineItemsToken is JObject lineItemsObj
+            && lineItemsObj.TryGetValue("edges", out var edgesToken)
+            && edgesToken is JArray edgesArray)
         {
-            foreach (var edge in edges)
+            foreach (var edgeToken in edgesArray)
             {
-                if (edge?["node"]?["product"]?["id"] == null)
+                if (edgeToken is not JObject edgeObj)
+                    continue;
+
+                if (!edgeObj.TryGetValue("node", out var liNodeToken))
+                    continue;
+
+                if (liNodeToken is not JObject liNode)
+                    continue;
+
+                if (!liNode.TryGetValue("product", out var productToken))
+                    continue;
+
+                if (productToken is not JObject productObj)
+                    continue;
+
+                var productId = productObj["id"]?.ToString();
+                if (string.IsNullOrWhiteSpace(productId))
                     continue;
 
                 lineItems.Add(new JObject
                 {
-                    ["product_id"] =
-                        edge["node"]!["product"]!["id"]!.ToString()
+                    ["product_id"] = productId
                 });
             }
         }
 
+        // ---------- RETURN ----------
         return new JObject
         {
             ["admin_graphql_api_id"] = node["id"]?.ToString(),
@@ -147,8 +174,8 @@ query {
             },
 
             ["line_items"] = lineItems,
-
             ["__repeat_phone_count"] = repeatCount
         };
     }
+
 }
