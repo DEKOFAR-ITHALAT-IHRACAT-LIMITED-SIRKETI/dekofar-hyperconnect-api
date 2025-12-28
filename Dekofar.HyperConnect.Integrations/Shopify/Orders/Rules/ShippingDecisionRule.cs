@@ -1,5 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
-using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
+﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
+using Newtonsoft.Json.Linq;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
 
@@ -12,18 +12,11 @@ public class ShippingDecisionRule : IOrderTagRule
 
     private static readonly string[] WeakAddressKeywords =
     {
-        "avm",
-        "sinema",
-        "kargo",
-        "kargodan",
-        "şube",
-        "teslim al",
-        "hastane"
+        "avm", "sinema", "kargo", "kargodan",
+        "şube", "teslim al", "hastane"
     };
 
-    public Task<OrderTagResult?> EvaluateAsync(
-        JObject order,
-        CancellationToken ct)
+    public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
     {
         var address =
             order["shipping_address"]?["address1"]?
@@ -32,54 +25,44 @@ public class ShippingDecisionRule : IOrderTagRule
         var phone =
             order["shipping_address"]?["phone"]?.ToString();
 
-        // 🔴 Telefon yok → ARA1
         if (string.IsNullOrWhiteSpace(phone))
-        {
-            return Task.FromResult<OrderTagResult?>(
-                Ara1("Telefon numarası eksik"));
-        }
+            return Task.FromResult<OrderTagResult?>(Ara1("Telefon numarası eksik"));
 
-        // 🔴 Çok kısa adres → ARA1
         if (address.Length < 10)
-        {
-            return Task.FromResult<OrderTagResult?>(
-                Ara1("Adres çok kısa"));
-        }
+            return Task.FromResult<OrderTagResult?>(Ara1("Adres çok kısa"));
 
-        // 🔴 Zayıf adres anahtar kelimeleri
         if (WeakAddressKeywords.Any(k => address.Contains(k)))
-        {
-            return Task.FromResult<OrderTagResult?>(
-                Ara1("Teslimat için yetersiz adres"));
-        }
+            return Task.FromResult<OrderTagResult?>(Ara1("Teslimat için yetersiz adres"));
 
-        // 🟡 Köy → PTT
         if (VillageKeywords.Any(k => address.Contains(k)))
         {
-            return Task.FromResult<OrderTagResult?>(
-                new OrderTagResult
-                {
-                    Tag = "ptt",
-                    Priority = 50,
-                    Note = "Adres köy / mezra içeriyor"
-                });
+            var r = new OrderTagResult
+            {
+                Tag = "ptt",
+                Priority = 50
+            };
+            r.Notes.Add("Adres köy / mezra içeriyor");
+            return Task.FromResult<OrderTagResult?>(r);
         }
 
-        // 🟢 Varsayılan → DHL
-        return Task.FromResult<OrderTagResult?>(
-            new OrderTagResult
-            {
-                Tag = "dhl",
-                Priority = 10,
-                Note = "Şehir içi temiz adres"
-            });
+        var dhl = new OrderTagResult
+        {
+            Tag = "dhl",
+            Priority = 10
+        };
+        dhl.Notes.Add("Şehir içi temiz adres");
+        return Task.FromResult<OrderTagResult?>(dhl);
     }
 
-    private static OrderTagResult Ara1(string note) =>
-        new()
+    private static OrderTagResult Ara1(string reason)
+    {
+        var r = new OrderTagResult
         {
             Tag = "ara1",
-            Priority = 100,
-            Note = note
+            Priority = 100
         };
+        r.Reasons.Add(reason);
+        r.Notes.Add(reason);
+        return r;
+    }
 }

@@ -16,11 +16,15 @@ public class MultiProductRule : IOrderTagRule
 
         if (distinctProducts > 1)
         {
-            return Task.FromResult<OrderTagResult?>(new OrderTagResult
+            var r = new OrderTagResult
             {
                 Tag = "ara1",
-                Reason = "Birden fazla ürün çeşidi"
-            });
+                Priority = 80
+            };
+            r.Reasons.Add("Birden fazla ürün çeşidi");
+            r.Notes.Add("Siparişte birden fazla ürün var");
+
+            return Task.FromResult<OrderTagResult?>(r);
         }
 
         return Task.FromResult<OrderTagResult?>(null);

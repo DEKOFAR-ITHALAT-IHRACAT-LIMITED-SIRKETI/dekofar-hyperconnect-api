@@ -4,11 +4,6 @@ using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
 
-/// <summary>
-/// Aynı telefon numarasıyla
-/// 2+ AÇIK + GÖNDERİLMEMİŞ + ÖDEME BEKLEYEN sipariş varsa
-/// → ARA1
-/// </summary>
 public class RepeatPhoneOrderRule : IOrderTagRule
 {
     private readonly ShopifyGraphQlClient _graphQl;
@@ -26,12 +21,6 @@ public class RepeatPhoneOrderRule : IOrderTagRule
             order["shipping_address"]?["phone"]?.ToString();
 
         if (string.IsNullOrWhiteSpace(phone))
-            return null;
-
-        var currentOrderId =
-            order["admin_graphql_api_id"]?.ToString();
-
-        if (string.IsNullOrWhiteSpace(currentOrderId))
             return null;
 
         var gql = @"
@@ -58,24 +47,22 @@ query ($query: String!) {
         if (edges == null)
             return null;
 
-        var openOrders = edges
+        var openCount = edges
             .Select(e => e["node"])
-            .Where(n =>
+            .Count(n =>
                 n?["displayFulfillmentStatus"]?.ToString() == "UNFULFILLED" &&
-                n?["displayFinancialStatus"]?.ToString() == "PENDING")
-            .Select(n => n?["id"]?.ToString())
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Distinct()
-            .ToList();
+                n?["displayFinancialStatus"]?.ToString() == "PENDING");
 
-        if (openOrders.Count < 2)
+        if (openCount < 2)
             return null;
 
-        return new OrderTagResult
+        var r = new OrderTagResult
         {
             Tag = "ara1",
-            Priority = 100,
-            Note = "Aynı telefon numarasıyla birden fazla açık ve gönderilmemiş sipariş"
+            Priority = 110
         };
+        r.Reasons.Add("Aynı telefonla birden fazla açık sipariş");
+        r.Notes.Add("Aynı telefon numarasıyla tekrar sipariş");
+        return r;
     }
 }

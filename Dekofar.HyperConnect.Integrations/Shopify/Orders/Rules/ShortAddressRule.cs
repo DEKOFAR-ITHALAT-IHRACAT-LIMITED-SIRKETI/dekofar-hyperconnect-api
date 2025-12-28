@@ -12,11 +12,16 @@ public class ShortAddressRule : IOrderTagRule
 
         if (address.Length < 10)
         {
-            return Task.FromResult<OrderTagResult?>(new OrderTagResult
+            var r = new OrderTagResult
             {
                 Tag = "ara1",
-                Reason = "Adres çok kısa"
-            });
+                Priority = 95
+            };
+
+            r.Reasons.Add("Adres çok kısa");
+            r.Notes.Add("Adres uzunluğu 10 karakterden kısa");
+
+            return Task.FromResult<OrderTagResult?>(r);
         }
 
         return Task.FromResult<OrderTagResult?>(null);

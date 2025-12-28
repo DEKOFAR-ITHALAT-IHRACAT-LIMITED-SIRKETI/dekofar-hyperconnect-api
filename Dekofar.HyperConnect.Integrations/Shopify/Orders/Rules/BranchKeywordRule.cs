@@ -7,7 +7,10 @@ public class BranchKeywordRule : IOrderTagRule
 {
     private static readonly string[] Keywords =
     {
-        "şube", "sube", "kargo şubesi", "teslim al"
+        "şube",
+        "sube",
+        "kargo şubesi",
+        "teslim al"
     };
 
     public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
@@ -18,11 +21,16 @@ public class BranchKeywordRule : IOrderTagRule
 
         if (Keywords.Any(k => address.Contains(k)))
         {
-            return Task.FromResult<OrderTagResult?>(new OrderTagResult
+            var r = new OrderTagResult
             {
                 Tag = "ara1",
-                Reason = "Adres kargo şubesi içeriyor"
-            });
+                Priority = 90
+            };
+
+            r.Reasons.Add("Adres kargo şubesi / teslim noktası içeriyor");
+            r.Notes.Add("Sipariş adresi şube veya teslim alma noktası");
+
+            return Task.FromResult<OrderTagResult?>(r);
         }
 
         return Task.FromResult<OrderTagResult?>(null);
