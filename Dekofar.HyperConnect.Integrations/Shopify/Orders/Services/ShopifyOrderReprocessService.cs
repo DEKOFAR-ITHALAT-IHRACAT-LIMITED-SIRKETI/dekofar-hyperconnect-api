@@ -17,25 +17,22 @@ public class ShopifyOrderReprocessService
     }
 
     /// <summary>
-    /// Son 24 saatteki açık + gönderilmemiş siparişleri
+    /// TÜM açık + ödeme bekleyen + gönderilmemiş siparişleri
     /// BAŞTAN etiketler (eski etiketleri siler)
     /// </summary>
-    public async Task<int> ReprocessLastDayAsync(CancellationToken ct)
+    public async Task<int> ReprocessOpenOrdersAsync(CancellationToken ct)
     {
-        var since =
-            DateTime.UtcNow
-                .AddDays(-1)
-                .ToString("yyyy-MM-ddTHH:mm:ssZ");
-
         var queryString =
-            $"created_at:>={since} financial_status:pending fulfillment_status:unfulfilled";
+            "financial_status:pending fulfillment_status:unfulfilled";
 
         var gql = @"
 query ($query: String!) {
-  orders(first: 50, query: $query) {
+  orders(first: 100, query: $query) {
     edges {
       node {
         id
+        tags
+        note
         totalWeight
         totalPriceSet {
           shopMoney { amount }
@@ -90,6 +87,7 @@ query ($query: String!) {
             var normalized =
                 NormalizeGraphQlOrder(gqlOrder, phoneCounts);
 
+            // 🔥 MUTLAKA eski etiketleri sil → TEK yeni etiket
             await _autoTag.ApplyAutoTagsAsync(
                 normalized,
                 ct,
@@ -115,6 +113,9 @@ query ($query: String!) {
         return new JObject
         {
             ["admin_graphql_api_id"] = node["id"],
+            ["tags"] = node["tags"],
+            ["note"] = node["note"],
+
             ["total_weight"] = node["totalWeight"],
             ["total_price"] =
                 node["totalPriceSet"]?["shopMoney"]?["amount"],

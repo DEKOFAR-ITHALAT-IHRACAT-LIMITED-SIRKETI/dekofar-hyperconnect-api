@@ -16,14 +16,18 @@ public class ShopifyOrderReprocessController : ControllerBase
     }
 
     /// <summary>
-    /// Son 1 gün içindeki açık + ödeme bekleyen siparişleri
-    /// kurallara göre yeniden etiketler
+    /// TÜM açık + ödeme bekleyen + gönderilmemiş siparişleri
+    /// baştan etiketler.
+    /// 
+    /// - Eski etiketleri siler
+    /// - Kurallara göre TEK yeni etiket atar
+    /// - ARA1 ise tüm sebepleri sistem notu olarak ekler
     /// </summary>
-    [HttpPost("last-day")]
-    public async Task<IActionResult> ReprocessLastDay(
+    [HttpPost("open-orders")]
+    public async Task<IActionResult> ReprocessOpenOrders(
         CancellationToken ct)
     {
-        var count = await _service.ReprocessLastDayAsync(ct);
+        var count = await _service.ReprocessOpenOrdersAsync(ct);
         return Ok(new { processed = count });
     }
 }

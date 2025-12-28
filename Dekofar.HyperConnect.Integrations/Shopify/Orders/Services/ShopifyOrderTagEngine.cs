@@ -26,8 +26,30 @@ public class ShopifyOrderTagEngine
                 results.Add(result);
         }
 
+        if (!results.Any())
+            return null;
+
+        // 🔴 ARA1 varsa → hepsini birleştir
+        var ara1Results = results
+            .Where(r => r.Tag == "ara1")
+            .ToList();
+
+        if (ara1Results.Any())
+        {
+            return new OrderTagResult
+            {
+                Tag = "ara1",
+                Priority = ara1Results.Max(x => x.Priority),
+                Reasons = ara1Results
+                    .SelectMany(x => x.Reasons)
+                    .Distinct()
+                    .ToList()
+            };
+        }
+
+        // 🟢 ARA1 yoksa en yüksek öncelik
         return results
             .OrderByDescending(x => x.Priority)
-            .FirstOrDefault();
+            .First();
     }
 }
