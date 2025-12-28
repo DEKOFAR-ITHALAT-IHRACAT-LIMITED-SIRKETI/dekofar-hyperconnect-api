@@ -64,9 +64,3 @@ D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Infrastruct
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Infrastructure\obj\Debug\net8.0\Dekofar.HyperConnect.Infrastructure.pdb
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Infrastructure\obj\Debug\net8.0\Dekofar.HyperConnect.Infrastructure.genruntimeconfig.cache
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Infrastructure\obj\Debug\net8.0\ref\Dekofar.HyperConnect.Infrastructure.dll
-C:\Users\recep\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Infrastructure\obj\Debug\net8.0\Dekofar.HyperConnect.Infrastructure.csproj.AssemblyReference.cache
-C:\Users\recep\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Infrastructure\obj\Debug\net8.0\Dekofar.HyperConnect.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\recep\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Infrastructure\obj\Debug\net8.0\Dekofar.HyperConnect.Infrastructure.AssemblyInfoInputs.cache
-C:\Users\recep\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Infrastructure\obj\Debug\net8.0\Dekofar.HyperConnect.Infrastructure.AssemblyInfo.cs
-C:\Users\recep\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Infrastructure\obj\Debug\net8.0\Dekofar.HyperConnect.Infrastructure.csproj.CoreCompileInputs.cache
-C:\Users\recep\Downloads\dekofar-hyperconnect-api\Dekofar.HyperConnect.Infrastructure\obj\Debug\net8.0\Dekofar.HyperConnect.Infrastructure.sourcelink.json
