@@ -16,10 +16,6 @@ public class ShopifyOrderReprocessService
         _autoTag = autoTag;
     }
 
-    /// <summary>
-    /// TÜM açık + ödeme bekleyen + gönderilmemiş siparişleri
-    /// Baştan etiketler (eski etiketleri siler)
-    /// </summary>
     public async Task<int> ReprocessOpenOrdersAsync(CancellationToken ct)
     {
         var gql = @"
@@ -31,18 +27,14 @@ query {
         tags
         note
         totalWeight
-        totalPriceSet {
-          shopMoney { amount }
-        }
+        totalPriceSet { shopMoney { amount } }
         shippingAddress {
           address1
           city
           phone
           countryCode
         }
-        customer {
-          numberOfOrders
-        }
+        customer { numberOfOrders }
         lineItems(first: 50) {
           edges {
             node {
@@ -56,32 +48,39 @@ query {
 }";
 
         var json = await _graphQl.ExecuteAsync(gql, new { }, ct);
+        var edges = json["data"]?["orders"]?["edges"] as JArray;
 
-        var orderEdges =
-            json["data"]?["orders"]?["edges"] as JArray;
-
-        if (orderEdges == null || orderEdges.Count == 0)
+        if (edges == null || edges.Count == 0)
             return 0;
 
-        // 🔑 Telefon bazlı tekrar sayımı (NULL SAFE)
-        var phoneCounts = orderEdges
-            .Select(x => x["node"] as JObject)
-            .Where(o => o != null)
-            .Select(o =>
-                o!["shippingAddress"]?["phone"]?.ToString())
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .GroupBy(p => p!)
-            .ToDictionary(g => g.Key, g => g.Count());
+        // 🔑 TELEFON SAYIMI – %100 SAFE
+        var phoneCounts = new Dictionary<string, int>();
+
+        foreach (var e in edges)
+        {
+            if (e?["node"] is not JObject node)
+                continue;
+
+            if (node["shippingAddress"] is not JObject shipping)
+                continue;
+
+            var phone = shipping["phone"]?.ToString();
+            if (string.IsNullOrWhiteSpace(phone))
+                continue;
+
+            phoneCounts.TryGetValue(phone, out var count);
+            phoneCounts[phone] = count + 1;
+        }
 
         int processed = 0;
 
-        foreach (var edge in orderEdges)
+        foreach (var e in edges)
         {
-            if (edge["node"] is not JObject orderNode)
+            if (e?["node"] is not JObject node)
                 continue;
 
             var normalized =
-                NormalizeGraphQlOrder(orderNode, phoneCounts);
+                NormalizeGraphQlOrder(node, phoneCounts);
 
             await _autoTag.ApplyAutoTagsAsync(
                 normalized,
@@ -94,7 +93,6 @@ query {
         return processed;
     }
 
-    // 🔄 GRAPHQL → RULE ENGINE FORMAT
     private static JObject NormalizeGraphQlOrder(
         JObject node,
         Dictionary<string, int> phoneCounts)
@@ -102,49 +100,31 @@ query {
         var shipping = node["shippingAddress"] as JObject;
         var customer = node["customer"] as JObject;
 
-        var phone =
-            shipping?["phone"]?.ToString();
+        var phone = shipping?["phone"]?.ToString();
+        phoneCounts.TryGetValue(phone ?? "", out var repeatCount);
 
-        phoneCounts.TryGetValue(
-            phone ?? string.Empty,
-            out var repeatCount);
+        var lineItems = new JArray();
 
-        // ✅ LINE ITEMS (JVALUE SAFE)
-        var lineItemsArray = new JArray();
-
-        if (node["lineItems"]?["edges"] is JArray lineItemEdges)
+        if (node["lineItems"]?["edges"] is JArray edges)
         {
-            foreach (var edgeItem in lineItemEdges)
+            foreach (var edge in edges)
             {
-                if (edgeItem is not JObject edgeObj)
+                if (edge?["node"]?["product"]?["id"] == null)
                     continue;
 
-                if (edgeObj["node"] is not JObject nodeObj)
-                    continue;
-
-                var productId =
-                    nodeObj["product"]?["id"]?.ToString();
-
-                if (!string.IsNullOrWhiteSpace(productId))
+                lineItems.Add(new JObject
                 {
-                    lineItemsArray.Add(new JObject
-                    {
-                        ["product_id"] = productId
-                    });
-                }
+                    ["product_id"] =
+                        edge["node"]!["product"]!["id"]!.ToString()
+                });
             }
         }
 
         return new JObject
         {
-            ["admin_graphql_api_id"] =
-                node["id"]?.ToString(),
-
-            ["tags"] =
-                node["tags"]?.ToString(),
-
-            ["note"] =
-                node["note"]?.ToString(),
+            ["admin_graphql_api_id"] = node["id"]?.ToString(),
+            ["tags"] = node["tags"]?.ToString(),
+            ["note"] = node["note"]?.ToString(),
 
             ["total_weight"] =
                 node["totalWeight"]?.Value<decimal?>(),
@@ -166,9 +146,8 @@ query {
                     customer?["numberOfOrders"]?.Value<int>() ?? 0
             },
 
-            ["line_items"] = lineItemsArray,
+            ["line_items"] = lineItems,
 
-            // ⭐ RULE METADATA
             ["__repeat_phone_count"] = repeatCount
         };
     }
