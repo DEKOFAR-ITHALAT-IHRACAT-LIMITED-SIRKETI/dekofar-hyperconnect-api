@@ -6,7 +6,9 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
 
 public class HighAmountRule : IOrderTagRule
 {
-    public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
+    public Task<OrderTagResult?> EvaluateAsync(
+        JObject order,
+        CancellationToken ct)
     {
         var total =
             decimal.TryParse(
@@ -17,29 +19,25 @@ public class HighAmountRule : IOrderTagRule
                 ? price
                 : 0;
 
+        // 🔴 1000 TL altı → ARA1
         if (total < 1000)
         {
             return Task.FromResult<OrderTagResult?>(new OrderTagResult
             {
                 Tag = "ara1",
                 Priority = 95,
-                Reasons =
-                {
-                    "Sipariş tutarı 1000 TL altında"
-                }
+                Note = "Sipariş tutarı 1000 TL altında"
             });
         }
 
+        // 🔴 2000 TL ve üzeri → ARA1
         if (total >= 2000)
         {
             return Task.FromResult<OrderTagResult?>(new OrderTagResult
             {
                 Tag = "ara1",
                 Priority = 85,
-                Reasons =
-                {
-                    "Sipariş tutarı 2000 TL ve üzeri"
-                }
+                Note = "Sipariş tutarı 2000 TL ve üzeri"
             });
         }
 

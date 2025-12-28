@@ -46,7 +46,7 @@ public class ShippingDecisionRule : IOrderTagRule
                 Ara1("Adres çok kısa"));
         }
 
-        // 🔴 AVM / hastane / şube vb.
+        // 🔴 Zayıf adres anahtar kelimeleri
         if (WeakAddressKeywords.Any(k => address.Contains(k)))
         {
             return Task.FromResult<OrderTagResult?>(
@@ -60,7 +60,8 @@ public class ShippingDecisionRule : IOrderTagRule
                 new OrderTagResult
                 {
                     Tag = "ptt",
-                    Reason = "Adres köy/mezra içeriyor"
+                    Priority = 50,
+                    Note = "Adres köy / mezra içeriyor"
                 });
         }
 
@@ -69,14 +70,16 @@ public class ShippingDecisionRule : IOrderTagRule
             new OrderTagResult
             {
                 Tag = "dhl",
-                Reason = "Şehir içi temiz adres"
+                Priority = 10,
+                Note = "Şehir içi temiz adres"
             });
     }
 
-    private static OrderTagResult Ara1(string reason) =>
+    private static OrderTagResult Ara1(string note) =>
         new()
         {
             Tag = "ara1",
-            Reason = reason
+            Priority = 100,
+            Note = note
         };
 }

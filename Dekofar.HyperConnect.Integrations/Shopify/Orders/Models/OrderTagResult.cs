@@ -4,8 +4,12 @@ public class OrderTagResult
 {
     public required string Tag { get; set; }
 
-    // Birden fazla sebep
-    public List<string> Reasons { get; set; } = new();
-
     public int Priority { get; set; }
+
+    /// <summary>
+    /// Shopify sipariş NOTU
+    /// (müşteri notunu ezmez, sistem notu olarak eklenir)
+    /// </summary>
+    public string? Note { get; set; }
 }
+
