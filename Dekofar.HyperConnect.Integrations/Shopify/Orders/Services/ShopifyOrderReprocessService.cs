@@ -57,31 +57,31 @@ query {
 
         var json = await _graphQl.ExecuteAsync(gql, new { }, ct);
 
-        var edges = json["data"]?["orders"]?["edges"] as JArray;
-        if (edges == null || edges.Count == 0)
+        var orderEdges =
+            json["data"]?["orders"]?["edges"] as JArray;
+
+        if (orderEdges == null || orderEdges.Count == 0)
             return 0;
 
         // 🔑 Telefon bazlı tekrar sayımı (NULL SAFE)
-        var phoneCounts = edges
-            .Select(e => e["node"] as JObject)
+        var phoneCounts = orderEdges
+            .Select(x => x["node"] as JObject)
             .Where(o => o != null)
             .Select(o =>
-            {
-                var addr = o!["shippingAddress"] as JObject;
-                return addr?["phone"]?.ToString();
-            })
+                o!["shippingAddress"]?["phone"]?.ToString())
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .GroupBy(p => p!)
             .ToDictionary(g => g.Key, g => g.Count());
 
         int processed = 0;
 
-        foreach (var edge in edges)
+        foreach (var edge in orderEdges)
         {
             if (edge["node"] is not JObject orderNode)
                 continue;
 
-            var normalized = NormalizeGraphQlOrder(orderNode, phoneCounts);
+            var normalized =
+                NormalizeGraphQlOrder(orderNode, phoneCounts);
 
             await _autoTag.ApplyAutoTagsAsync(
                 normalized,
@@ -94,25 +94,29 @@ query {
         return processed;
     }
 
+    // 🔄 GRAPHQL → RULE ENGINE FORMAT
     private static JObject NormalizeGraphQlOrder(
         JObject node,
         Dictionary<string, int> phoneCounts)
     {
         var shipping = node["shippingAddress"] as JObject;
         var customer = node["customer"] as JObject;
-        var edges = node["lineItems"]?["edges"] as JArray;
 
-        var phone = shipping?["phone"]?.ToString();
-        phoneCounts.TryGetValue(phone ?? "", out var repeatCount);
+        var phone =
+            shipping?["phone"]?.ToString();
 
-        // ✅ LINE ITEMS — %100 SAFE
+        phoneCounts.TryGetValue(
+            phone ?? string.Empty,
+            out var repeatCount);
+
+        // ✅ LINE ITEMS (JVALUE SAFE)
         var lineItemsArray = new JArray();
 
-        if (edges != null)
+        if (node["lineItems"]?["edges"] is JArray lineItemEdges)
         {
-            foreach (var e in edges)
+            foreach (var edgeItem in lineItemEdges)
             {
-                if (e is not JObject edgeObj)
+                if (edgeItem is not JObject edgeObj)
                     continue;
 
                 if (edgeObj["node"] is not JObject nodeObj)
@@ -133,11 +137,17 @@ query {
 
         return new JObject
         {
-            ["admin_graphql_api_id"] = node["id"]?.ToString(),
-            ["tags"] = node["tags"]?.ToString(),
-            ["note"] = node["note"]?.ToString(),
+            ["admin_graphql_api_id"] =
+                node["id"]?.ToString(),
 
-            ["total_weight"] = node["totalWeight"]?.Value<decimal?>(),
+            ["tags"] =
+                node["tags"]?.ToString(),
+
+            ["note"] =
+                node["note"]?.ToString(),
+
+            ["total_weight"] =
+                node["totalWeight"]?.Value<decimal?>(),
 
             ["total_price"] =
                 node["totalPriceSet"]?["shopMoney"]?["amount"]?.ToString(),
@@ -162,5 +172,4 @@ query {
             ["__repeat_phone_count"] = repeatCount
         };
     }
-
 }
