@@ -32,7 +32,6 @@ query ($query: String!) {
       node {
         id
         tags
-        note
         totalWeight
         totalPriceSet {
           shopMoney { amount }
@@ -46,13 +45,14 @@ query ($query: String!) {
         customer {
           numberOfOrders
         }
-        lineItems(first: 20) {
+        lineItems(first: 50) {
           edges {
             node {
               product { id }
             }
           }
         }
+        note
       }
     }
   }
@@ -69,13 +69,20 @@ query ($query: String!) {
         if (edges == null || edges.Count == 0)
             return 0;
 
-        // 📌 Telefon bazlı tekrar sayımı
+        // 🔑 TELEFON BAZLI SAYIM (NULL SAFE)
         var phoneCounts = edges
-            .Select(e => e["node"])
-            .OfType<JObject>()
-            .GroupBy(o => o["shippingAddress"]?["phone"]?.ToString())
+            .Select(e => e["node"] as JObject)
+            .Where(o => o != null)
+            .GroupBy(o =>
+                o!["shippingAddress"] is JObject addr
+                    ? addr["phone"]?.ToString()
+                    : null
+            )
             .Where(g => !string.IsNullOrWhiteSpace(g.Key))
-            .ToDictionary(g => g.Key!, g => g.Count());
+            .ToDictionary(
+                g => g.Key!,
+                g => g.Count()
+            );
 
         int processed = 0;
 
@@ -87,7 +94,6 @@ query ($query: String!) {
             var normalized =
                 NormalizeGraphQlOrder(gqlOrder, phoneCounts);
 
-            // 🔥 MUTLAKA eski etiketleri sil → TEK yeni etiket
             await _autoTag.ApplyAutoTagsAsync(
                 normalized,
                 ct,
@@ -99,6 +105,9 @@ query ($query: String!) {
         return processed;
     }
 
+    // ======================================================
+    // GraphQL → RULE ENGINE FORMAT
+    // ======================================================
     private static JObject NormalizeGraphQlOrder(
         JObject node,
         Dictionary<string, int> phoneCounts)
@@ -117,6 +126,7 @@ query ($query: String!) {
             ["note"] = node["note"],
 
             ["total_weight"] = node["totalWeight"],
+
             ["total_price"] =
                 node["totalPriceSet"]?["shopMoney"]?["amount"],
 
