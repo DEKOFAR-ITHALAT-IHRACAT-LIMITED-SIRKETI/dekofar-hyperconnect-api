@@ -18,9 +18,23 @@ public class ShopifyOrderReprocessService
 
     public async Task<int> ReprocessOpenOrdersAsync(CancellationToken ct)
     {
-        var gql = @"
-query {
-  orders(first: 100, query: ""financial_status:pending fulfillment_status:unfulfilled"") {
+        string? cursor = null;
+        bool hasNextPage = true;
+        int processed = 0;
+
+        while (hasNextPage)
+        {
+            var gql = @"
+query ($cursor: String) {
+  orders(
+    first: 100
+    after: $cursor
+    query: ""financial_status:pending fulfillment_status:unfulfilled""
+  ) {
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
     edges {
       node {
         id
@@ -47,51 +61,64 @@ query {
   }
 }";
 
-        var json = await _graphQl.ExecuteAsync(gql, new { }, ct);
-        var edges = json["data"]?["orders"]?["edges"] as JArray;
+            var json = await _graphQl.ExecuteAsync(
+                gql,
+                new { cursor },
+                ct);
 
-        if (edges == null || edges.Count == 0)
-            return 0;
+            var ordersObj = json["data"]?["orders"] as JObject;
+            if (ordersObj == null)
+                break;
 
-        // 🔑 TELEFON SAYIMI – %100 SAFE
-        var phoneCounts = new Dictionary<string, int>();
+            hasNextPage =
+                ordersObj["pageInfo"]?["hasNextPage"]?.Value<bool>() == true;
 
-        foreach (var e in edges)
-        {
-            if (e?["node"] is not JObject node)
+            cursor =
+                ordersObj["pageInfo"]?["endCursor"]?.ToString();
+
+            var edges = ordersObj["edges"] as JArray;
+            if (edges == null || edges.Count == 0)
                 continue;
 
-            if (node["shippingAddress"] is not JObject shipping)
-                continue;
+            // 🔑 TELEFON SAYIMI (BU SAYFAYA ÖZEL)
+            var phoneCounts = new Dictionary<string, int>();
 
-            var phone = shipping["phone"]?.ToString();
-            if (string.IsNullOrWhiteSpace(phone))
-                continue;
+            foreach (var edge in edges)
+            {
+                if (edge?["node"] is not JObject node)
+                    continue;
 
-            phoneCounts.TryGetValue(phone, out var count);
-            phoneCounts[phone] = count + 1;
-        }
+                if (node["shippingAddress"] is not JObject shipping)
+                    continue;
 
-        int processed = 0;
+                var phone = shipping["phone"]?.ToString();
+                if (string.IsNullOrWhiteSpace(phone))
+                    continue;
 
-        foreach (var e in edges)
-        {
-            if (e?["node"] is not JObject node)
-                continue;
+                phoneCounts.TryGetValue(phone, out var c);
+                phoneCounts[phone] = c + 1;
+            }
 
-            var normalized =
-                NormalizeGraphQlOrder(node, phoneCounts);
+            foreach (var edge in edges)
+            {
+                if (edge?["node"] is not JObject node)
+                    continue;
 
-            await _autoTag.ApplyAutoTagsAsync(
-                normalized,
-                ct,
-                replaceExistingTags: true);
+                var normalized =
+                    NormalizeGraphQlOrder(node, phoneCounts);
 
-            processed++;
+                await _autoTag.ApplyAutoTagsAsync(
+                    normalized,
+                    ct,
+                    replaceExistingTags: true);
+
+                processed++;
+            }
         }
 
         return processed;
     }
+
 
     private static JObject NormalizeGraphQlOrder(
         JObject node,

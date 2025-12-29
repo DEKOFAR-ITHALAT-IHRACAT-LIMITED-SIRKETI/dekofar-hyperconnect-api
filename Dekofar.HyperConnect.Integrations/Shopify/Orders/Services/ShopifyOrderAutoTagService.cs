@@ -6,6 +6,14 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
 
 public class ShopifyOrderAutoTagService
 {
+    private static readonly string[] ManagedTags =
+    {
+        "ara1",
+        "dhl",
+        "ptt",
+        "iptal"
+    };
+
     private readonly ShopifyGraphQlClient _graphQl;
     private readonly ShopifyOrderTagEngine _tagEngine;
 
@@ -34,7 +42,7 @@ public class ShopifyOrderAutoTagService
         if (result == null)
             return;
 
-        // 🧹 Eski etiketleri sil
+        // 🧹 SADECE BİZİM ETİKETLERİ SİL
         if (replaceExistingTags)
         {
             var existingTags =
@@ -42,28 +50,27 @@ public class ShopifyOrderAutoTagService
 
             if (!string.IsNullOrWhiteSpace(existingTags))
             {
-                var tags = existingTags
+                var tagsToRemove = existingTags
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => t.Trim())
+                    .Where(t => ManagedTags.Contains(t))
                     .ToArray();
 
-                if (tags.Length > 0)
+                if (tagsToRemove.Length > 0)
                 {
-                    var removeMutation = @"
-mutation ($id: ID!, $tags: [String!]!) {
-  tagsRemove(id: $id, tags: $tags) {
-    userErrors { message }
-  }
-}";
                     await _graphQl.ExecuteAsync(
-                        removeMutation,
-                        new { id = orderId, tags },
+                        @"mutation ($id: ID!, $tags: [String!]!) {
+                            tagsRemove(id: $id, tags: $tags) {
+                              userErrors { message }
+                            }
+                          }",
+                        new { id = orderId, tags = tagsToRemove },
                         ct);
                 }
             }
         }
 
-        // 🏷️ Tek etiket
+        // 🏷️ TEK ETİKET
         await _graphQl.ExecuteAsync(
             @"mutation ($id: ID!, $tags: [String!]!) {
                 tagsAdd(id: $id, tags: $tags) {
@@ -73,8 +80,8 @@ mutation ($id: ID!, $tags: [String!]!) {
             new { id = orderId, tags = new[] { result.Tag } },
             ct);
 
-        // 📝 Sistem Notu
-        if (result.Reasons.Any())
+        // 📝 SADECE ARA1 İSE SİSTEM NOTU
+        if (result.Tag == "ara1" && result.Reasons.Any())
         {
             var systemNote =
                 "[SİSTEM - ARA1]\n" +
