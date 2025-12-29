@@ -5,23 +5,30 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
 
 public class ShortAddressRule : IOrderTagRule
 {
-    public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
+    public Task<OrderTagResult?> EvaluateAsync(
+        JObject order,
+        CancellationToken ct)
     {
         var address =
-            order["shipping_address"]?["address1"]?.ToString() ?? "";
+            order["shipping_address"]?["address1"]?
+                .ToString() ?? "";
 
         if (address.Length < 10)
         {
-            var r = new OrderTagResult
+            return Task.FromResult<OrderTagResult?>(new OrderTagResult
             {
                 Tag = "ara1",
-                Priority = 95
-            };
+                Priority = 95,
 
-            r.Reasons.Add("Adres çok kısa");
-            r.Notes.Add("Adres uzunluğu 10 karakterden kısa");
+                // 🔑 SMS / otomasyon
+                ReasonCode = "SHORT_ADDRESS",
 
-            return Task.FromResult<OrderTagResult?>(r);
+                // 👤 İnsan (Shopify note)
+                Notes =
+                {
+                    "Adres uzunluğu 10 karakterden kısa"
+                }
+            });
         }
 
         return Task.FromResult<OrderTagResult?>(null);

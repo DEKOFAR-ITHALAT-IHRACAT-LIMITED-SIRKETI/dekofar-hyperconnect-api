@@ -14,35 +14,45 @@ public class CancelKeywordRule : IOrderTagRule
         "fake"
     };
 
-    public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
+    public Task<OrderTagResult?> EvaluateAsync(
+        JObject order,
+        CancellationToken ct)
     {
-        var text = string.Join(" ",
-                order["note"]?.ToString() ?? "",
-                order["shipping_address"]?["address1"]?.ToString() ?? "",
-                string.Join(" ",
-                    order["line_items"]?
-                        .Select(i => i["title"]?.ToString())
-                        .Where(t => !string.IsNullOrWhiteSpace(t))
-                    ?? Enumerable.Empty<string>())
+        var note =
+            order["note"]?.ToString() ?? string.Empty;
+
+        var address =
+            order["shipping_address"]?["address1"]?.ToString() ?? string.Empty;
+
+        var lineItemTitles =
+            order["line_items"]?
+                .Select(li => li["title"]?.ToString())
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+            ?? Enumerable.Empty<string>();
+
+        var fullText = string.Join(
+                " ",
+                note,
+                address,
+                string.Join(" ", lineItemTitles)
             )
             .ToLowerInvariant();
 
-        var hit = ForbiddenWords.FirstOrDefault(w => text.Contains(w));
+        var hit = ForbiddenWords.FirstOrDefault(w => fullText.Contains(w));
 
-        if (hit != null)
+        if (hit == null)
+            return Task.FromResult<OrderTagResult?>(null);
+
+        var result = new OrderTagResult
         {
-            var r = new OrderTagResult
-            {
-                Tag = "iptal",
-                Priority = 1000 // 🔥 HER ŞEYİN ÜSTÜNDE
-            };
+            Tag = "iptal",
+            Priority = 1000, // 🔥 MUTLAK ÜSTÜNLÜK
+            ReasonCode = "CANCEL_KEYWORD"
+        };
 
-            r.Reasons.Add($"Yasaklı kelime bulundu: {hit}");
-            r.Notes.Add($"Sipariş içeriğinde '{hit}' kelimesi tespit edildi");
+        result.Notes.Add(
+            $"Siparişte yasaklı kelime tespit edildi: '{hit}'");
 
-            return Task.FromResult<OrderTagResult?>(r);
-        }
-
-        return Task.FromResult<OrderTagResult?>(null);
+        return Task.FromResult<OrderTagResult?>(result);
     }
 }

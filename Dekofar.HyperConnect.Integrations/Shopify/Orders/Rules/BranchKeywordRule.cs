@@ -13,7 +13,9 @@ public class BranchKeywordRule : IOrderTagRule
         "teslim al"
     };
 
-    public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
+    public Task<OrderTagResult?> EvaluateAsync(
+        JObject order,
+        CancellationToken ct)
     {
         var address =
             order["shipping_address"]?["address1"]?
@@ -21,16 +23,20 @@ public class BranchKeywordRule : IOrderTagRule
 
         if (Keywords.Any(k => address.Contains(k)))
         {
-            var r = new OrderTagResult
+            return Task.FromResult<OrderTagResult?>(new OrderTagResult
             {
                 Tag = "ara1",
-                Priority = 90
-            };
+                Priority = 90,
 
-            r.Reasons.Add("Adres kargo şubesi / teslim noktası içeriyor");
-            r.Notes.Add("Sipariş adresi şube veya teslim alma noktası");
+                // 🔑 SMS / otomasyon
+                ReasonCode = "BRANCH_ADDRESS",
 
-            return Task.FromResult<OrderTagResult?>(r);
+                // 👤 İnsan
+                Notes =
+                {
+                    "Adres kargo şubesi veya teslim alma noktası içeriyor"
+                }
+            });
         }
 
         return Task.FromResult<OrderTagResult?>(null);

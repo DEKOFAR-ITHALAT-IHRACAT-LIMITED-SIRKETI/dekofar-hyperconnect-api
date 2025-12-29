@@ -6,29 +6,21 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
 
 public class ShopifyOrderAutoTagService
 {
-    private static readonly string[] ManagedTags =
-    {
-        "ara1",
-        "dhl",
-        "ptt",
-        "iptal"
-    };
-
     private readonly ShopifyGraphQlClient _graphQl;
-    private readonly ShopifyOrderTagEngine _tagEngine;
+    private readonly ShopifyOrderTagEngine _engine;
 
     public ShopifyOrderAutoTagService(
         ShopifyGraphQlClient graphQl,
-        ShopifyOrderTagEngine tagEngine)
+        ShopifyOrderTagEngine engine)
     {
         _graphQl = graphQl;
-        _tagEngine = tagEngine;
+        _engine = engine;
     }
 
     public async Task ApplyAutoTagsAsync(
         JObject order,
         CancellationToken ct,
-        bool replaceExistingTags = false)
+        bool replaceExistingTags)
     {
         var orderId =
             order["admin_graphql_api_id"]?.ToString();
@@ -37,40 +29,37 @@ public class ShopifyOrderAutoTagService
             return;
 
         var result =
-            await _tagEngine.CalculateAsync(order, ct);
+            await _engine.CalculateAsync(order, ct);
 
         if (result == null)
             return;
 
-        // 🧹 SADECE BİZİM ETİKETLERİ SİL
+        // 🧹 Eski etiketleri sil
         if (replaceExistingTags)
         {
             var existingTags =
                 order["tags"]?.ToString();
 
-            if (!string.IsNullOrWhiteSpace(existingTags))
-            {
-                var tagsToRemove = existingTags
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(t => t.Trim())
-                    .Where(t => ManagedTags.Contains(t))
-                    .ToArray();
+            var tagsToRemove = existingTags?
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(t => t.Trim())
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .ToArray();
 
-                if (tagsToRemove.Length > 0)
-                {
-                    await _graphQl.ExecuteAsync(
-                        @"mutation ($id: ID!, $tags: [String!]!) {
-                            tagsRemove(id: $id, tags: $tags) {
-                              userErrors { message }
-                            }
-                          }",
-                        new { id = orderId, tags = tagsToRemove },
-                        ct);
-                }
+            if (tagsToRemove?.Length > 0)
+            {
+                await _graphQl.ExecuteAsync(
+                    @"mutation ($id: ID!, $tags: [String!]!) {
+                        tagsRemove(id: $id, tags: $tags) {
+                          userErrors { message }
+                        }
+                      }",
+                    new { id = orderId, tags = tagsToRemove },
+                    ct);
             }
         }
 
-        // 🏷️ TEK ETİKET
+        // 🏷️ Tek etiket
         await _graphQl.ExecuteAsync(
             @"mutation ($id: ID!, $tags: [String!]!) {
                 tagsAdd(id: $id, tags: $tags) {
@@ -80,12 +69,12 @@ public class ShopifyOrderAutoTagService
             new { id = orderId, tags = new[] { result.Tag } },
             ct);
 
-        // 📝 SADECE ARA1 İSE SİSTEM NOTU
-        if (result.Tag == "ara1" && result.Reasons.Any())
+        // 📝 Sistem notu
+        if (result.Notes.Any())
         {
             var systemNote =
-                "[SİSTEM - ARA1]\n" +
-                string.Join("\n", result.Reasons.Select(r => $"• {r}"));
+                "[SİSTEM]\n" +
+                string.Join("\n", result.Notes.Select(n => $"• {n}"));
 
             var existingNote =
                 order["note"]?.ToString();

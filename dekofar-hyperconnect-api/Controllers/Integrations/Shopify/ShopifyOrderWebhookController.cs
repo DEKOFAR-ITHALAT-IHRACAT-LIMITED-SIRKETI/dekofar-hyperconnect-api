@@ -32,7 +32,9 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> OrderCreated(CancellationToken ct)
         {
-            // 1️⃣ HMAC header kontrol
+            // =====================================================
+            // 1️⃣ HMAC HEADER KONTROL
+            // =====================================================
             if (!Request.Headers.TryGetValue(
                     "X-Shopify-Hmac-Sha256",
                     out var hmacHeader))
@@ -40,7 +42,9 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
                 return Unauthorized();
             }
 
-            // 2️⃣ RAW body oku
+            // =====================================================
+            // 2️⃣ RAW BODY OKU
+            // =====================================================
             Request.EnableBuffering();
 
             string body;
@@ -56,22 +60,41 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
             if (string.IsNullOrWhiteSpace(body))
                 return Ok();
 
-            // 3️⃣ HMAC doğrula
+            // =====================================================
+            // 3️⃣ HMAC DOĞRULA
+            // =====================================================
             var isValid = ShopifyHmacValidator.Validate(
                 body,
                 hmacHeader!,
                 _shopifyOptions.WebhookSecret);
 
             if (!isValid)
-            {
                 return Unauthorized();
+
+            // =====================================================
+            // 4️⃣ JSON PARSE
+            // =====================================================
+            JObject payload;
+            try
+            {
+                payload = JObject.Parse(body);
+            }
+            catch
+            {
+                // Shopify bazen boş/bozuk payload gönderebilir
+                return Ok();
             }
 
-            // 4️⃣ JSON parse
-            var payload = JObject.Parse(body);
-
-            // 5️⃣ Otomatik etiketleme
-            await _autoTagService.ApplyAutoTagsAsync(payload, ct);
+            // =====================================================
+            // 5️⃣ OTOMATİK ETİKETLEME
+            // Webhook'ta:
+            // - Eski etiketleri SİL
+            // - Kurallara göre TEK etiket ata
+            // =====================================================
+            await _autoTagService.ApplyAutoTagsAsync(
+                payload,
+                ct,
+                replaceExistingTags: true);
 
             return Ok();
         }

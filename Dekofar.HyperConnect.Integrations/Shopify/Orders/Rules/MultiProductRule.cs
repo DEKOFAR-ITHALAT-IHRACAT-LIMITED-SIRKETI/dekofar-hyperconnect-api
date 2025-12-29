@@ -5,7 +5,9 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
 
 public class MultiProductRule : IOrderTagRule
 {
-    public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
+    public Task<OrderTagResult?> EvaluateAsync(
+        JObject order,
+        CancellationToken ct)
     {
         var distinctProducts =
             order["line_items"]?
@@ -16,15 +18,20 @@ public class MultiProductRule : IOrderTagRule
 
         if (distinctProducts > 1)
         {
-            var r = new OrderTagResult
+            return Task.FromResult<OrderTagResult?>(new OrderTagResult
             {
                 Tag = "ara1",
-                Priority = 80
-            };
-            r.Reasons.Add("Birden fazla ürün çeşidi");
-            r.Notes.Add("Siparişte birden fazla ürün var");
+                Priority = 80,
 
-            return Task.FromResult<OrderTagResult?>(r);
+                // 🔑 SMS / otomasyon
+                ReasonCode = "MULTI_PRODUCT",
+
+                // 👤 İnsan
+                Notes =
+                {
+                    "Siparişte birden fazla ürün çeşidi bulunuyor"
+                }
+            });
         }
 
         return Task.FromResult<OrderTagResult?>(null);

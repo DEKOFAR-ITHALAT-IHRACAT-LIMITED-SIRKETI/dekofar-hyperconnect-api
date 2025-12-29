@@ -9,22 +9,21 @@ public class RepeatCustomerRule : IOrderTagRule
         JObject order,
         CancellationToken ct)
     {
-        var ordersCount =
+        var count =
             order["customer"]?["orders_count"]?.Value<int>() ?? 0;
 
-        // 🔴 2. sipariş ve üzeri → ARA1
-        if (ordersCount > 1)
+        if (count > 1)
         {
-            var result = new OrderTagResult
+            return Task.FromResult<OrderTagResult?>(new OrderTagResult
             {
                 Tag = "ara1",
-                Priority = 90
-            };
-
-            result.Reasons.Add("Tekrar sipariş veren müşteri");
-            result.Notes.Add("Müşteri daha önce sipariş vermiş");
-
-            return Task.FromResult<OrderTagResult?>(result);
+                Priority = 80,
+                ReasonCode = "REPEAT_CUSTOMER",
+                Notes =
+                {
+                    "Müşteri daha önce sipariş vermiş"
+                }
+            });
         }
 
         return Task.FromResult<OrderTagResult?>(null);

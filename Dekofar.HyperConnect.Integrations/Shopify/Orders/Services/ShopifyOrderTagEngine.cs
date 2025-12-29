@@ -29,35 +29,39 @@ public class ShopifyOrderTagEngine
         if (!results.Any())
             return null;
 
-        // 🔴 ARA1 VARSA → TÜM SEBEPLERİ VE NOTLARI BİRLEŞTİR
+        // =====================================================
+        // 🔴 ARA1 VARSA → TEK KARAR
+        // =====================================================
         var ara1Results = results
             .Where(r => r.Tag == "ara1")
+            .OrderByDescending(r => r.Priority)
             .ToList();
 
         if (ara1Results.Any())
         {
-            var merged = new OrderTagResult
+            var selected = ara1Results.First();
+
+            return new OrderTagResult
             {
                 Tag = "ara1",
-                Priority = ara1Results.Max(x => x.Priority)
+                Priority = selected.Priority,
+
+                // SMS / otomasyon → TEK KOD
+                ReasonCode = selected.ReasonCode,
+
+                // İnsan → TÜM NOTLAR
+                Notes = ara1Results
+                    .SelectMany(r => r.Notes)
+                    .Distinct()
+                    .ToList()
             };
-
-            // ✅ TÜM SEBEPLER
-            foreach (var reason in ara1Results.SelectMany(x => x.Reasons))
-                if (!merged.Reasons.Contains(reason))
-                    merged.Reasons.Add(reason);
-
-            // ✅ TÜM NOTLAR
-            foreach (var note in ara1Results.SelectMany(x => x.Notes))
-                if (!merged.Notes.Contains(note))
-                    merged.Notes.Add(note);
-
-            return merged;
         }
 
-        // 🟢 ARA1 YOKSA → EN YÜKSEK ÖNCELİKLİ TEK SONUÇ
+        // =====================================================
+        // 🟢 ARA1 YOKSA → EN YÜKSEK ÖNCELİK
+        // =====================================================
         return results
-            .OrderByDescending(x => x.Priority)
+            .OrderByDescending(r => r.Priority)
             .First();
     }
 }

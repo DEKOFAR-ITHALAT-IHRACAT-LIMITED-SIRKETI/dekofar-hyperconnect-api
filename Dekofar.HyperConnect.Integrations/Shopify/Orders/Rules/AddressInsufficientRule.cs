@@ -7,33 +7,47 @@ public class AddressInsufficientRule : IOrderTagRule
 {
     private static readonly string[] Keywords =
     {
-        "avm", "sinema", "kargo", "kargodan",
-        "şube", "teslim al", "hastane"
+        "avm",
+        "sinema",
+        "kargo",
+        "kargodan",
+        "şube",
+        "sube",
+        "teslim al",
+        "hastane"
     };
 
-    public Task<OrderTagResult?> EvaluateAsync(JObject order, CancellationToken ct)
+    public Task<OrderTagResult?> EvaluateAsync(
+        JObject order,
+        CancellationToken ct)
     {
         var address =
             order["shipping_address"]?["address1"]?
-                .ToString()?.ToLowerInvariant();
+                .ToString()
+                ?.ToLowerInvariant();
 
         if (string.IsNullOrWhiteSpace(address))
             return Task.FromResult<OrderTagResult?>(null);
 
-        if (address.Length < 10 || Keywords.Any(k => address.Contains(k)))
+        var isTooShort = address.Length < 10;
+        var hasKeyword = Keywords.Any(k => address.Contains(k));
+
+        if (!isTooShort && !hasKeyword)
+            return Task.FromResult<OrderTagResult?>(null);
+
+        var result = new OrderTagResult
         {
-            var r = new OrderTagResult
-            {
-                Tag = "ara1",
-                Priority = 95
-            };
+            Tag = "ara1",
+            Priority = 95,
+            ReasonCode = "ADDRESS_INSUFFICIENT"
+        };
 
-            r.Reasons.Add("Adres yetersiz");
-            r.Notes.Add("Adres AVM / şube / teslim noktası içeriyor veya çok kısa");
+        if (isTooShort)
+            result.Notes.Add("Adres uzunluğu 10 karakterden kısa");
 
-            return Task.FromResult<OrderTagResult?>(r);
-        }
+        if (hasKeyword)
+            result.Notes.Add("Adres AVM / şube / teslim noktası içeriyor");
 
-        return Task.FromResult<OrderTagResult?>(null);
+        return Task.FromResult<OrderTagResult?>(result);
     }
 }

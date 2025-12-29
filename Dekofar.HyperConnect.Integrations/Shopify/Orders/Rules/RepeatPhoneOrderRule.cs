@@ -8,7 +8,8 @@ public class RepeatPhoneOrderRule : IOrderTagRule
 {
     private readonly ShopifyGraphQlClient _graphQl;
 
-    public RepeatPhoneOrderRule(ShopifyGraphQlClient graphQl)
+    public RepeatPhoneOrderRule(
+        ShopifyGraphQlClient graphQl)
     {
         _graphQl = graphQl;
     }
@@ -28,7 +29,6 @@ query ($query: String!) {
   orders(first: 20, query: $query) {
     edges {
       node {
-        id
         displayFulfillmentStatus
         displayFinancialStatus
       }
@@ -56,13 +56,19 @@ query ($query: String!) {
         if (openCount < 2)
             return null;
 
-        var r = new OrderTagResult
+        return new OrderTagResult
         {
             Tag = "ara1",
-            Priority = 110
+            Priority = 110,
+
+            // 🔑 SMS / otomasyon
+            ReasonCode = "REPEAT_PHONE",
+
+            // 👤 İnsan
+            Notes =
+            {
+                "Aynı telefon numarasıyla birden fazla açık sipariş mevcut"
+            }
         };
-        r.Reasons.Add("Aynı telefonla birden fazla açık sipariş");
-        r.Notes.Add("Aynı telefon numarasıyla tekrar sipariş");
-        return r;
     }
 }
