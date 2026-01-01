@@ -38,8 +38,8 @@ public class ShopifyOrderAutoTagService
         // =====================================================
         var tag = decision.Decision switch
         {
-            OrderDecision.Automatic => "DHL",
-            OrderDecision.ApprovalNeeded => "ARA1",
+            OrderDecision.Automatic => "dhl",
+            OrderDecision.ApprovalNeeded => "ara1",
             OrderDecision.Cancelled => "IPTAL",
             _ => null
         };
