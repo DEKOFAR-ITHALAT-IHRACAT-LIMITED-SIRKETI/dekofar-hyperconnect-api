@@ -11,6 +11,7 @@ public class ShopifyOrderReprocessService
     // 🔧 BATCH AYARLARI
     private const int BatchSize = 200;
     private static readonly TimeSpan BatchDelay = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan ConsistencyDelay = TimeSpan.FromMinutes(1);
 
     public ShopifyOrderReprocessService(
         ShopifyGraphQlClient graphQl,
@@ -22,22 +23,21 @@ public class ShopifyOrderReprocessService
 
     // =====================================================
     // 🚀 TEK AKIŞ
-    // 1️⃣ Etiket + sistem notlarını temizle
-    // 2️⃣ Bekle
+    // 1️⃣ Tüm etiketleri + sistem notlarını temizle
+    // 2️⃣ Shopify consistency için bekle
     // 3️⃣ 200’er 200’er yeniden etiketle
     // =====================================================
     public async Task<int> ReprocessOpenOrdersAsync(CancellationToken ct)
     {
         await ClearSystemTagsAndNotesAsync(ct);
 
-        // Shopify eventual consistency için
-        await Task.Delay(TimeSpan.FromMinutes(1), ct);
+        await Task.Delay(ConsistencyDelay, ct);
 
         return await ReprocessInternalAsync(ct);
     }
 
     // =====================================================
-    // 🔁 ETİKETLEME (INTERNAL)
+    // 🔁 ETİKETLEME
     // =====================================================
     private async Task<int> ReprocessInternalAsync(CancellationToken ct)
     {
@@ -87,7 +87,8 @@ query ($cursor: String) {{
 
             var json = await _graphQl.ExecuteAsync(gql, new { cursor }, ct);
             var ordersObj = json["data"]?["orders"] as JObject;
-            if (ordersObj == null) break;
+            if (ordersObj == null)
+                break;
 
             hasNextPage =
                 ordersObj["pageInfo"]?["hasNextPage"]?.Value<bool>() == true;
@@ -96,7 +97,8 @@ query ($cursor: String) {{
                 ordersObj["pageInfo"]?["endCursor"]?.ToString();
 
             var edges = ordersObj["edges"] as JArray;
-            if (edges == null || edges.Count == 0) continue;
+            if (edges == null || edges.Count == 0)
+                continue;
 
             // 🔑 TELEFON SAYIMI (BATCH İÇİ)
             var phoneCounts = new Dictionary<string, int>();
@@ -106,7 +108,8 @@ query ($cursor: String) {{
                 var phone =
                     edge?["node"]?["shippingAddress"]?["phone"]?.ToString();
 
-                if (string.IsNullOrWhiteSpace(phone)) continue;
+                if (string.IsNullOrWhiteSpace(phone))
+                    continue;
 
                 phoneCounts.TryGetValue(phone, out var c);
                 phoneCounts[phone] = c + 1;
@@ -114,7 +117,8 @@ query ($cursor: String) {{
 
             foreach (var edge in edges)
             {
-                if (edge?["node"] is not JObject node) continue;
+                if (edge?["node"] is not JObject node)
+                    continue;
 
                 var normalized =
                     NormalizeGraphQlOrder(node, phoneCounts);
@@ -169,7 +173,8 @@ query ($cursor: String) {{
 
             var json = await _graphQl.ExecuteAsync(gql, new { cursor }, ct);
             var ordersObj = json["data"]?["orders"] as JObject;
-            if (ordersObj == null) break;
+            if (ordersObj == null)
+                break;
 
             hasNextPage =
                 ordersObj["pageInfo"]?["hasNextPage"]?.Value<bool>() == true;
@@ -178,18 +183,22 @@ query ($cursor: String) {{
                 ordersObj["pageInfo"]?["endCursor"]?.ToString();
 
             var edges = ordersObj["edges"] as JArray;
-            if (edges == null || edges.Count == 0) continue;
+            if (edges == null || edges.Count == 0)
+                continue;
 
             foreach (var edge in edges)
             {
                 var node = edge?["node"] as JObject;
                 var orderId = node?["id"]?.ToString();
-                if (string.IsNullOrWhiteSpace(orderId)) continue;
+                if (string.IsNullOrWhiteSpace(orderId))
+                    continue;
 
                 // 🏷️ TÜM ETİKETLER
-                var tags = node["tags"]?.ToString()?
+                var tagsRaw = node["tags"]?.ToString();
+                var tags = tagsRaw?
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => t.Trim())
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
                     .ToArray();
 
                 if (tags != null && tags.Length > 0)
@@ -204,7 +213,7 @@ query ($cursor: String) {{
                         ct);
                 }
 
-                // 📝 SİSTEM NOTU
+                // 📝 SADECE [SİSTEM] BLOĞU
                 var note = node["note"]?.ToString();
                 if (!string.IsNullOrWhiteSpace(note) &&
                     note.StartsWith("[SİSTEM]"))
@@ -228,7 +237,7 @@ query ($cursor: String) {{
     }
 
     // =====================================================
-    // 🔄 SAFE NORMALIZE
+    // 🔄 SAFE NORMALIZE (JValue CRASH YOK)
     // =====================================================
     private static JObject NormalizeGraphQlOrder(
         JObject node,
@@ -241,14 +250,14 @@ query ($cursor: String) {{
         phoneCounts.TryGetValue(phone ?? "", out var repeatCount);
 
         var lineItems = new JArray();
-        var edges = node["lineItems"]?["edges"] as JArray;
+        var edges = (node["lineItems"] as JObject)?["edges"] as JArray;
 
         if (edges != null)
         {
             foreach (var e in edges)
             {
                 var productId =
-                    e?["node"]?["product"]?["id"]?.ToString();
+                    (e?["node"]?["product"] as JObject)?["id"]?.ToString();
 
                 if (!string.IsNullOrWhiteSpace(productId))
                 {
@@ -287,9 +296,14 @@ query ($cursor: String) {{
         };
     }
 
+    // =====================================================
+    // 🧹 [SİSTEM] BLOĞUNU TEMİZLE
+    // =====================================================
     private static string RemoveSystemNote(string note)
     {
         var index = note.IndexOf("[MÜŞTERİ NOTU]");
-        return index >= 0 ? note.Substring(index) : string.Empty;
+        return index >= 0
+            ? note.Substring(index)
+            : string.Empty;
     }
 }
