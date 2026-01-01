@@ -30,4 +30,20 @@ public class ShopifyOrderReprocessController : ControllerBase
         var count = await _service.ReprocessOpenOrdersAsync(ct);
         return Ok(new { processed = count });
     }
+
+    /// <summary>
+    /// Açık siparişlerde sistem tarafından
+    /// eklenen etiketleri ve [SİSTEM] notlarını temizler.
+    /// Test amaçlıdır.
+    /// </summary>
+    [HttpPost("open-orders/clear-system-data")]
+    public async Task<IActionResult> ClearSystemData(
+        CancellationToken ct)
+    {
+        var count =
+            await _service.ClearSystemTagsAndNotesAsync(ct);
+
+        return Ok(new { cleared = count });
+    }
+
 }
