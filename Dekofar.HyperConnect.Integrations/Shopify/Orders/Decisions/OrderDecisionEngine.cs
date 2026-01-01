@@ -19,7 +19,7 @@ public class OrderDecisionEngine
         var result = new OrderDecisionResult();
 
         // =====================================================
-        // 🔴 1. MUTLAK IPTAL (HER ŞEYİN ÜSTÜNDE)
+        // 🔴 1. MUTLAK IPTAL
         // =====================================================
         if (ContainsCancelKeyword(order))
         {
@@ -29,22 +29,18 @@ public class OrderDecisionEngine
         }
 
         // =====================================================
-        // 🔴 2. AYNI MÜŞTERİ / TELEFON → MUTLAK ONAY
-        // (BİRİ ONAY OLSA BİLE, DİĞERİ VARSA HEPSİ ARA)
+        // 👤 2. AYNI MÜŞTERİDEN BİRDEN FAZLA AÇIK SİPARİŞ (MUTLAK ARA1)
         // =====================================================
         var repeatPhoneCount =
             order["__repeat_phone_count"]?.Value<int>() ?? 0;
 
-        var customerOrders =
-            order["customer"]?["orders_count"]?.Value<int>() ?? 0;
-
-        if (repeatPhoneCount > 1 || customerOrders > 1)
+        if (repeatPhoneCount > 1)
         {
             result.Decision = OrderDecision.ApprovalNeeded;
             result.Reasons.Add(
                 "Müşterinin birden fazla açık siparişi bulunduğu için tüm siparişler onaya alındı");
 
-            // 🔥 ALT KURALLAR ÇALIŞMAZ
+            // 🔥 BURADA DÖNÜYORUZ → DHL OLMASI İMKANSIZ
             return result;
         }
 
@@ -96,12 +92,10 @@ public class OrderDecisionEngine
         }
 
         // =====================================================
-        // 🟢 6. SON KARAR
-        // (BURAYA SADECE TEMİZ, TEK SİPARİŞ DÜŞER)
+        // 🟢 6. OTOMATİK (DHL)
         // =====================================================
         if (result.Decision == default)
         {
-            // 1000–2000 TL + tüm şartlar OK
             result.Decision = OrderDecision.Automatic;
         }
 
