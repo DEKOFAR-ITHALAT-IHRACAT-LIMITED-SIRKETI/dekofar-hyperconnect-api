@@ -1,4 +1,6 @@
-﻿namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions
+﻿using System.Collections.Generic;
+
+namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions
 {
     public class AddressValidationResult
     {
