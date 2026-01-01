@@ -1,5 +1,5 @@
 ﻿using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
-using Dekofar.HyperConnect.Integrations.Shopify.Orders.Models;
+using Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions;
 using Newtonsoft.Json.Linq;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
@@ -7,14 +7,14 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
 public class ShopifyOrderAutoTagService
 {
     private readonly ShopifyGraphQlClient _graphQl;
-    private readonly ShopifyOrderTagEngine _engine;
+    private readonly OrderDecisionEngine _decisionEngine;
 
     public ShopifyOrderAutoTagService(
         ShopifyGraphQlClient graphQl,
-        ShopifyOrderTagEngine engine)
+        OrderDecisionEngine decisionEngine)
     {
         _graphQl = graphQl;
-        _engine = engine;
+        _decisionEngine = decisionEngine;
     }
 
     public async Task ApplyAutoTagsAsync(
@@ -28,13 +28,28 @@ public class ShopifyOrderAutoTagService
         if (string.IsNullOrWhiteSpace(orderId))
             return;
 
-        var result =
-            await _engine.CalculateAsync(order, ct);
+        // =====================================================
+        // 🧠 KARAR
+        // =====================================================
+        var decision = _decisionEngine.Decide(order);
 
-        if (result == null)
+        // =====================================================
+        // 🏷️ TAG BELİRLE
+        // =====================================================
+        var tag = decision.Decision switch
+        {
+            OrderDecision.Automatic => "ONAYLANDI",
+            OrderDecision.ApprovalNeeded => "ONAY_GEREKLI",
+            OrderDecision.Cancelled => "IPTAL",
+            _ => null
+        };
+
+        if (string.IsNullOrWhiteSpace(tag))
             return;
 
-        // 🧹 Eski etiketleri sil
+        // =====================================================
+        // 🧹 ESKİ TAGLERİ SİL
+        // =====================================================
         if (replaceExistingTags)
         {
             var existingTags =
@@ -59,22 +74,30 @@ public class ShopifyOrderAutoTagService
             }
         }
 
-        // 🏷️ Tek etiket
+        // =====================================================
+        // 🏷️ YENİ TAG EKLE
+        // =====================================================
         await _graphQl.ExecuteAsync(
             @"mutation ($id: ID!, $tags: [String!]!) {
                 tagsAdd(id: $id, tags: $tags) {
                   userErrors { message }
                 }
               }",
-            new { id = orderId, tags = new[] { result.Tag } },
+            new { id = orderId, tags = new[] { tag } },
             ct);
 
-        // 📝 Sistem notu
-        if (result.Notes.Any())
+        // =====================================================
+        // 📝 NOTE (SADECE ONAY_GEREKLI)
+        // =====================================================
+        if (decision.Decision == OrderDecision.ApprovalNeeded &&
+            decision.Reasons.Any())
         {
             var systemNote =
                 "[SİSTEM]\n" +
-                string.Join("\n", result.Notes.Select(n => $"• {n}"));
+                string.Join("\n",
+                    decision.Reasons
+                        .Distinct()
+                        .Select(r => $"• {r}"));
 
             var existingNote =
                 order["note"]?.ToString();

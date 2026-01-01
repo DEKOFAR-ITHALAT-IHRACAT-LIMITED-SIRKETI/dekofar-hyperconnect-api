@@ -28,8 +28,9 @@ using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
 using Dekofar.HyperConnect.Integrations.Shopify.Common;
 using Dekofar.HyperConnect.Integrations.Shopify.Customers.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Fulfillment.Services;
-using Dekofar.HyperConnect.Integrations.Shopify.Orders.Rules;
+using Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions;
 using Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
+using Dekofar.HyperConnect.Integrations.Shopify.Orders.Sms;
 using Dekofar.HyperConnect.Integrations.Shopify.Products.Services;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
@@ -47,14 +48,19 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             this IServiceCollection services,
             IConfiguration configuration)
         {
-            // -------------------- DB --------------------
+            // =====================================================
+            // 🗄️ DATABASE
+            // =====================================================
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+                options.UseNpgsql(
+                    configuration.GetConnectionString("DefaultConnection")));
 
             services.AddScoped<IApplicationDbContext>(sp =>
                 sp.GetRequiredService<ApplicationDbContext>());
 
-            // -------------------- Identity --------------------
+            // =====================================================
+            // 👤 IDENTITY
+            // =====================================================
             services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
             {
                 options.Password.RequireDigit = true;
@@ -66,7 +72,9 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-            // -------------------- DHL --------------------
+            // =====================================================
+            // 🚚 DHL
+            // =====================================================
             services.AddScoped<IShipmentByDateService, ShipmentByDateService>();
             services.AddScoped<IDeliveredShipmentService, DeliveredShipmentService>();
             services.AddScoped<IStatusChangedShipmentService, StatusChangedShipmentService>();
@@ -82,16 +90,17 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<ITrackShipmentByReferenceIdService, TrackShipmentByReferenceIdService>();
             services.AddScoped<ITrackShipmentByShipmentIdService, TrackShipmentByShipmentIdService>();
 
-            // 🔴 KRİTİK – EKSİK OLAN BUYDU
-            // ⬆️ Eğer sınıf adı farklıysa (DhlRecurringJob vb.) onu yaz
-
-            // -------------------- PTT --------------------
+            // =====================================================
+            // 📮 PTT
+            // =====================================================
             services.AddScoped<IPttAuthService, PttAuthService>();
             services.AddHttpClient<IPttShipmentService, PttShipmentService>();
             services.AddHttpClient<IPttDeleteService, PttDeleteService>();
             services.AddHttpClient<IPttTrackingService, PttTrackingService>();
 
-            // -------------------- Genel --------------------
+            // =====================================================
+            // 🧰 GENEL SERVİSLER
+            // =====================================================
             services.AddHttpContextAccessor();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IFileStorageService, LocalFileStorageService>();
@@ -102,15 +111,18 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
             services.AddScoped<IAllowedAdminIpService, AllowedAdminIpService>();
 
-            // -------------------- NetGSM --------------------
+            // =====================================================
+            // 📲 NetGSM (ŞİMDİLİK PASİF – BOZULMADI)
+            // =====================================================
             services.AddScoped<INetGsmSmsSendService, NetGsmSmsSendService>();
             services.AddScoped<INetGsmSmsInboxService, NetGsmSmsInboxService>();
 
-            // -------------------- Shopify Options --------------------
+            // =====================================================
+            // 🛍️ SHOPIFY CONFIG
+            // =====================================================
             services.Configure<ShopifyOptions>(
                 configuration.GetSection("Shopify"));
 
-            // -------------------- Shopify HTTP Client --------------------
             services.AddHttpClient<ShopifyGraphQlClient>((sp, client) =>
             {
                 var cfg = sp.GetRequiredService<IConfiguration>();
@@ -122,36 +134,37 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
                     new MediaTypeWithQualityHeaderValue("application/json"));
             });
 
-            // -------------------- Shopify Core Services --------------------
+            // =====================================================
+            // 🛍️ SHOPIFY SERVİSLERİ
+            // =====================================================
             services.AddScoped<ShopifyOrderReportService>();
             services.AddScoped<ShopifyCustomerService>();
             services.AddScoped<ShopifyProductService>();
             services.AddScoped<ShopifyFulfillmentService>();
-
-            // -------------------- ORDER AUTO TAG RULES --------------------
-            services.AddScoped<IOrderTagRule, CancelKeywordRule>();
-            services.AddScoped<IOrderTagRule, BranchKeywordRule>();
-            services.AddScoped<IOrderTagRule, ShortAddressRule>();
-            services.AddScoped<IOrderTagRule, MultiProductRule>();
-            services.AddScoped<IOrderTagRule, HighAmountRule>();
-            services.AddScoped<IOrderTagRule, RepeatCustomerRule>();
-            services.AddScoped<IOrderTagRule, RepeatPhoneOrderRule>();
-            services.AddScoped<IOrderTagRule, AddressInsufficientRule>();
-            services.AddScoped<IOrderTagRule, ShippingDecisionRule>();
-
-            services.AddScoped<ShopifyOrderTagEngine>();
             services.AddScoped<ShopifyOrderAutoTagService>();
             services.AddScoped<ShopifyOrderReprocessService>();
 
-            // -------------------- Auth / Token --------------------
+            // =====================================================
+            // 🧠 YENİ KARAR & SMS MOTORU (KRİTİK)
+            // =====================================================
+            services.AddScoped<OrderDecisionEngine>();
+            services.AddScoped<ISmsSender, DummySmsSender>();
+
+            // =====================================================
+            // 🔐 AUTH / TOKEN
+            // =====================================================
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IUserService, UserService>();
 
-            // -------------------- Cache & Media --------------------
+            // =====================================================
+            // 🧠 CACHE & MEDIA
+            // =====================================================
             services.AddMemoryCache();
             services.AddScoped<IMediaDownloaderService, MediaDownloaderService>();
 
-            // -------------------- MediatR --------------------
+            // =====================================================
+            // 📨 MEDIATR
+            // =====================================================
             services.AddMediatR(cfg =>
             {
                 cfg.RegisterServicesFromAssembly(
