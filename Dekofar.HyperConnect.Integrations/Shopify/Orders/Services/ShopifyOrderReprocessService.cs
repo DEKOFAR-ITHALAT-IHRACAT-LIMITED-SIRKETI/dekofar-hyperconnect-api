@@ -49,7 +49,6 @@ query ($cursor: String) {{
         id
         tags
         note
-        totalWeight
         totalPriceSet {{ shopMoney {{ amount }} }}
         shippingAddress {{
           address1
@@ -89,13 +88,18 @@ query ($cursor: String) {{
             if (edges == null || edges.Count == 0)
                 continue;
 
+            // =====================================================
             // 🔑 TELEFON SAYIMI (BU BATCH İÇİN)
+            // =====================================================
             var phoneCounts = new Dictionary<string, int>();
 
             foreach (var edge in edges)
             {
-                var phone =
-                    edge?["node"]?["shippingAddress"]?["phone"]?.ToString();
+                if (edge?["node"] is not JObject node)
+                    continue;
+
+                var shipping = node["shippingAddress"] as JObject;
+                var phone = shipping?["phone"]?.ToString();
 
                 if (string.IsNullOrWhiteSpace(phone))
                     continue;
@@ -104,6 +108,9 @@ query ($cursor: String) {{
                 phoneCounts[phone] = c + 1;
             }
 
+            // =====================================================
+            // 🏷️ ETİKETLEME
+            // =====================================================
             foreach (var edge in edges)
             {
                 if (edge?["node"] is not JObject node)
@@ -238,7 +245,7 @@ query ($cursor: String) {{
     }
 
     // =====================================================
-    // 🔄 GRAPHQL → LEGACY NORMALIZE
+    // 🔄 GRAPHQL → LEGACY NORMALIZE (SAFE)
     // =====================================================
     private static JObject NormalizeGraphQlOrder(
         JObject node,
@@ -252,13 +259,15 @@ query ($cursor: String) {{
 
         var lineItems = new JArray();
 
-        var edges = node["lineItems"]?["edges"] as JArray;
+        var lineItemsObj = node["lineItems"] as JObject;
+        var edges = lineItemsObj?["edges"] as JArray;
+
         if (edges != null)
         {
             foreach (var e in edges)
             {
                 var productId =
-                    e?["node"]?["product"]?["id"]?.ToString();
+                    (e?["node"]?["product"] as JObject)?["id"]?.ToString();
 
                 if (!string.IsNullOrWhiteSpace(productId))
                 {
