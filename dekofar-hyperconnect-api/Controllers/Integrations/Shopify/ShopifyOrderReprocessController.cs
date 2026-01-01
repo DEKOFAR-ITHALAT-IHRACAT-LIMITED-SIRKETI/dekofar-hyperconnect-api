@@ -32,18 +32,6 @@ public class ShopifyOrderReprocessController : ControllerBase
     }
 
     /// <summary>
-    /// Açık siparişlerde sistem tarafından
-    /// eklenen etiketleri ve [SİSTEM] notlarını temizler.
-    /// Test amaçlıdır.
-    /// </summary>
-    [HttpPost("open-orders/clear-system-data")]
-    public async Task<IActionResult> ClearSystemData(
-        CancellationToken ct)
-    {
-        var count =
-            await _service.ClearSystemTagsAndNotesAsync(ct);
 
-        return Ok(new { cleared = count });
-    }
 
 }
