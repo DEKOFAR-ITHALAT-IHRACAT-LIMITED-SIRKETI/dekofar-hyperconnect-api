@@ -8,8 +8,8 @@ public class ShopifyOrderReprocessService
     private readonly ShopifyGraphQlClient _graphQl;
     private readonly ShopifyOrderAutoTagService _autoTag;
 
-    // 🔧 BATCH AYARLARI (İSTERSEN SONRA CONFIG’E TAŞIRIZ)
-    private const int BatchSize = 50;
+    // 🔧 BATCH AYARLARI
+    private const int BatchSize = 100;
     private static readonly TimeSpan BatchDelay = TimeSpan.FromMinutes(2);
 
     public ShopifyOrderReprocessService(
@@ -20,6 +20,9 @@ public class ShopifyOrderReprocessService
         _autoTag = autoTag;
     }
 
+    // =====================================================
+    // 🔁 AÇIK SİPARİŞLERİ BAŞTAN ETİKETLE
+    // =====================================================
     public async Task<int> ReprocessOpenOrdersAsync(CancellationToken ct)
     {
         string? cursor = null;
@@ -86,20 +89,14 @@ query ($cursor: String) {{
             if (edges == null || edges.Count == 0)
                 continue;
 
-            // =====================================================
-            // 🔑 TELEFON SAYIMI (SADECE BU BATCH İÇİN)
-            // =====================================================
+            // 🔑 TELEFON SAYIMI (BU BATCH İÇİN)
             var phoneCounts = new Dictionary<string, int>();
 
             foreach (var edge in edges)
             {
-                if (edge?["node"] is not JObject node)
-                    continue;
+                var phone =
+                    edge?["node"]?["shippingAddress"]?["phone"]?.ToString();
 
-                if (node["shippingAddress"] is not JObject shipping)
-                    continue;
-
-                var phone = shipping["phone"]?.ToString();
                 if (string.IsNullOrWhiteSpace(phone))
                     continue;
 
@@ -107,9 +104,6 @@ query ($cursor: String) {{
                 phoneCounts[phone] = c + 1;
             }
 
-            // =====================================================
-            // 🏷️ ETİKETLEME
-            // =====================================================
             foreach (var edge in edges)
             {
                 if (edge?["node"] is not JObject node)
@@ -126,106 +120,17 @@ query ($cursor: String) {{
                 processed++;
             }
 
-            // =====================================================
-            // ⏳ RATE LIMIT KORUMA – BATCH ARASI BEKLEME
-            // =====================================================
             if (hasNextPage)
-            {
                 await Task.Delay(BatchDelay, ct);
-            }
         }
 
         return processed;
     }
 
     // =====================================================
-    // 🔄 GRAPHQL → LEGACY ORDER NORMALIZE
+    // 🧹 TEST İÇİN: TÜM ETİKETLERİ + SİSTEM NOTUNU SİL
+    // MÜŞTERİ NOTU KORUNUR
     // =====================================================
-    private static JObject NormalizeGraphQlOrder(
-        JObject node,
-        Dictionary<string, int> phoneCounts)
-    {
-        // ---------- SHIPPING ----------
-        JObject? shipping = null;
-        if (node.TryGetValue("shippingAddress", out var shippingToken))
-            shipping = shippingToken as JObject;
-
-        // ---------- CUSTOMER ----------
-        JObject? customer = null;
-        if (node.TryGetValue("customer", out var customerToken))
-            customer = customerToken as JObject;
-
-        var phone = shipping?["phone"]?.ToString();
-        phoneCounts.TryGetValue(phone ?? "", out var repeatCount);
-
-        // ---------- LINE ITEMS ----------
-        var lineItems = new JArray();
-
-        if (node.TryGetValue("lineItems", out var lineItemsToken)
-            && lineItemsToken is JObject lineItemsObj
-            && lineItemsObj.TryGetValue("edges", out var edgesToken)
-            && edgesToken is JArray edgesArray)
-        {
-            foreach (var edgeToken in edgesArray)
-            {
-                if (edgeToken is not JObject edgeObj)
-                    continue;
-
-                if (!edgeObj.TryGetValue("node", out var liNodeToken))
-                    continue;
-
-                if (liNodeToken is not JObject liNode)
-                    continue;
-
-                if (!liNode.TryGetValue("product", out var productToken))
-                    continue;
-
-                if (productToken is not JObject productObj)
-                    continue;
-
-                var productId = productObj["id"]?.ToString();
-                if (string.IsNullOrWhiteSpace(productId))
-                    continue;
-
-                lineItems.Add(new JObject
-                {
-                    ["product_id"] = productId
-                });
-            }
-        }
-
-        // ---------- RETURN ----------
-        return new JObject
-        {
-            ["admin_graphql_api_id"] = node["id"]?.ToString(),
-            ["tags"] = node["tags"]?.ToString(),
-            ["note"] = node["note"]?.ToString(),
-
-            ["total_weight"] =
-                node["totalWeight"]?.Value<decimal?>(),
-
-            ["total_price"] =
-                node["totalPriceSet"]?["shopMoney"]?["amount"]?.ToString(),
-
-            ["shipping_address"] = new JObject
-            {
-                ["address1"] = shipping?["address1"]?.ToString(),
-                ["city"] = shipping?["city"]?.ToString(),
-                ["phone"] = phone,
-                ["country_code"] = shipping?["countryCode"]?.ToString()
-            },
-
-            ["customer"] = new JObject
-            {
-                ["orders_count"] =
-                    customer?["numberOfOrders"]?.Value<int>() ?? 0
-            },
-
-            ["line_items"] = lineItems,
-            ["__repeat_phone_count"] = repeatCount
-        };
-    }
-
     public async Task<int> ClearSystemTagsAndNotesAsync(CancellationToken ct)
     {
         string? cursor = null;
@@ -236,26 +141,26 @@ query ($cursor: String) {{
         {
             ct.ThrowIfCancellationRequested();
 
-            var gql = @"
-query ($cursor: String) {
+            var gql = $@"
+query ($cursor: String) {{
   orders(
-    first: 50
+    first: {BatchSize}
     after: $cursor
     query: ""financial_status:pending fulfillment_status:unfulfilled""
-  ) {
-    pageInfo {
+  ) {{
+    pageInfo {{
       hasNextPage
       endCursor
-    }
-    edges {
-      node {
+    }}
+    edges {{
+      node {{
         id
         tags
         note
-      }
-    }
-  }
-}";
+      }}
+    }}
+  }}
+}}";
 
             var json = await _graphQl.ExecuteAsync(
                 gql,
@@ -285,38 +190,27 @@ query ($cursor: String) {
                 if (string.IsNullOrWhiteSpace(orderId))
                     continue;
 
-                // -----------------------
-                // 🏷️ SİSTEM ETİKETLERİ
-                // -----------------------
+                // 🏷️ TÜM ETİKETLERİ SİL
                 var tagsRaw = node["tags"]?.ToString();
-                var systemTags = new[]
-                {
-                "ONAYLANDI",
-                "ONAY_GEREKLI",
-                "IPTAL"
-            };
-
                 var tagsToRemove = tagsRaw?
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => t.Trim())
-                    .Where(t => systemTags.Contains(t))
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
                     .ToArray();
 
                 if (tagsToRemove != null && tagsToRemove.Length > 0)
                 {
                     await _graphQl.ExecuteAsync(
                         @"mutation ($id: ID!, $tags: [String!]!) {
-                        tagsRemove(id: $id, tags: $tags) {
-                          userErrors { message }
-                        }
-                      }",
+                          tagsRemove(id: $id, tags: $tags) {
+                            userErrors { message }
+                          }
+                        }",
                         new { id = orderId, tags = tagsToRemove },
                         ct);
                 }
 
-                // -----------------------
-                // 📝 SİSTEM NOTU
-                // -----------------------
+                // 📝 SADECE [SİSTEM] NOTUNU SİL
                 var note = node["note"]?.ToString();
                 if (!string.IsNullOrWhiteSpace(note) &&
                     note.StartsWith("[SİSTEM]"))
@@ -325,10 +219,10 @@ query ($cursor: String) {
 
                     await _graphQl.ExecuteAsync(
                         @"mutation ($id: ID!, $note: String!) {
-                        orderUpdate(input: { id: $id, note: $note }) {
-                          userErrors { message }
-                        }
-                      }",
+                          orderUpdate(input: { id: $id, note: $note }) {
+                            userErrors { message }
+                          }
+                        }",
                         new { id = orderId, note = cleanedNote },
                         ct);
                 }
@@ -336,22 +230,81 @@ query ($cursor: String) {
                 cleared++;
             }
 
-            // ⏳ Shopify’yı yormamak için
             if (hasNextPage)
-                await Task.Delay(TimeSpan.FromMinutes(2), ct);
+                await Task.Delay(BatchDelay, ct);
         }
 
         return cleared;
     }
 
-    private static string RemoveSystemNote(string note)
+    // =====================================================
+    // 🔄 GRAPHQL → LEGACY NORMALIZE
+    // =====================================================
+    private static JObject NormalizeGraphQlOrder(
+        JObject node,
+        Dictionary<string, int> phoneCounts)
     {
-        // [SİSTEM] bloğunu temizler, müşteri notunu korur
-        var index = note.IndexOf("[MÜŞTERİ NOTU]");
-        if (index >= 0)
-            return note.Substring(index);
+        var shipping = node["shippingAddress"] as JObject;
+        var customer = node["customer"] as JObject;
 
-        return string.Empty;
+        var phone = shipping?["phone"]?.ToString();
+        phoneCounts.TryGetValue(phone ?? "", out var repeatCount);
+
+        var lineItems = new JArray();
+
+        var edges = node["lineItems"]?["edges"] as JArray;
+        if (edges != null)
+        {
+            foreach (var e in edges)
+            {
+                var productId =
+                    e?["node"]?["product"]?["id"]?.ToString();
+
+                if (!string.IsNullOrWhiteSpace(productId))
+                {
+                    lineItems.Add(new JObject
+                    {
+                        ["product_id"] = productId
+                    });
+                }
+            }
+        }
+
+        return new JObject
+        {
+            ["admin_graphql_api_id"] = node["id"]?.ToString(),
+            ["tags"] = node["tags"]?.ToString(),
+            ["note"] = node["note"]?.ToString(),
+            ["total_price"] =
+                node["totalPriceSet"]?["shopMoney"]?["amount"]?.ToString(),
+
+            ["shipping_address"] = new JObject
+            {
+                ["address1"] = shipping?["address1"]?.ToString(),
+                ["city"] = shipping?["city"]?.ToString(),
+                ["phone"] = phone,
+                ["country_code"] = shipping?["countryCode"]?.ToString()
+            },
+
+            ["customer"] = new JObject
+            {
+                ["orders_count"] =
+                    customer?["numberOfOrders"]?.Value<int>() ?? 0
+            },
+
+            ["line_items"] = lineItems,
+            ["__repeat_phone_count"] = repeatCount
+        };
     }
 
+    // =====================================================
+    // 🧹 [SİSTEM] BLOĞUNU TEMİZLE
+    // =====================================================
+    private static string RemoveSystemNote(string note)
+    {
+        var index = note.IndexOf("[MÜŞTERİ NOTU]");
+        return index >= 0
+            ? note.Substring(index)
+            : string.Empty;
+    }
 }
