@@ -29,23 +29,27 @@ public class OrderDecisionEngine
         }
 
         // =====================================================
-        // 👤 2. AYNI MÜŞTERİDEN BİRDEN FAZLA AÇIK SİPARİŞ (MUTLAK ARA1)
+        // 👤 2. AYNI MÜŞTERİ – MUTLAK ARA1
         // =====================================================
+
+        // Aynı anda birden fazla açık sipariş
         var repeatPhoneCount =
             order["__repeat_phone_count"]?.Value<int>() ?? 0;
 
-        if (repeatPhoneCount > 1)
+        // Daha önce / başka siparişi var
+        var customerOrders =
+            order["customer"]?["orders_count"]?.Value<int>() ?? 0;
+
+        if (repeatPhoneCount > 1 || customerOrders > 1)
         {
             result.Decision = OrderDecision.ApprovalNeeded;
             result.Reasons.Add(
-                "Müşterinin birden fazla açık siparişi bulunduğu için tüm siparişler onaya alındı");
-
-            // 🔥 BURADA DÖNÜYORUZ → DHL OLMASI İMKANSIZ
-            return result;
+                "Müşterinin birden fazla siparişi bulunduğu için tüm siparişler onaya alındı");
+            return result; // 🔥 DHL ihtimali sıfır
         }
 
         // =====================================================
-        // 💰 3. TUTAR KONTROLÜ
+        // 💰 3. TUTAR
         // =====================================================
         decimal.TryParse(
             order["total_price"]?.ToString(),
@@ -56,12 +60,12 @@ public class OrderDecisionEngine
         if (total < 1000)
         {
             result.Decision = OrderDecision.ApprovalNeeded;
-            result.Reasons.Add("Sipariş tutarı 1000 TL altında (kargo ücreti)");
+            result.Reasons.Add("Sipariş tutarı 1000 TL altında");
         }
         else if (total >= 2000)
         {
             result.Decision = OrderDecision.ApprovalNeeded;
-            result.Reasons.Add("Sipariş tutarı 2000 TL ve üzeri (yüksek tutar)");
+            result.Reasons.Add("Sipariş tutarı 2000 TL ve üzeri");
         }
 
         // =====================================================
@@ -77,11 +81,11 @@ public class OrderDecisionEngine
         if (distinctProducts > 1)
         {
             result.Decision = OrderDecision.ApprovalNeeded;
-            result.Reasons.Add("Siparişte birden fazla ürün çeşidi bulunuyor");
+            result.Reasons.Add("Birden fazla ürün bulunuyor");
         }
 
         // =====================================================
-        // 📍 5. ADRES DOĞRULAMA
+        // 📍 5. ADRES
         // =====================================================
         var addressResult = AddressValidator.Validate(order);
 
@@ -92,7 +96,7 @@ public class OrderDecisionEngine
         }
 
         // =====================================================
-        // 🟢 6. OTOMATİK (DHL)
+        // 🟢 6. DHL
         // =====================================================
         if (result.Decision == default)
         {
@@ -102,18 +106,13 @@ public class OrderDecisionEngine
         return result;
     }
 
-    // =====================================================
-    // 🔍 IPTAL KELİME KONTROLÜ
-    // =====================================================
     private static bool ContainsCancelKeyword(JObject order)
     {
         var note = order["note"]?.ToString() ?? string.Empty;
         var address =
             order["shipping_address"]?["address1"]?.ToString() ?? string.Empty;
 
-        var text =
-            $"{note} {address}".ToLowerInvariant();
-
+        var text = $"{note} {address}".ToLowerInvariant();
         return CancelKeywords.Any(k => text.Contains(k));
     }
 }

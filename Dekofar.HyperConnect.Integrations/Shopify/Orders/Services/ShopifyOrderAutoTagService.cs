@@ -40,7 +40,7 @@ public class ShopifyOrderAutoTagService
         {
             OrderDecision.Automatic => "dhl",
             OrderDecision.ApprovalNeeded => "ara1",
-            OrderDecision.Cancelled => "IPTAL",
+            OrderDecision.Cancelled => "iptal",
             _ => null
         };
 
