@@ -23,14 +23,12 @@ public class ShopifyOrderReprocessService
 
     // =====================================================
     // 🚀 TEK AKIŞ
-    // 1️⃣ Tüm etiketleri + sistem notlarını temizle
-    // 2️⃣ Shopify consistency için bekle
-    // 3️⃣ 200’er 200’er yeniden etiketle
     // =====================================================
     public async Task<int> ReprocessOpenOrdersAsync(CancellationToken ct)
     {
         await ClearSystemTagsAndNotesAsync(ct);
 
+        // Shopify eventual consistency
         await Task.Delay(ConsistencyDelay, ct);
 
         return await ReprocessInternalAsync(ct);
@@ -120,15 +118,23 @@ query ($cursor: String) {{
                 if (edge?["node"] is not JObject node)
                     continue;
 
-                var normalized =
-                    NormalizeGraphQlOrder(node, phoneCounts);
+                try
+                {
+                    var normalized =
+                        NormalizeGraphQlOrder(node, phoneCounts);
 
-                await _autoTag.ApplyAutoTagsAsync(
-                    normalized,
-                    ct,
-                    replaceExistingTags: true);
+                    await _autoTag.ApplyAutoTagsAsync(
+                        normalized,
+                        ct,
+                        replaceExistingTags: true);
 
-                processed++;
+                    processed++;
+                }
+                catch
+                {
+                    // ❗ Tek sipariş bozuksa batch ölmesin
+                    continue;
+                }
             }
 
             if (hasNextPage)
@@ -194,14 +200,14 @@ query ($cursor: String) {{
                     continue;
 
                 // 🏷️ TÜM ETİKETLER
-                var tagsRaw = node["tags"]?.ToString();
-                var tags = tagsRaw?
+                var tags = node["tags"]?
+                    .ToString()?
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => t.Trim())
                     .Where(t => !string.IsNullOrWhiteSpace(t))
                     .ToArray();
 
-                if (tags != null && tags.Length > 0)
+                if (tags is { Length: > 0 })
                 {
                     await _graphQl.ExecuteAsync(
                         @"mutation ($id: ID!, $tags: [String!]!) {
@@ -213,7 +219,7 @@ query ($cursor: String) {{
                         ct);
                 }
 
-                // 📝 SADECE [SİSTEM] BLOĞU
+                // 📝 SADECE [SİSTEM]
                 var note = node["note"]?.ToString();
                 if (!string.IsNullOrWhiteSpace(note) &&
                     note.StartsWith("[SİSTEM]"))
@@ -247,12 +253,13 @@ query ($cursor: String) {{
         var customer = node["customer"] as JObject;
 
         var phone = shipping?["phone"]?.ToString();
-        phoneCounts.TryGetValue(phone ?? "", out var repeatCount);
+        phoneCounts.TryGetValue(phone ?? string.Empty, out var repeatCount);
 
         var lineItems = new JArray();
-        var edges = (node["lineItems"] as JObject)?["edges"] as JArray;
 
-        if (edges != null)
+        var lineItemsToken = node["lineItems"];
+        if (lineItemsToken is JObject liObj &&
+            liObj["edges"] is JArray edges)
         {
             foreach (var e in edges)
             {
