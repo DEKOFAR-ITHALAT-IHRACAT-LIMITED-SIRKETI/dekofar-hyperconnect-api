@@ -31,7 +31,7 @@ public class ShopifyOrderReprocessService
     }
 
     // =====================================================
-    // 🔁 MAIN LOOP (JValue SAFE)
+    // 🔁 MAIN LOOP (FULL JVALUE SAFE)
     // =====================================================
     private async Task<int> ReprocessInternalAsync(CancellationToken ct)
     {
@@ -72,12 +72,14 @@ query ($cursor: String) {{
             if (json?["data"]?["orders"] is not JObject ordersObj)
                 break;
 
-            // 🛡️ pageInfo SAFE
-            var pageInfo = ordersObj["pageInfo"] as JObject;
-            hasNextPage = pageInfo?["hasNextPage"]?.Value<bool>() == true;
-            cursor = pageInfo?["endCursor"]?.ToString();
+            // pageInfo SAFE
+            if (ordersObj["pageInfo"] is not JObject pageInfo)
+                break;
 
-            // 🛡️ edges SAFE
+            hasNextPage = pageInfo["hasNextPage"]?.Value<bool>() == true;
+            cursor = pageInfo["endCursor"]?.ToString();
+
+            // edges SAFE
             if (ordersObj["edges"] is not JArray edges || edges.Count == 0)
             {
                 if (hasNextPage)
@@ -85,31 +87,47 @@ query ($cursor: String) {{
                 continue;
             }
 
-            // 📞 PHONE COUNT
+            // =================================================
+            // 📞 PHONE COUNT (EDGE TYPE CHECK!)
+            // =================================================
             var phoneCounts = new Dictionary<string, int>();
 
-            foreach (var edge in edges)
+            foreach (var edgeToken in edges)
             {
-                if (edge?["node"]?["shippingAddress"]?["phone"] is JValue phoneVal)
-                {
-                    var phone = phoneVal.ToString();
-                    if (!string.IsNullOrWhiteSpace(phone))
-                    {
-                        phoneCounts.TryGetValue(phone, out var c);
-                        phoneCounts[phone] = c + 1;
-                    }
-                }
+                if (edgeToken is not JObject edgeObj)
+                    continue;
+
+                if (!edgeObj.TryGetValue("node", out var nodeToken) ||
+                    nodeToken is not JObject node)
+                    continue;
+
+                if (node["shippingAddress"] is not JObject shipping)
+                    continue;
+
+                var phone = shipping["phone"]?.ToString();
+                if (string.IsNullOrWhiteSpace(phone))
+                    continue;
+
+                phoneCounts.TryGetValue(phone, out var c);
+                phoneCounts[phone] = c + 1;
             }
 
-            // 🏷️ TAG APPLY
-            foreach (var edge in edges)
+            // =================================================
+            // 🏷️ TAG APPLY (EDGE SAFE)
+            // =================================================
+            foreach (var edgeToken in edges)
             {
-                if (edge?["node"] is not JObject node)
+                if (edgeToken is not JObject edgeObj)
+                    continue;
+
+                if (!edgeObj.TryGetValue("node", out var nodeToken) ||
+                    nodeToken is not JObject node)
                     continue;
 
                 try
                 {
-                    var normalized = NormalizeGraphQlOrder(node, phoneCounts);
+                    var normalized =
+                        NormalizeGraphQlOrder(node, phoneCounts);
 
                     await _autoTag.ApplyAutoTagsAsync(
                         normalized,
@@ -120,7 +138,7 @@ query ($cursor: String) {{
                 }
                 catch
                 {
-                    // ❗ tek sipariş bozuk → batch devam
+                    // ❗ tek sipariş bozuk → devam
                     continue;
                 }
             }
@@ -168,10 +186,16 @@ query ($cursor: String) {{
             if (ordersObj["edges"] is not JArray edges)
                 continue;
 
-            foreach (var edge in edges)
+            foreach (var edgeToken in edges)
             {
-                var node = edge?["node"] as JObject;
-                var id = node?["id"]?.ToString();
+                if (edgeToken is not JObject edgeObj)
+                    continue;
+
+                if (!edgeObj.TryGetValue("node", out var nodeToken) ||
+                    nodeToken is not JObject node)
+                    continue;
+
+                var id = node["id"]?.ToString();
                 if (string.IsNullOrWhiteSpace(id))
                     continue;
 
@@ -193,7 +217,8 @@ query ($cursor: String) {{
 
                 // NOTE
                 var note = node["note"]?.ToString();
-                if (!string.IsNullOrWhiteSpace(note) && note.StartsWith("[SİSTEM]"))
+                if (!string.IsNullOrWhiteSpace(note) &&
+                    note.StartsWith("[SİSTEM]"))
                 {
                     await _graphQl.ExecuteAsync(
                         @"mutation ($id: ID!, $note: String!) {
@@ -210,7 +235,7 @@ query ($cursor: String) {{
     }
 
     // =====================================================
-    // 🔄 NORMALIZE (BULLETPROOF)
+    // 🔄 NORMALIZE (SAFE)
     // =====================================================
     private static JObject NormalizeGraphQlOrder(
         JObject node,
@@ -229,7 +254,9 @@ query ($cursor: String) {{
         {
             foreach (var e in edges)
             {
-                var pid = (e?["node"]?["product"] as JObject)?["id"]?.ToString();
+                var pid =
+                    (e?["node"]?["product"] as JObject)?["id"]?.ToString();
+
                 if (!string.IsNullOrWhiteSpace(pid))
                 {
                     lineItems.Add(new JObject { ["product_id"] = pid });
@@ -242,7 +269,8 @@ query ($cursor: String) {{
             ["admin_graphql_api_id"] = node["id"]?.ToString(),
             ["tags"] = node["tags"]?.ToString(),
             ["note"] = node["note"]?.ToString(),
-            ["total_price"] = node["totalPriceSet"]?["shopMoney"]?["amount"]?.ToString(),
+            ["total_price"] =
+                node["totalPriceSet"]?["shopMoney"]?["amount"]?.ToString(),
             ["shipping_address"] = new JObject
             {
                 ["address1"] = shipping?["address1"]?.ToString(),
@@ -252,7 +280,8 @@ query ($cursor: String) {{
             },
             ["customer"] = new JObject
             {
-                ["orders_count"] = customer?["numberOfOrders"]?.Value<int>() ?? 0
+                ["orders_count"] =
+                    customer?["numberOfOrders"]?.Value<int>() ?? 0
             },
             ["line_items"] = lineItems,
             ["__repeat_phone_count"] = repeat
