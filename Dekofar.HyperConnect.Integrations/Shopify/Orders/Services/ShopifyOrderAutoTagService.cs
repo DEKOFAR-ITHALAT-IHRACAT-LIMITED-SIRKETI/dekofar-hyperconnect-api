@@ -34,12 +34,12 @@ public class ShopifyOrderAutoTagService
         var decision = _decisionEngine.Decide(order);
 
         // =====================================================
-        // 🏷️ TAG BELİRLE
+        // 🏷️ KARAR → TAG
         // =====================================================
         var tag = decision.Decision switch
         {
-            OrderDecision.Automatic => "ONAYLANDI",
-            OrderDecision.ApprovalNeeded => "ONAY_GEREKLI",
+            OrderDecision.Automatic => "DHL",
+            OrderDecision.ApprovalNeeded => "ARA1",
             OrderDecision.Cancelled => "IPTAL",
             _ => null
         };
@@ -48,7 +48,7 @@ public class ShopifyOrderAutoTagService
             return;
 
         // =====================================================
-        // 🧹 ESKİ TAGLERİ SİL
+        // 🧹 TÜM ESKİ TAGLERİ SİL
         // =====================================================
         if (replaceExistingTags)
         {
@@ -75,7 +75,7 @@ public class ShopifyOrderAutoTagService
         }
 
         // =====================================================
-        // 🏷️ YENİ TAG EKLE
+        // 🏷️ YENİ TAG EKLE (TEK TAG)
         // =====================================================
         await _graphQl.ExecuteAsync(
             @"mutation ($id: ID!, $tags: [String!]!) {
@@ -87,7 +87,7 @@ public class ShopifyOrderAutoTagService
             ct);
 
         // =====================================================
-        // 📝 NOTE (SADECE ONAY_GEREKLI)
+        // 📝 SİSTEM NOTU (SADECE ARA1)
         // =====================================================
         if (decision.Decision == OrderDecision.ApprovalNeeded &&
             decision.Reasons.Any())
