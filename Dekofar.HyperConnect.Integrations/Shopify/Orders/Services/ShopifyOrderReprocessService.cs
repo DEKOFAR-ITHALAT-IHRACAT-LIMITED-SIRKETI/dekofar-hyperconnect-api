@@ -9,7 +9,7 @@ public class ShopifyOrderReprocessService
     private readonly ShopifyOrderAutoTagService _autoTag;
 
     // 🔧 BATCH AYARLARI
-    private const int BatchSize = 100;
+    private const int BatchSize = 200;
     private static readonly TimeSpan BatchDelay = TimeSpan.FromMinutes(2);
 
     public ShopifyOrderReprocessService(
@@ -21,9 +21,25 @@ public class ShopifyOrderReprocessService
     }
 
     // =====================================================
-    // 🔁 AÇIK SİPARİŞLERİ BAŞTAN ETİKETLE
+    // 🚀 TEK AKIŞ
+    // 1️⃣ Etiket + sistem notlarını temizle
+    // 2️⃣ Bekle
+    // 3️⃣ 200’er 200’er yeniden etiketle
     // =====================================================
     public async Task<int> ReprocessOpenOrdersAsync(CancellationToken ct)
+    {
+        await ClearSystemTagsAndNotesAsync(ct);
+
+        // Shopify eventual consistency için
+        await Task.Delay(TimeSpan.FromMinutes(1), ct);
+
+        return await ReprocessInternalAsync(ct);
+    }
+
+    // =====================================================
+    // 🔁 ETİKETLEME (INTERNAL)
+    // =====================================================
+    private async Task<int> ReprocessInternalAsync(CancellationToken ct)
     {
         string? cursor = null;
         bool hasNextPage = true;
@@ -69,14 +85,9 @@ query ($cursor: String) {{
   }}
 }}";
 
-            var json = await _graphQl.ExecuteAsync(
-                gql,
-                new { cursor },
-                ct);
-
+            var json = await _graphQl.ExecuteAsync(gql, new { cursor }, ct);
             var ordersObj = json["data"]?["orders"] as JObject;
-            if (ordersObj == null)
-                break;
+            if (ordersObj == null) break;
 
             hasNextPage =
                 ordersObj["pageInfo"]?["hasNextPage"]?.Value<bool>() == true;
@@ -85,36 +96,25 @@ query ($cursor: String) {{
                 ordersObj["pageInfo"]?["endCursor"]?.ToString();
 
             var edges = ordersObj["edges"] as JArray;
-            if (edges == null || edges.Count == 0)
-                continue;
+            if (edges == null || edges.Count == 0) continue;
 
-            // =====================================================
-            // 🔑 TELEFON SAYIMI (BU BATCH İÇİN)
-            // =====================================================
+            // 🔑 TELEFON SAYIMI (BATCH İÇİ)
             var phoneCounts = new Dictionary<string, int>();
 
             foreach (var edge in edges)
             {
-                if (edge?["node"] is not JObject node)
-                    continue;
+                var phone =
+                    edge?["node"]?["shippingAddress"]?["phone"]?.ToString();
 
-                var shipping = node["shippingAddress"] as JObject;
-                var phone = shipping?["phone"]?.ToString();
-
-                if (string.IsNullOrWhiteSpace(phone))
-                    continue;
+                if (string.IsNullOrWhiteSpace(phone)) continue;
 
                 phoneCounts.TryGetValue(phone, out var c);
                 phoneCounts[phone] = c + 1;
             }
 
-            // =====================================================
-            // 🏷️ ETİKETLEME
-            // =====================================================
             foreach (var edge in edges)
             {
-                if (edge?["node"] is not JObject node)
-                    continue;
+                if (edge?["node"] is not JObject node) continue;
 
                 var normalized =
                     NormalizeGraphQlOrder(node, phoneCounts);
@@ -135,14 +135,12 @@ query ($cursor: String) {{
     }
 
     // =====================================================
-    // 🧹 TEST İÇİN: TÜM ETİKETLERİ + SİSTEM NOTUNU SİL
-    // MÜŞTERİ NOTU KORUNUR
+    // 🧹 TÜM ETİKETLER + SİSTEM NOTU TEMİZLE
     // =====================================================
-    public async Task<int> ClearSystemTagsAndNotesAsync(CancellationToken ct)
+    private async Task ClearSystemTagsAndNotesAsync(CancellationToken ct)
     {
         string? cursor = null;
         bool hasNextPage = true;
-        int cleared = 0;
 
         while (hasNextPage)
         {
@@ -169,14 +167,9 @@ query ($cursor: String) {{
   }}
 }}";
 
-            var json = await _graphQl.ExecuteAsync(
-                gql,
-                new { cursor },
-                ct);
-
+            var json = await _graphQl.ExecuteAsync(gql, new { cursor }, ct);
             var ordersObj = json["data"]?["orders"] as JObject;
-            if (ordersObj == null)
-                break;
+            if (ordersObj == null) break;
 
             hasNextPage =
                 ordersObj["pageInfo"]?["hasNextPage"]?.Value<bool>() == true;
@@ -185,27 +178,21 @@ query ($cursor: String) {{
                 ordersObj["pageInfo"]?["endCursor"]?.ToString();
 
             var edges = ordersObj["edges"] as JArray;
-            if (edges == null || edges.Count == 0)
-                continue;
+            if (edges == null || edges.Count == 0) continue;
 
             foreach (var edge in edges)
             {
-                if (edge?["node"] is not JObject node)
-                    continue;
+                var node = edge?["node"] as JObject;
+                var orderId = node?["id"]?.ToString();
+                if (string.IsNullOrWhiteSpace(orderId)) continue;
 
-                var orderId = node["id"]?.ToString();
-                if (string.IsNullOrWhiteSpace(orderId))
-                    continue;
-
-                // 🏷️ TÜM ETİKETLERİ SİL
-                var tagsRaw = node["tags"]?.ToString();
-                var tagsToRemove = tagsRaw?
+                // 🏷️ TÜM ETİKETLER
+                var tags = node["tags"]?.ToString()?
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => t.Trim())
-                    .Where(t => !string.IsNullOrWhiteSpace(t))
                     .ToArray();
 
-                if (tagsToRemove != null && tagsToRemove.Length > 0)
+                if (tags != null && tags.Length > 0)
                 {
                     await _graphQl.ExecuteAsync(
                         @"mutation ($id: ID!, $tags: [String!]!) {
@@ -213,16 +200,16 @@ query ($cursor: String) {{
                             userErrors { message }
                           }
                         }",
-                        new { id = orderId, tags = tagsToRemove },
+                        new { id = orderId, tags },
                         ct);
                 }
 
-                // 📝 SADECE [SİSTEM] NOTUNU SİL
+                // 📝 SİSTEM NOTU
                 var note = node["note"]?.ToString();
                 if (!string.IsNullOrWhiteSpace(note) &&
                     note.StartsWith("[SİSTEM]"))
                 {
-                    var cleanedNote = RemoveSystemNote(note);
+                    var cleaned = RemoveSystemNote(note);
 
                     await _graphQl.ExecuteAsync(
                         @"mutation ($id: ID!, $note: String!) {
@@ -230,22 +217,18 @@ query ($cursor: String) {{
                             userErrors { message }
                           }
                         }",
-                        new { id = orderId, note = cleanedNote },
+                        new { id = orderId, note = cleaned },
                         ct);
                 }
-
-                cleared++;
             }
 
             if (hasNextPage)
                 await Task.Delay(BatchDelay, ct);
         }
-
-        return cleared;
     }
 
     // =====================================================
-    // 🔄 GRAPHQL → LEGACY NORMALIZE (SAFE)
+    // 🔄 SAFE NORMALIZE
     // =====================================================
     private static JObject NormalizeGraphQlOrder(
         JObject node,
@@ -258,16 +241,14 @@ query ($cursor: String) {{
         phoneCounts.TryGetValue(phone ?? "", out var repeatCount);
 
         var lineItems = new JArray();
-
-        var lineItemsObj = node["lineItems"] as JObject;
-        var edges = lineItemsObj?["edges"] as JArray;
+        var edges = node["lineItems"]?["edges"] as JArray;
 
         if (edges != null)
         {
             foreach (var e in edges)
             {
                 var productId =
-                    (e?["node"]?["product"] as JObject)?["id"]?.ToString();
+                    e?["node"]?["product"]?["id"]?.ToString();
 
                 if (!string.IsNullOrWhiteSpace(productId))
                 {
@@ -306,14 +287,9 @@ query ($cursor: String) {{
         };
     }
 
-    // =====================================================
-    // 🧹 [SİSTEM] BLOĞUNU TEMİZLE
-    // =====================================================
     private static string RemoveSystemNote(string note)
     {
         var index = note.IndexOf("[MÜŞTERİ NOTU]");
-        return index >= 0
-            ? note.Substring(index)
-            : string.Empty;
+        return index >= 0 ? note.Substring(index) : string.Empty;
     }
 }

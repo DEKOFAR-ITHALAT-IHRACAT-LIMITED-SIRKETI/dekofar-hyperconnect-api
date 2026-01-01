@@ -19,7 +19,7 @@ public class OrderDecisionEngine
         var result = new OrderDecisionResult();
 
         // =====================================================
-        // 🔴 1. MUTLAK IPTAL
+        // 🔴 1. MUTLAK IPTAL (HER ŞEYİN ÜSTÜNDE)
         // =====================================================
         if (ContainsCancelKeyword(order))
         {
@@ -29,7 +29,27 @@ public class OrderDecisionEngine
         }
 
         // =====================================================
-        // 💰 2. TUTAR KONTROLÜ
+        // 🔴 2. AYNI MÜŞTERİ / TELEFON → MUTLAK ONAY
+        // (BİRİ ONAY OLSA BİLE, DİĞERİ VARSA HEPSİ ARA)
+        // =====================================================
+        var repeatPhoneCount =
+            order["__repeat_phone_count"]?.Value<int>() ?? 0;
+
+        var customerOrders =
+            order["customer"]?["orders_count"]?.Value<int>() ?? 0;
+
+        if (repeatPhoneCount > 1 || customerOrders > 1)
+        {
+            result.Decision = OrderDecision.ApprovalNeeded;
+            result.Reasons.Add(
+                "Müşterinin birden fazla açık siparişi bulunduğu için tüm siparişler onaya alındı");
+
+            // 🔥 ALT KURALLAR ÇALIŞMAZ
+            return result;
+        }
+
+        // =====================================================
+        // 💰 3. TUTAR KONTROLÜ
         // =====================================================
         decimal.TryParse(
             order["total_price"]?.ToString(),
@@ -46,28 +66,6 @@ public class OrderDecisionEngine
         {
             result.Decision = OrderDecision.ApprovalNeeded;
             result.Reasons.Add("Sipariş tutarı 2000 TL ve üzeri (yüksek tutar)");
-        }
-
-        // =====================================================
-        // 👤 3. MÜŞTERİ / TELEFON DAVRANIŞI
-        // =====================================================
-        var repeatPhoneCount =
-            order["__repeat_phone_count"]?.Value<int>() ?? 0;
-
-        if (repeatPhoneCount > 1)
-        {
-            result.Decision = OrderDecision.ApprovalNeeded;
-            result.Reasons.Add(
-                "Aynı telefon numarasıyla birden fazla açık sipariş mevcut");
-        }
-
-        var customerOrders =
-            order["customer"]?["orders_count"]?.Value<int>() ?? 0;
-
-        if (customerOrders > 1)
-        {
-            result.Decision = OrderDecision.ApprovalNeeded;
-            result.Reasons.Add("Müşteri daha önce sipariş vermiş");
         }
 
         // =====================================================
@@ -99,10 +97,11 @@ public class OrderDecisionEngine
 
         // =====================================================
         // 🟢 6. SON KARAR
+        // (BURAYA SADECE TEMİZ, TEK SİPARİŞ DÜŞER)
         // =====================================================
         if (result.Decision == default)
         {
-            // Buraya sadece 1000–2000 TL + tüm şartlar sağlanıyorsa düşer
+            // 1000–2000 TL + tüm şartlar OK
             result.Decision = OrderDecision.Automatic;
         }
 
