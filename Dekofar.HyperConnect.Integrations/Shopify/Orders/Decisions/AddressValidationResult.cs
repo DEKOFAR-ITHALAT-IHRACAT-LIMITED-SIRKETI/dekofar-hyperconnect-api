@@ -1,19 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions
+﻿namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions
 {
-
-    public class OrderDecisionResult
+    public class AddressValidationResult
     {
-        public OrderDecision Decision { get; set; }
-        public List<string> Reasons { get; } = new();
+        public bool IsValid { get; set; }
 
-        public bool RequiresSms =>
-            Decision == OrderDecision.Automatic ||
-            Decision == OrderDecision.ApprovalNeeded;
+        public List<string> Reasons { get; } = new();
     }
 }
