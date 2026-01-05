@@ -25,7 +25,6 @@ using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
 using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
-using Dekofar.HyperConnect.Integrations.Shopify.Common;
 using Dekofar.HyperConnect.Integrations.Shopify.Customers.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Fulfillment.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions;
@@ -112,24 +111,30 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IAllowedAdminIpService, AllowedAdminIpService>();
 
             // =====================================================
-            // 📲 NetGSM (ŞİMDİLİK PASİF – BOZULMADI)
+            // 📲 NetGSM
             // =====================================================
             services.AddScoped<INetGsmSmsSendService, NetGsmSmsSendService>();
             services.AddScoped<INetGsmSmsInboxService, NetGsmSmsInboxService>();
 
             // =====================================================
-            // 🛍️ SHOPIFY CONFIG
+            // 🛍️ SHOPIFY (ENV VAR BASED – KRİTİK)
             // =====================================================
-            services.Configure<ShopifyOptions>(
-                configuration.GetSection("Shopify"));
-
-            services.AddHttpClient<ShopifyGraphQlClient>((sp, client) =>
+            services.AddHttpClient<ShopifyGraphQlClient>(client =>
             {
-                var cfg = sp.GetRequiredService<IConfiguration>();
-                client.BaseAddress = new Uri(cfg["Shopify:BaseUrl"]!);
+                var baseUrl =
+                    Environment.GetEnvironmentVariable("SHOPIFY_BASE_URL");
+                var accessToken =
+                    Environment.GetEnvironmentVariable("SHOPIFY_ACCESS_TOKEN");
+
+                if (string.IsNullOrWhiteSpace(baseUrl))
+                    throw new Exception("SHOPIFY_BASE_URL environment variable missing");
+
+                if (string.IsNullOrWhiteSpace(accessToken))
+                    throw new Exception("SHOPIFY_ACCESS_TOKEN environment variable missing");
+
+                client.BaseAddress = new Uri(baseUrl);
                 client.DefaultRequestHeaders.Add(
-                    "X-Shopify-Access-Token",
-                    cfg["Shopify:AccessToken"]!);
+                    "X-Shopify-Access-Token", accessToken);
                 client.DefaultRequestHeaders.Accept.Add(
                     new MediaTypeWithQualityHeaderValue("application/json"));
             });
@@ -145,13 +150,13 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<ShopifyOrderReprocessService>();
 
             // =====================================================
-            // 🧠 YENİ KARAR & SMS MOTORU (KRİTİK)
+            // 🧠 KARAR & SMS
             // =====================================================
             services.AddScoped<OrderDecisionEngine>();
             services.AddScoped<ISmsSender, DummySmsSender>();
 
             // =====================================================
-            // 🔐 AUTH / TOKEN
+            // 🔐 AUTH
             // =====================================================
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IUserService, UserService>();
