@@ -1,7 +1,7 @@
 using Dekofar.API.Hubs;
 using Dekofar.API.Services;
 using Dekofar.HyperConnect.API.Authorization;
-using Dekofar.HyperConnect.Application; // Application servis kayıtları
+using Dekofar.HyperConnect.Application;
 using Dekofar.HyperConnect.Application.Common.Interfaces;
 using Dekofar.HyperConnect.Application.Interfaces;
 using Dekofar.HyperConnect.Application.Services;
@@ -10,43 +10,33 @@ using Dekofar.HyperConnect.Infrastructure.ServiceRegistration;
 using Dekofar.HyperConnect.Infrastructure.Services;
 using Dekofar.HyperConnect.Integrations.Meta.Interfaces;
 using Dekofar.HyperConnect.Integrations.Meta.Services;
-using Dekofar.HyperConnect.Integrations.Meta.Interfaces;
-using Dekofar.HyperConnect.Integrations.Meta.Services;
+using Dekofar.HyperConnect.Integrations.NetGsm.Models;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
 using Hangfire;
 using Hangfire.MemoryStorage;
-using MediatR;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.ResponseCompression;   // ✅ Response Compression
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
-using System.IdentityModel.Tokens.Jwt;
-using System.IO.Compression;                      // ✅ Compression level
-using System.Net;                                 // ✅ DecompressionMethods
-using System.Net.Http;                            // ✅ SocketsHttpHandler
+using System.IO.Compression;
 using System.Reflection;
-using System.Security.Claims;
-using System.Text;
-using Dekofar.HyperConnect.Integrations.NetGsm.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//
-// 🌐 CORS Politikası
-//
-var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+#region 🌐 CORS
+
+const string CorsPolicyName = "_dekofarCors";
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: MyAllowSpecificOrigins, policy =>
+    options.AddPolicy(CorsPolicyName, policy =>
     {
         policy.WithOrigins(
                 "http://localhost:4200",
                 "http://192.168.1.100:4200",
-                "https://hyperconnect.dekofar.com"
+                "https://hyperconnect.dekofar.com",
+                "https://dekofar-hyperconnect-api-production.up.railway.app"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
@@ -54,152 +44,174 @@ builder.Services.AddCors(options =>
     });
 });
 
-//
-// 📦 Altyapı Servisleri (DbContext, Identity, JWT vs.)
-//
-builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddMemoryCache();
-builder.Services.AddApplication();
+#endregion
 
-//
-// 🔐 Yetkilendirme politikaları
-//
+#region 📦 Core Services
+
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddApplication();
+builder.Services.AddMemoryCache();
+
+#endregion
+
+#region 🔐 Authorization
+
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("CanAssignTicket", policy =>
-        policy.Requirements.Add(new PermissionRequirement("CanAssignTicket")));
-    options.AddPolicy("CanManageDiscounts", policy =>
-        policy.Requirements.Add(new PermissionRequirement("CanManageDiscounts")));
-    options.AddPolicy("CanEditDueDate", policy =>
-        policy.Requirements.Add(new PermissionRequirement("CanEditDueDate")));
+    options.AddPolicy("CanAssignTicket", p =>
+        p.Requirements.Add(new PermissionRequirement("CanAssignTicket")));
+    options.AddPolicy("CanManageDiscounts", p =>
+        p.Requirements.Add(new PermissionRequirement("CanManageDiscounts")));
+    options.AddPolicy("CanEditDueDate", p =>
+        p.Requirements.Add(new PermissionRequirement("CanEditDueDate")));
 });
+
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
-//
-// ⏰ Hangfire (in-memory)
-//
-builder.Services.AddHangfire(config => { config.UseMemoryStorage(); });
+#endregion
+
+#region ⏰ Hangfire
+
+builder.Services.AddHangfire(config =>
+{
+    config.UseMemoryStorage();
+});
+
 builder.Services.AddHangfireServer();
 
-//
-// 📬 Entegrasyon Servisleri
-//
-builder.Services.AddScoped(typeof(INotificationService), typeof(NotificationService));
-builder.Services.AddScoped(typeof(IDashboardService), typeof(DashboardService));
-builder.Services.AddScoped(typeof(IModerationService), typeof(ModerationService));
+#endregion
 
+#region 📬 Application Services
 
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IModerationService, ModerationService>();
 
-//
-// 📡 Controllers & JSON
-//
-builder.Services.AddControllers()
-    .AddNewtonsoftJson(options =>
+#endregion
+
+#region 📡 Controllers / JSON
+
+builder.Services
+    .AddControllers()
+    .AddNewtonsoftJson(opt =>
     {
-        options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-        options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+        opt.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+        opt.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
     });
 
 builder.Services.AddSignalR();
 
+#endregion
+
+#region 📲 NetGSM
+
 builder.Services.Configure<NetGsmOptions>(
     builder.Configuration.GetSection("NetGsm"));
 
+#endregion
 
-//
-// 🧠 Response Caching & Compression (🔑 Controller’daki [ResponseCache] için gerekli)
-//
-builder.Services.AddResponseCaching(options =>
+#region 🧠 Cache & Compression
+
+builder.Services.AddResponseCaching(opt =>
 {
-    // Büyük JSON cevaplar için üst sınır; gerekirse arttırın
-    options.MaximumBodySize = 5 * 1024 * 1024; // 5 MB
-    options.UseCaseSensitivePaths = false;
+    opt.MaximumBodySize = 5 * 1024 * 1024;
+    opt.UseCaseSensitivePaths = false;
 });
 
-builder.Services.AddHttpClient(); // genel factory
-
-builder.Services.AddHttpClient<IFacebookMarketingApiClient, FacebookMarketingApiClient>(client =>
+builder.Services.AddResponseCompression(opt =>
 {
-    client.BaseAddress = new Uri("https://graph.facebook.com/v20.0/");
+    opt.EnableForHttps = true;
+    opt.MimeTypes = ResponseCompressionDefaults.MimeTypes
+        .Concat(new[] { "application/json" });
 });
 
+builder.Services.Configure<GzipCompressionProviderOptions>(o =>
+    o.Level = CompressionLevel.Fastest);
 
+builder.Services.Configure<BrotliCompressionProviderOptions>(o =>
+    o.Level = CompressionLevel.Fastest);
 
-builder.Services.AddResponseCompression(options =>
+#endregion
+
+#region 🌍 Http Clients
+
+builder.Services.AddHttpClient();
+
+builder.Services.AddHttpClient<IFacebookMarketingApiClient, FacebookMarketingApiClient>(c =>
 {
-    options.EnableForHttps = true;
-    // JSON’u da sıkıştır (Swagger, HTML vb. zaten default listede)
-    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/json" });
+    c.BaseAddress = new Uri("https://graph.facebook.com/v20.0/");
 });
-builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
-builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
 
-//
-// 📘 Swagger + JWT
-//
+#endregion
+
+#region 📘 Swagger
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Dekofar API", Version = "v1" });
+    c.SwaggerDoc("v1",
+        new OpenApiInfo { Title = "Dekofar API", Version = "v1" });
 
-    var jwtSecurityScheme = new OpenApiSecurityScheme
+    var jwtScheme = new OpenApiSecurityScheme
     {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
         Scheme = "bearer",
         BearerFormat = "JWT",
-        Name = "JWT Authentication",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http,
-        Description = "JWT Bearer Token için `Bearer {token}` formatında giriniz",
-        Reference = new OpenApiReference { Id = "Bearer", Type = ReferenceType.SecurityScheme }
+        Description = "Bearer {token}",
+        Reference = new OpenApiReference
+        {
+            Id = "Bearer",
+            Type = ReferenceType.SecurityScheme
+        }
     };
 
-    c.AddSecurityDefinition("Bearer", jwtSecurityScheme);
+    c.AddSecurityDefinition("Bearer", jwtScheme);
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
-        { jwtSecurityScheme, Array.Empty<string>() }
+        { jwtScheme, Array.Empty<string>() }
     });
 
-    // opsiyonel ayarlar
-    c.UseAllOfToExtendReferenceSchemas();
-    c.DescribeAllParametersInCamelCase();
+    c.CustomSchemaIds(t => t.FullName);
 
-    // 🔑 ÇAKIŞMALARI ENGELLEMEK İÇİN
-    c.CustomSchemaIds(type => type.FullName);
-
-    // XML yorumlarını yalnızca dosya varsa ekle (prod'da güvenli)
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    var xml = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xml);
     if (File.Exists(xmlPath))
     {
-        c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+        c.IncludeXmlComments(xmlPath, true);
     }
 });
 
+#endregion
 
-//
-// 📋 Logging
-//
+#region 🛰️ Forwarded Headers (Railway)
+
+builder.Services.Configure<ForwardedHeadersOptions>(opt =>
+{
+    opt.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto;
+
+    opt.KnownNetworks.Clear();
+    opt.KnownProxies.Clear();
+});
+
+#endregion
+
+#region 📋 Logging
+
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
-//
-// 🛰️ Proxy/Forwarded Headers (Railway için gerekli)
-//
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownNetworks.Clear();
-    options.KnownProxies.Clear();
-});
+#endregion
 
 var app = builder.Build();
 
+#region 🧱 Middleware Pipeline
 
 app.UseForwardedHeaders();
 
-//
-// 🧪 Swagger (tüm ortamlarda aktif kalsın)
-//
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -207,51 +219,32 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
-//
-// 🔽 Response Compression erken devreye
-//
 app.UseResponseCompression();
 
-//
-// 🌐 Orta Katmanlar
-//
-app.UseCors(MyAllowSpecificOrigins);
+app.UseCors(CorsPolicyName);
+
 app.UseHttpsRedirection();
 
-// ✅ Response Caching (Controller’daki [ResponseCache] ile çalışır)
 app.UseResponseCaching();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-//
-// ⛏️ Hangfire Dashboard
-//
 app.UseHangfireDashboard();
 
-//
-// 🗺️ Endpointler
-//
+#endregion
+
+#region 🗺️ Endpoints
+
 app.MapControllers();
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<SupportHub>("/supportHub");
 
-// Kök path'i Swagger'a yönlendir
 app.MapGet("/", () => Results.Redirect("/swagger"));
+app.MapGet("/health", () =>
+    Results.Ok(new { ok = true, time = DateTime.UtcNow }));
 
-// Basit health endpoint
-app.MapGet("/health", () => Results.Ok(new { ok = true, time = DateTime.UtcNow }));
+#endregion
 
-////
-// ⏱️ Recurring Jobs (örnek)
-// RecurringJob.AddOrUpdate<DhlShopifySyncJob>(
-//     "dhl-shopify-sync",
-//     job => job.RunAsync(CancellationToken.None),
-//     "*/5 * * * *"   // her 5 dakikada bir (test için)
-//// );
-
-//
-// 🚀 Run
-//
 app.Run();
