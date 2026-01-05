@@ -24,19 +24,16 @@ public class OrderDecisionEngine
         if (ContainsCancelKeyword(order))
         {
             result.Decision = OrderDecision.Cancelled;
-            result.Reasons.Add("Siparişte iptal/test amaçlı ifade tespit edildi");
+            result.Reasons.Add("Siparişte iptal / test amaçlı ifade tespit edildi");
             return result;
         }
 
         // =====================================================
-        // 👤 2. AYNI MÜŞTERİ – MUTLAK ARA1
+        // 👤 2. AYNI MÜŞTERİ → MUTLAK ara1
         // =====================================================
-
-        // Aynı anda birden fazla açık sipariş
         var repeatPhoneCount =
             order["__repeat_phone_count"]?.Value<int>() ?? 0;
 
-        // Daha önce / başka siparişi var
         var customerOrders =
             order["customer"]?["orders_count"]?.Value<int>() ?? 0;
 
@@ -44,12 +41,12 @@ public class OrderDecisionEngine
         {
             result.Decision = OrderDecision.ApprovalNeeded;
             result.Reasons.Add(
-                "Müşterinin birden fazla siparişi bulunduğu için tüm siparişler onaya alındı");
-            return result; // 🔥 DHL ihtimali sıfır
+                "Müşterinin birden fazla siparişi bulunduğu için tüm siparişler ara1'e alındı");
+            return result; // ❗ burada dhl ihtimali sıfır
         }
 
         // =====================================================
-        // 💰 3. TUTAR
+        // 💰 3. TUTAR KONTROLÜ
         // =====================================================
         decimal.TryParse(
             order["total_price"]?.ToString(),
@@ -69,23 +66,21 @@ public class OrderDecisionEngine
         }
 
         // =====================================================
-        // 📦 4. ÜRÜN SAYISI
+        // 📦 4. AYNI ÜRÜNDEN BİRDEN FAZLA ADET (quantity > 1)
         // =====================================================
-        var distinctProducts =
+        var hasMultipleQuantity =
             order["line_items"]?
-                .Select(li => li["product_id"]?.ToString())
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Distinct()
-                .Count() ?? 0;
+                .Any(li => li["quantity"]?.Value<int>() > 1)
+            == true;
 
-        if (distinctProducts > 1)
+        if (hasMultipleQuantity)
         {
             result.Decision = OrderDecision.ApprovalNeeded;
-            result.Reasons.Add("Birden fazla ürün bulunuyor");
+            result.Reasons.Add("Aynı üründen birden fazla adet sipariş edilmiş");
         }
 
         // =====================================================
-        // 📍 5. ADRES
+        // 📍 5. ADRES DOĞRULAMA
         // =====================================================
         var addressResult = AddressValidator.Validate(order);
 
@@ -96,7 +91,7 @@ public class OrderDecisionEngine
         }
 
         // =====================================================
-        // 🟢 6. DHL
+        // 🟢 6. DHL (SADECE HİÇBİR ŞARTA TAKILMIYORSA)
         // =====================================================
         if (result.Decision == default)
         {
@@ -106,6 +101,9 @@ public class OrderDecisionEngine
         return result;
     }
 
+    // =====================================================
+    // 🔍 IPTAL KELİME KONTROLÜ
+    // =====================================================
     private static bool ContainsCancelKeyword(JObject order)
     {
         var note = order["note"]?.ToString() ?? string.Empty;
@@ -113,6 +111,7 @@ public class OrderDecisionEngine
             order["shipping_address"]?["address1"]?.ToString() ?? string.Empty;
 
         var text = $"{note} {address}".ToLowerInvariant();
+
         return CancelKeywords.Any(k => text.Contains(k));
     }
 }

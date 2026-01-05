@@ -22,9 +22,7 @@ public class ShopifyOrderAutoTagService
         CancellationToken ct,
         bool replaceExistingTags)
     {
-        var orderId =
-            order["admin_graphql_api_id"]?.ToString();
-
+        var orderId = order["admin_graphql_api_id"]?.ToString();
         if (string.IsNullOrWhiteSpace(orderId))
             return;
 
@@ -33,9 +31,6 @@ public class ShopifyOrderAutoTagService
         // =====================================================
         var decision = _decisionEngine.Decide(order);
 
-        // =====================================================
-        // 🏷️ KARAR → TAG
-        // =====================================================
         var tag = decision.Decision switch
         {
             OrderDecision.Automatic => "dhl",
@@ -48,46 +43,45 @@ public class ShopifyOrderAutoTagService
             return;
 
         // =====================================================
-        // 🧹 TÜM ESKİ TAGLERİ SİL
+        // 🧹 TÜM ESKİ TAGLERİ TEMİZLE
         // =====================================================
         if (replaceExistingTags)
         {
-            var existingTags =
-                order["tags"]?.ToString();
+            var existingTags = order["tags"]?.ToString();
 
             var tagsToRemove = existingTags?
                 .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(t => t.Trim())
-                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Select(t => t.Trim().ToLowerInvariant())
+                .Distinct()
                 .ToArray();
 
-            if (tagsToRemove?.Length > 0)
+            if (tagsToRemove is { Length: > 0 })
             {
                 await _graphQl.ExecuteAsync(
                     @"mutation ($id: ID!, $tags: [String!]!) {
-                        tagsRemove(id: $id, tags: $tags) {
-                          userErrors { message }
-                        }
-                      }",
+                      tagsRemove(id: $id, tags: $tags) {
+                        userErrors { message }
+                      }
+                    }",
                     new { id = orderId, tags = tagsToRemove },
                     ct);
             }
         }
 
         // =====================================================
-        // 🏷️ YENİ TAG EKLE (TEK TAG)
+        // 🏷️ YENİ TAG EKLE
         // =====================================================
         await _graphQl.ExecuteAsync(
             @"mutation ($id: ID!, $tags: [String!]!) {
-                tagsAdd(id: $id, tags: $tags) {
-                  userErrors { message }
-                }
-              }",
+              tagsAdd(id: $id, tags: $tags) {
+                userErrors { message }
+              }
+            }",
             new { id = orderId, tags = new[] { tag } },
             ct);
 
         // =====================================================
-        // 📝 SİSTEM NOTU (SADECE ARA1)
+        // 📝 SİSTEM NOTU (SADECE ara1)
         // =====================================================
         if (decision.Decision == OrderDecision.ApprovalNeeded &&
             decision.Reasons.Any())
@@ -99,8 +93,7 @@ public class ShopifyOrderAutoTagService
                         .Distinct()
                         .Select(r => $"• {r}"));
 
-            var existingNote =
-                order["note"]?.ToString();
+            var existingNote = order["note"]?.ToString();
 
             var finalNote = string.IsNullOrWhiteSpace(existingNote)
                 ? systemNote
@@ -108,11 +101,106 @@ public class ShopifyOrderAutoTagService
 
             await _graphQl.ExecuteAsync(
                 @"mutation ($id: ID!, $note: String!) {
-                    orderUpdate(input: { id: $id, note: $note }) {
-                      userErrors { message }
-                    }
-                  }",
+                  orderUpdate(input: { id: $id, note: $note }) {
+                    userErrors { message }
+                  }
+                }",
                 new { id = orderId, note = finalNote },
+                ct);
+        }
+
+        // =====================================================
+        // 🔥 AYNI MÜŞTERİNİN DİĞER AÇIK SİPARİŞLERİNİ ara1’E ÇEK
+        // (İLK SİPARİŞ DHL OLSA BİLE)
+        // =====================================================
+        if (decision.Decision == OrderDecision.ApprovalNeeded)
+        {
+            await ForceOtherOrdersToAra1Async(orderId, order, ct);
+        }
+    }
+
+    // =====================================================
+    // 🔥 AYNI TELEFONLU TÜM AÇIK SİPARİŞLERİ ara1 YAP
+    // =====================================================
+    private async Task ForceOtherOrdersToAra1Async(
+        string currentOrderId,
+        JObject order,
+        CancellationToken ct)
+    {
+        var phone =
+            order["shipping_address"]?["phone"]?.ToString();
+
+        if (string.IsNullOrWhiteSpace(phone))
+            return;
+
+        var gql = @"
+query ($phone: String!) {
+  orders(
+    first: 50
+    query: ""financial_status:pending fulfillment_status:unfulfilled phone:$phone""
+  ) {
+    edges {
+      node {
+        id
+        tags
+      }
+    }
+  }
+}";
+
+        var json = await _graphQl.ExecuteAsync(
+            gql,
+            new { phone },
+            ct);
+
+        if (json?["data"]?["orders"]?["edges"] is not JArray edges)
+            return;
+
+        foreach (var edge in edges)
+        {
+            var node = edge?["node"] as JObject;
+            var orderId = node?["id"]?.ToString();
+
+            if (string.IsNullOrWhiteSpace(orderId))
+                continue;
+
+            // 🔒 Kendini tekrar işleme
+            if (orderId == currentOrderId)
+                continue;
+
+            var existingTags =
+                node["tags"]?.ToString()?.ToLowerInvariant() ?? string.Empty;
+
+            // Zaten ara1 ise geç
+            if (existingTags.Contains("ara1"))
+                continue;
+
+            // Önce eski tagleri sil
+            var tagsToRemove = existingTags
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(t => t.Trim())
+                .ToArray();
+
+            if (tagsToRemove.Length > 0)
+            {
+                await _graphQl.ExecuteAsync(
+                    @"mutation ($id: ID!, $tags: [String!]!) {
+                      tagsRemove(id: $id, tags: $tags) {
+                        userErrors { message }
+                      }
+                    }",
+                    new { id = orderId, tags = tagsToRemove },
+                    ct);
+            }
+
+            // ara1 ekle
+            await _graphQl.ExecuteAsync(
+                @"mutation ($id: ID!, $tags: [String!]!) {
+                  tagsAdd(id: $id, tags: $tags) {
+                    userErrors { message }
+                  }
+                }",
+                new { id = orderId, tags = new[] { "ara1" } },
                 ct);
         }
     }

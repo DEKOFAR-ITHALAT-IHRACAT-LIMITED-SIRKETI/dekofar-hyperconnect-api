@@ -16,22 +16,30 @@ public class ShopifyOrderReprocessController : ControllerBase
     }
 
     /// <summary>
-    /// TÜM açık + ödeme bekleyen + gönderilmemiş siparişleri
-    /// baştan etiketler.
+    /// 🧪 TEST ENDPOINT
     /// 
-    /// - Eski etiketleri siler
-    /// - Kurallara göre TEK yeni etiket atar
-    /// - ARA1 ise tüm sebepleri sistem notu olarak ekler
+    /// - SADECE SON 50 AÇIK SİPARİŞİ işler
+    /// - Önce:
+    ///   • Tüm etiketleri siler
+    ///   • Sistem notlarını temizler
+    /// - Sonra:
+    ///   • Kurallara göre yeniden etiketler
+    ///   • ara1 / dhl / iptal
+    /// 
+    /// ⚠️ Test amaçlıdır, prod’da batch limiti kaldırılabilir
     /// </summary>
     [HttpPost("open-orders")]
     public async Task<IActionResult> ReprocessOpenOrders(
         CancellationToken ct)
     {
-        var count = await _service.ReprocessOpenOrdersAsync(ct);
-        return Ok(new { processed = count });
+        var processedCount =
+            await _service.ReprocessOpenOrdersAsync(ct);
+
+        return Ok(new
+        {
+            processed = processedCount,
+            scope = "last_50_open_orders",
+            status = "completed"
+        });
     }
-
-    /// <summary>
-
-
 }

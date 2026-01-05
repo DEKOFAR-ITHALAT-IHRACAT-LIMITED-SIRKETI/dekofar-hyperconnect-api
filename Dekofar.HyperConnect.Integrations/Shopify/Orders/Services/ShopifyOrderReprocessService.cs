@@ -26,12 +26,15 @@ public class ShopifyOrderReprocessService
     public async Task<int> ReprocessOpenOrdersAsync(CancellationToken ct)
     {
         await ClearSystemTagsAndNotesAsync(ct);
+
+        // Shopify eventual consistency
         await Task.Delay(ConsistencyDelay, ct);
+
         return await ReprocessInternalAsync(ct);
     }
 
     // =====================================================
-    // 🔁 MAIN LOOP (FULL JVALUE SAFE)
+    // 🔁 MAIN LOOP (JVALUE SAFE)
     // =====================================================
     private async Task<int> ReprocessInternalAsync(CancellationToken ct)
     {
@@ -60,7 +63,12 @@ query ($cursor: String) {{
         shippingAddress {{ address1 city phone countryCode }}
         customer {{ numberOfOrders }}
         lineItems(first: 50) {{
-          edges {{ node {{ product {{ id }} }} }}
+          edges {{
+            node {{
+              quantity
+              product {{ id }}
+            }}
+          }}
         }}
       }}
     }}
@@ -72,14 +80,12 @@ query ($cursor: String) {{
             if (json?["data"]?["orders"] is not JObject ordersObj)
                 break;
 
-            // pageInfo SAFE
             if (ordersObj["pageInfo"] is not JObject pageInfo)
                 break;
 
             hasNextPage = pageInfo["hasNextPage"]?.Value<bool>() == true;
             cursor = pageInfo["endCursor"]?.ToString();
 
-            // edges SAFE
             if (ordersObj["edges"] is not JArray edges || edges.Count == 0)
             {
                 if (hasNextPage)
@@ -88,7 +94,7 @@ query ($cursor: String) {{
             }
 
             // =================================================
-            // 📞 PHONE COUNT (EDGE TYPE CHECK!)
+            // 📞 PHONE COUNT (BATCH İÇİ)
             // =================================================
             var phoneCounts = new Dictionary<string, int>();
 
@@ -97,8 +103,7 @@ query ($cursor: String) {{
                 if (edgeToken is not JObject edgeObj)
                     continue;
 
-                if (!edgeObj.TryGetValue("node", out var nodeToken) ||
-                    nodeToken is not JObject node)
+                if (edgeObj["node"] is not JObject node)
                     continue;
 
                 if (node["shippingAddress"] is not JObject shipping)
@@ -113,15 +118,14 @@ query ($cursor: String) {{
             }
 
             // =================================================
-            // 🏷️ TAG APPLY (EDGE SAFE)
+            // 🏷️ TAG APPLY
             // =================================================
             foreach (var edgeToken in edges)
             {
                 if (edgeToken is not JObject edgeObj)
                     continue;
 
-                if (!edgeObj.TryGetValue("node", out var nodeToken) ||
-                    nodeToken is not JObject node)
+                if (edgeObj["node"] is not JObject node)
                     continue;
 
                 try
@@ -138,7 +142,7 @@ query ($cursor: String) {{
                 }
                 catch
                 {
-                    // ❗ tek sipariş bozuk → devam
+                    // ❗ Tek sipariş bozuksa batch devam eder
                     continue;
                 }
             }
@@ -151,7 +155,7 @@ query ($cursor: String) {{
     }
 
     // =====================================================
-    // 🧹 CLEAN TAGS + SYSTEM NOTE
+    // 🧹 CLEAN: TÜM TAGLER + SİSTEM NOTU
     // =====================================================
     private async Task ClearSystemTagsAndNotesAsync(CancellationToken ct)
     {
@@ -191,38 +195,42 @@ query ($cursor: String) {{
                 if (edgeToken is not JObject edgeObj)
                     continue;
 
-                if (!edgeObj.TryGetValue("node", out var nodeToken) ||
-                    nodeToken is not JObject node)
+                if (edgeObj["node"] is not JObject node)
                     continue;
 
                 var id = node["id"]?.ToString();
                 if (string.IsNullOrWhiteSpace(id))
                     continue;
 
-                // TAGS
+                // 🏷️ TÜM TAGLER
                 var tags = node["tags"]?.ToString()?
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => t.Trim())
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
                     .ToArray();
 
                 if (tags is { Length: > 0 })
                 {
                     await _graphQl.ExecuteAsync(
                         @"mutation ($id: ID!, $tags: [String!]!) {
-                          tagsRemove(id: $id, tags: $tags) { userErrors { message } }
+                          tagsRemove(id: $id, tags: $tags) {
+                            userErrors { message }
+                          }
                         }",
                         new { id, tags },
                         ct);
                 }
 
-                // NOTE
+                // 📝 SADECE [SİSTEM] BLOĞU
                 var note = node["note"]?.ToString();
                 if (!string.IsNullOrWhiteSpace(note) &&
                     note.StartsWith("[SİSTEM]"))
                 {
                     await _graphQl.ExecuteAsync(
                         @"mutation ($id: ID!, $note: String!) {
-                          orderUpdate(input: { id: $id, note: $note }) { userErrors { message } }
+                          orderUpdate(input: { id: $id, note: $note }) {
+                            userErrors { message }
+                          }
                         }",
                         new { id, note = RemoveSystemNote(note) },
                         ct);
@@ -235,7 +243,7 @@ query ($cursor: String) {{
     }
 
     // =====================================================
-    // 🔄 NORMALIZE (SAFE)
+    // 🔄 NORMALIZE (product_id + quantity DAHİL)
     // =====================================================
     private static JObject NormalizeGraphQlOrder(
         JObject node,
@@ -254,12 +262,22 @@ query ($cursor: String) {{
         {
             foreach (var e in edges)
             {
-                var pid =
-                    (e?["node"]?["product"] as JObject)?["id"]?.ToString();
+                if (e?["node"] is not JObject item)
+                    continue;
 
-                if (!string.IsNullOrWhiteSpace(pid))
+                var productId =
+                    item["product"]?["id"]?.ToString();
+
+                var quantity =
+                    item["quantity"]?.Value<int>() ?? 1;
+
+                if (!string.IsNullOrWhiteSpace(productId))
                 {
-                    lineItems.Add(new JObject { ["product_id"] = pid });
+                    lineItems.Add(new JObject
+                    {
+                        ["product_id"] = productId,
+                        ["quantity"] = quantity
+                    });
                 }
             }
         }
@@ -269,8 +287,10 @@ query ($cursor: String) {{
             ["admin_graphql_api_id"] = node["id"]?.ToString(),
             ["tags"] = node["tags"]?.ToString(),
             ["note"] = node["note"]?.ToString(),
+
             ["total_price"] =
                 node["totalPriceSet"]?["shopMoney"]?["amount"]?.ToString(),
+
             ["shipping_address"] = new JObject
             {
                 ["address1"] = shipping?["address1"]?.ToString(),
@@ -278,11 +298,13 @@ query ($cursor: String) {{
                 ["phone"] = phone,
                 ["country_code"] = shipping?["countryCode"]?.ToString()
             },
+
             ["customer"] = new JObject
             {
                 ["orders_count"] =
                     customer?["numberOfOrders"]?.Value<int>() ?? 0
             },
+
             ["line_items"] = lineItems,
             ["__repeat_phone_count"] = repeat
         };
