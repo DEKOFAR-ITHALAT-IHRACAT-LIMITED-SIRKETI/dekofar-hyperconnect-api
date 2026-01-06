@@ -5,8 +5,8 @@ bin/
 obj/
 [Bb]uild/
 [Ll]ogs/
-*.log
 artifacts/
+*.log
 
 ##########################################
 ## 💻 Visual Studio / VS Code
@@ -19,7 +19,7 @@ artifacts/
 *.sln.docstates
 
 ##########################################
-## ⚙️ .NET Core / EF Core
+## ⚙️ .NET / EF Core
 ##########################################
 project.lock.json
 project.fragment.lock.json
@@ -34,13 +34,13 @@ __EFMigrationsHistory/
 .idea/
 
 ##########################################
-## 🖥️ Operating System
+## 🖥️ OS Files
 ##########################################
 .DS_Store
 Thumbs.db
 
 ##########################################
-## 📦 Node.js / npm / yarn (Frontend)
+## 📦 Node / Frontend
 ##########################################
 node_modules/
 npm-debug.log*
@@ -48,21 +48,31 @@ yarn-debug.log*
 yarn-error.log*
 
 ##########################################
-## 🔐 Secrets and Certificates
+## 🔐 SECRETS (KRİTİK)
 ##########################################
 .env
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Local.json
+secrets.json
+
+##########################################
+## 🔑 Certificates
+##########################################
 *.p12
 *.pem
 *.crt
 *.key
 
 ##########################################
-## 🚀 Publish Files
+## 🚀 Publish Artifacts
 ##########################################
 .publish/
 .publishxml
+publish/
 
 ##########################################
-## 📦 Others
+## 🧪 Temp / Swap
 ##########################################
 *.swp
+*.tmp

@@ -1,10 +1,7 @@
-﻿using Dekofar.HyperConnect.Integrations.Shopify.Common;
-using Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
+﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Utils;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
-using System.IO;
 using System.Text;
 
 namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
@@ -14,27 +11,24 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
     public class ShopifyOrderWebhookController : ControllerBase
     {
         private readonly ShopifyOrderAutoTagService _autoTagService;
-        private readonly ShopifyOptions _shopifyOptions;
+        private readonly string _webhookSecret;
 
         public ShopifyOrderWebhookController(
-            ShopifyOrderAutoTagService autoTagService,
-            IOptions<ShopifyOptions> shopifyOptions)
+            ShopifyOrderAutoTagService autoTagService)
         {
             _autoTagService = autoTagService;
-            _shopifyOptions = shopifyOptions.Value;
+
+            _webhookSecret =
+                Environment.GetEnvironmentVariable("SHOPIFY_WEBHOOK_SECRET")
+                ?? throw new Exception("SHOPIFY_WEBHOOK_SECRET env var missing");
         }
 
-        /// <summary>
-        /// Shopify order/create webhook
-        /// </summary>
         [HttpPost("orders/create")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> OrderCreated(CancellationToken ct)
         {
-            // =====================================================
-            // 1️⃣ HMAC HEADER KONTROL
-            // =====================================================
+            // 1️⃣ HMAC HEADER
             if (!Request.Headers.TryGetValue(
                     "X-Shopify-Hmac-Sha256",
                     out var hmacHeader))
@@ -42,9 +36,7 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
                 return Unauthorized();
             }
 
-            // =====================================================
-            // 2️⃣ RAW BODY OKU
-            // =====================================================
+            // 2️⃣ RAW BODY
             Request.EnableBuffering();
 
             string body;
@@ -60,20 +52,16 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
             if (string.IsNullOrWhiteSpace(body))
                 return Ok();
 
-            // =====================================================
-            // 3️⃣ HMAC DOĞRULA
-            // =====================================================
+            // 3️⃣ HMAC VALIDATION
             var isValid = ShopifyHmacValidator.Validate(
                 body,
                 hmacHeader!,
-                _shopifyOptions.WebhookSecret);
+                _webhookSecret);
 
             if (!isValid)
                 return Unauthorized();
 
-            // =====================================================
-            // 4️⃣ JSON PARSE
-            // =====================================================
+            // 4️⃣ JSON
             JObject payload;
             try
             {
@@ -81,16 +69,10 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
             }
             catch
             {
-                // Shopify bazen boş/bozuk payload gönderebilir
                 return Ok();
             }
 
-            // =====================================================
-            // 5️⃣ OTOMATİK ETİKETLEME
-            // Webhook'ta:
-            // - Eski etiketleri SİL
-            // - Kurallara göre TEK etiket ata
-            // =====================================================
+            // 5️⃣ AUTO TAG
             await _autoTagService.ApplyAutoTagsAsync(
                 payload,
                 ct,
