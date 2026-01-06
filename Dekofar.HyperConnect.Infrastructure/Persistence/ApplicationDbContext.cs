@@ -25,6 +25,8 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
         public DbSet<ApplicationUser> Users => Set<ApplicationUser>();
         public DbSet<IdentityUserRole<Guid>> UserRoles => Set<IdentityUserRole<Guid>>();
         public DbSet<IdentityRole<Guid>> Roles => Set<IdentityRole<Guid>>();
+        public DbSet<ShopifyStore> ShopifyStores => Set<ShopifyStore>();
+
 
         // =====================================================
         // 🎧 Support
@@ -117,6 +119,8 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
         // =====================================================
         // 🔧 Model Config
         // =====================================================
+
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

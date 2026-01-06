@@ -129,12 +129,12 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
             // =====================================================
             // 💾 DB KAYDI (ShopifyStore)
             // =====================================================
-            var store = await _db.Set<ShopifyStore>()
+            var store = await _db.Set<Dekofar.HyperConnect.Domain.Entities.ShopifyStore>()
                 .FirstOrDefaultAsync(x => x.ShopDomain == shop);
 
             if (store == null)
             {
-                store = new ShopifyStore
+                store = new Dekofar.HyperConnect.Domain.Entities.ShopifyStore
                 {
                     Id = Guid.NewGuid(),
                     ShopDomain = shop,
@@ -175,7 +175,7 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
             if (string.IsNullOrWhiteSpace(shop))
                 return BadRequest("shop is required");
 
-            var store = await _db.Set<ShopifyStore>()
+            var store = await _db.Set<Dekofar.HyperConnect.Domain.Entities.ShopifyStore>()
                 .FirstOrDefaultAsync(x => x.ShopDomain == shop);
 
             if (store == null)
