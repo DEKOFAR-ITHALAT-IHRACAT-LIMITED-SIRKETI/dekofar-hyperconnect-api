@@ -1,17 +1,13 @@
-﻿using System;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Utils
 {
     public static class ShopifyHmacValidator
     {
-        /// <summary>
-        /// Shopify Webhook HMAC doğrulaması
-        /// </summary>
-        /// <param name="requestBody">RAW request body (JSON string)</param>
-        /// <param name="shopifyHmacHeader">X-Shopify-Hmac-Sha256 header değeri</param>
-        /// <param name="webhookSecret">Shopify Webhook Secret</param>
+        // =====================================================
+        // 🔐 WEBHOOK HMAC (X-Shopify-Hmac-Sha256)
+        // =====================================================
         public static bool Validate(
             string requestBody,
             string shopifyHmacHeader,
@@ -33,11 +29,51 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Utils
             var calculatedHmac =
                 Convert.ToBase64String(hashBytes);
 
-            // Güvenli string karşılaştırma
-            return SlowEquals(calculatedHmac, shopifyHmacHeader);
+            return FixedTimeEquals(
+                calculatedHmac,
+                shopifyHmacHeader);
         }
 
-        private static bool SlowEquals(string a, string b)
+        // =====================================================
+        // 🔐 OAUTH HMAC (QUERY STRING)
+        // Shopify OAuth callback için
+        // =====================================================
+        public static bool Validate(
+            IDictionary<string, string> query,
+            string clientSecret)
+        {
+            if (query == null || query.Count == 0)
+                return false;
+
+            if (!query.TryGetValue("hmac", out var hmac))
+                return false;
+
+            var sorted = query
+                .Where(x => x.Key != "hmac" && x.Key != "signature")
+                .OrderBy(x => x.Key)
+                .Select(x => $"{x.Key}={x.Value}");
+
+            var message =
+                string.Join("&", sorted);
+
+            var secretBytes = Encoding.UTF8.GetBytes(clientSecret);
+
+            using var hmacSha256 = new HMACSHA256(secretBytes);
+            var hashBytes = hmacSha256.ComputeHash(
+                Encoding.UTF8.GetBytes(message));
+
+            var calculatedHmac =
+                Convert.ToHexString(hashBytes).ToLowerInvariant();
+
+            return FixedTimeEquals(
+                calculatedHmac,
+                hmac);
+        }
+
+        // =====================================================
+        // ⏱️ TIMING ATTACK SAFE COMPARE
+        // =====================================================
+        private static bool FixedTimeEquals(string a, string b)
         {
             if (a.Length != b.Length)
                 return false;

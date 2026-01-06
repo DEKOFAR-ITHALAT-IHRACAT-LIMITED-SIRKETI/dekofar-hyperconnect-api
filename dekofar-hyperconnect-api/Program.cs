@@ -12,6 +12,7 @@ using Dekofar.HyperConnect.Integrations.Meta.Interfaces;
 using Dekofar.HyperConnect.Integrations.Meta.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Models;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
+using Dekofar.HyperConnect.Integrations.Shopify.Common;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authorization;
@@ -102,6 +103,11 @@ builder.Services
 builder.Services.AddSignalR();
 
 #endregion
+
+builder.Services.Configure<ShopifyOptions>(
+    builder.Configuration.GetSection("Shopify"));
+
+
 
 #region 📲 NetGSM
 

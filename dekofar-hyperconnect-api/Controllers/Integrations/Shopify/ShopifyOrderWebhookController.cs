@@ -1,5 +1,7 @@
 ﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Utils;
+using Dekofar.HyperConnect.Infrastructure.Persistence;
+using Dekofar.HyperConnect.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System.Text;
@@ -11,16 +13,20 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
     public class ShopifyOrderWebhookController : ControllerBase
     {
         private readonly ShopifyOrderAutoTagService _autoTagService;
+        private readonly ApplicationDbContext _db;
         private readonly string _webhookSecret;
 
         public ShopifyOrderWebhookController(
-            ShopifyOrderAutoTagService autoTagService)
+            ShopifyOrderAutoTagService autoTagService,
+            ApplicationDbContext db)
         {
             _autoTagService = autoTagService;
+            _db = db;
 
             _webhookSecret =
                 Environment.GetEnvironmentVariable("SHOPIFY_WEBHOOK_SECRET")
-                ?? throw new Exception("SHOPIFY_WEBHOOK_SECRET env var missing");
+                ?? throw new InvalidOperationException(
+                    "SHOPIFY_WEBHOOK_SECRET env var missing");
         }
 
         [HttpPost("orders/create")]
@@ -28,7 +34,9 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> OrderCreated(CancellationToken ct)
         {
+            // =====================================================
             // 1️⃣ HMAC HEADER
+            // =====================================================
             if (!Request.Headers.TryGetValue(
                     "X-Shopify-Hmac-Sha256",
                     out var hmacHeader))
@@ -36,7 +44,9 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
                 return Unauthorized();
             }
 
+            // =====================================================
             // 2️⃣ RAW BODY
+            // =====================================================
             Request.EnableBuffering();
 
             string body;
@@ -52,7 +62,9 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
             if (string.IsNullOrWhiteSpace(body))
                 return Ok();
 
+            // =====================================================
             // 3️⃣ HMAC VALIDATION
+            // =====================================================
             var isValid = ShopifyHmacValidator.Validate(
                 body,
                 hmacHeader!,
@@ -61,7 +73,9 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
             if (!isValid)
                 return Unauthorized();
 
-            // 4️⃣ JSON
+            // =====================================================
+            // 4️⃣ JSON PARSE
+            // =====================================================
             JObject payload;
             try
             {
@@ -72,7 +86,39 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
                 return Ok();
             }
 
-            // 5️⃣ AUTO TAG
+            var shopifyOrderId =
+                payload["id"]?.ToString();
+
+            // =====================================================
+            // 5️⃣ IDEMPOTENCY (aynı webhook tekrar gelirse)
+            // =====================================================
+            if (!string.IsNullOrWhiteSpace(shopifyOrderId))
+            {
+                var exists = _db.ShopifyWebhookEvents
+                    .Any(x =>
+                        x.Topic == "orders/create" &&
+                        x.ExternalId == shopifyOrderId);
+
+                if (exists)
+                    return Ok();
+            }
+
+            // =====================================================
+            // 6️⃣ DB KAYDI (AUDIT)
+            // =====================================================
+            _db.ShopifyWebhookEvents.Add(new ShopifyWebhookEvent
+            {
+                Topic = "orders/create",
+                ExternalId = shopifyOrderId,
+                Payload = body,
+                CreatedAtUtc = DateTime.UtcNow
+            });
+
+            await _db.SaveChangesAsync(ct);
+
+            // =====================================================
+            // 7️⃣ AUTO TAG
+            // =====================================================
             await _autoTagService.ApplyAutoTagsAsync(
                 payload,
                 ct,

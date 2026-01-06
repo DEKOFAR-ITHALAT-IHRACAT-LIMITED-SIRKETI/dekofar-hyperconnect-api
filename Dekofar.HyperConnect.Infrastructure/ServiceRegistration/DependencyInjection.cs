@@ -50,8 +50,8 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             // =====================================================
             // 🗄️ DATABASE
             // =====================================================
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(
+            services.AddDbContext<ApplicationDbContext>(opt =>
+                opt.UseNpgsql(
                     configuration.GetConnectionString("DefaultConnection")));
 
             services.AddScoped<IApplicationDbContext>(sp =>
@@ -60,13 +60,13 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             // =====================================================
             // 👤 IDENTITY
             // =====================================================
-            services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
+            services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(opt =>
             {
-                options.Password.RequireDigit = true;
-                options.Password.RequiredLength = 6;
-                options.Password.RequireNonAlphanumeric = false;
-                options.Password.RequireUppercase = false;
-                options.User.RequireUniqueEmail = true;
+                opt.Password.RequireDigit = true;
+                opt.Password.RequiredLength = 6;
+                opt.Password.RequireNonAlphanumeric = false;
+                opt.Password.RequireUppercase = false;
+                opt.User.RequireUniqueEmail = true;
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
@@ -98,7 +98,7 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddHttpClient<IPttTrackingService, PttTrackingService>();
 
             // =====================================================
-            // 🧰 GENEL SERVİSLER
+            // 🧰 CORE
             // =====================================================
             services.AddHttpContextAccessor();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -117,30 +117,30 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<INetGsmSmsInboxService, NetGsmSmsInboxService>();
 
             // =====================================================
-            // 🛍️ SHOPIFY (ENV VAR BASED – KRİTİK)
+            // 🛍️ SHOPIFY GRAPHQL (ENV VAR – KRİTİK)
             // =====================================================
             services.AddHttpClient<ShopifyGraphQlClient>(client =>
             {
-                var baseUrl =
-                    Environment.GetEnvironmentVariable("SHOPIFY_BASE_URL");
-                var accessToken =
-                    Environment.GetEnvironmentVariable("SHOPIFY_ACCESS_TOKEN");
+                var baseUrl = Environment.GetEnvironmentVariable("SHOPIFY_BASE_URL");
+                var token = Environment.GetEnvironmentVariable("SHOPIFY_ACCESS_TOKEN");
 
                 if (string.IsNullOrWhiteSpace(baseUrl))
-                    throw new Exception("SHOPIFY_BASE_URL environment variable missing");
+                    throw new InvalidOperationException(
+                        "SHOPIFY_BASE_URL env var missing");
 
-                if (string.IsNullOrWhiteSpace(accessToken))
-                    throw new Exception("SHOPIFY_ACCESS_TOKEN environment variable missing");
+                if (string.IsNullOrWhiteSpace(token))
+                    throw new InvalidOperationException(
+                        "SHOPIFY_ACCESS_TOKEN env var missing");
 
                 client.BaseAddress = new Uri(baseUrl);
                 client.DefaultRequestHeaders.Add(
-                    "X-Shopify-Access-Token", accessToken);
+                    "X-Shopify-Access-Token", token);
                 client.DefaultRequestHeaders.Accept.Add(
                     new MediaTypeWithQualityHeaderValue("application/json"));
             });
 
             // =====================================================
-            // 🛍️ SHOPIFY SERVİSLERİ
+            // 🛍️ SHOPIFY SERVICES
             // =====================================================
             services.AddScoped<ShopifyOrderReportService>();
             services.AddScoped<ShopifyCustomerService>();
@@ -150,7 +150,7 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<ShopifyOrderReprocessService>();
 
             // =====================================================
-            // 🧠 KARAR & SMS
+            // 🧠 DECISION & SMS
             // =====================================================
             services.AddScoped<OrderDecisionEngine>();
             services.AddScoped<ISmsSender, DummySmsSender>();

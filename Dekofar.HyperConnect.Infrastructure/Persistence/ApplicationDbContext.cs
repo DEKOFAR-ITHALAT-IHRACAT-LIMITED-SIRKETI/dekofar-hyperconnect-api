@@ -5,303 +5,244 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using DomainOrder = Dekofar.HyperConnect.Domain.Entities.Order;
 using DomainCommission = Dekofar.HyperConnect.Domain.Entities.Commission;
 
 namespace Dekofar.HyperConnect.Infrastructure.Persistence
 {
-    public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>, IApplicationDbContext
+    public class ApplicationDbContext
+        : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>,
+          IApplicationDbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options) { }
 
-        public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
-        public DbSet<SupportCategory> SupportCategories => Set<SupportCategory>();
-        public DbSet<SupportCategoryRole> SupportCategoryRoles => Set<SupportCategoryRole>();
+        // =====================================================
+        // 🔐 Identity
+        // =====================================================
         public DbSet<ApplicationUser> Users => Set<ApplicationUser>();
         public DbSet<IdentityUserRole<Guid>> UserRoles => Set<IdentityUserRole<Guid>>();
         public DbSet<IdentityRole<Guid>> Roles => Set<IdentityRole<Guid>>();
-        public DbSet<Tag> Tags { get; set; }
+
+        // =====================================================
+        // 🎧 Support
+        // =====================================================
+        public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
+        public DbSet<SupportCategory> SupportCategories => Set<SupportCategory>();
+        public DbSet<SupportCategoryRole> SupportCategoryRoles => Set<SupportCategoryRole>();
+        public DbSet<SupportTicketReply> SupportTicketReplies => Set<SupportTicketReply>();
+
+        // =====================================================
+        // 🏷 Tags
+        // =====================================================
+        public DbSet<Tag> Tags => Set<Tag>();
         public DbSet<OrderTag> OrderTags => Set<OrderTag>();
+
+        // =====================================================
+        // 🛒 Orders
+        // =====================================================
         public DbSet<ManualOrder> ManualOrders => Set<ManualOrder>();
         public DbSet<ManualOrderItem> ManualOrderItems => Set<ManualOrderItem>();
         public DbSet<OrderCommission> OrderCommissions => Set<OrderCommission>();
         public DbSet<DomainOrder> Orders => Set<DomainOrder>();
         public DbSet<DomainCommission> Commissions => Set<DomainCommission>();
+
+        // =====================================================
+        // 💸 Discounts
+        // =====================================================
         public DbSet<Discount> Discounts => Set<Discount>();
+
+        // =====================================================
+        // 🧠 Notes & Logs
+        // =====================================================
         public DbSet<Note> Notes => Set<Note>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
+        public DbSet<JobStat> JobStats => Set<JobStat>();
+        public DbSet<DeploymentLog> DeploymentLogs => Set<DeploymentLog>();
+
+        // =====================================================
+        // 🔔 Notifications & UI
+        // =====================================================
         public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
         public DbSet<UserBadge> UserBadges => Set<UserBadge>();
         public DbSet<UserUIPreference> UserUIPreferences => Set<UserUIPreference>();
+        public DbSet<UserMessage> UserMessages => Set<UserMessage>();
+
+        // =====================================================
+        // 🔐 Permissions & Security
+        // =====================================================
         public DbSet<Permission> Permissions => Set<Permission>();
         public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
-        public DbSet<UserMessage> UserMessages => Set<UserMessage>();
-        public DbSet<SupportTicketReply> SupportTicketReplies => Set<SupportTicketReply>();
-        public DbSet<PinCoverImage> PinCoverImages => Set<PinCoverImage>();
-        public DbSet<BlacklistEntry> BlacklistEntries => Set<BlacklistEntry>();
-        public DbSet<CalendarTask> CalendarTasks => Set<CalendarTask>();
         public DbSet<AllowedAdminIp> AllowedAdminIps => Set<AllowedAdminIp>();
-        public DbSet<DeploymentLog> DeploymentLogs => Set<DeploymentLog>();
-        public DbSet<ResponseTemplate> ResponseTemplates => Set<ResponseTemplate>();
+        public DbSet<BlacklistEntry> BlacklistEntries => Set<BlacklistEntry>();
+
+        // =====================================================
+        // 🖼 Media
+        // =====================================================
+        public DbSet<PinCoverImage> PinCoverImages => Set<PinCoverImage>();
+
+        // =====================================================
+        // 🧹 Moderation
+        // =====================================================
         public DbSet<ModerationRule> ModerationRules => Set<ModerationRule>();
         public DbSet<ModerationLog> ModerationLogs => Set<ModerationLog>();
+
+        // =====================================================
+        // ⏱ Work & Calendar
+        // =====================================================
         public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
-        public DbSet<JobStat> JobStats => Set<JobStat>();
+        public DbSet<CalendarTask> CalendarTasks => Set<CalendarTask>();
 
+        // =====================================================
+        // 🧩 Templates
+        // =====================================================
+        public DbSet<ResponseTemplate> ResponseTemplates => Set<ResponseTemplate>();
 
-        public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        // =====================================================
+        // 🛍️ SHOPIFY (SON EKLENEN – KRİTİK)
+        // =====================================================
+        public DbSet<ShopifyWebhookEvent> ShopifyWebhookEvents
+            => Set<ShopifyWebhookEvent>();
+
+        // =====================================================
+        // 💾 SaveChanges
+        // =====================================================
+        public async Task<int> SaveChangesAsync(
+            CancellationToken cancellationToken = default)
             => await base.SaveChangesAsync(cancellationToken);
 
+        // =====================================================
+        // 🔧 Model Config
+        // =====================================================
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
-            // ⚠️ Identity tabloları için ExcludeFromMigrations kaldırıldı
-            builder.Entity<JobStat>(entity =>
+            // ================= JobStats =================
+            builder.Entity<JobStat>(e =>
             {
-                entity.ToTable("JobStats");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Date).IsRequired();
-                entity.Property(e => e.PaidMarked).HasDefaultValue(0);
-                entity.Property(e => e.CancelTagged).HasDefaultValue(0);
+                e.ToTable("JobStats");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Date).IsRequired();
+                e.Property(x => x.PaidMarked).HasDefaultValue(0);
+                e.Property(x => x.CancelTagged).HasDefaultValue(0);
             });
 
-            builder.Entity<SupportCategory>(entity =>
+            // ================= Support =================
+            builder.Entity<SupportCategory>(e =>
             {
-                entity.ToTable("SupportCategories");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Description).HasMaxLength(250);
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.HasMany(e => e.Roles)
-                      .WithOne(r => r.Category)
-                      .HasForeignKey(r => r.SupportCategoryId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                e.ToTable("SupportCategories");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Name).IsRequired().HasMaxLength(100);
+                e.Property(x => x.Description).HasMaxLength(250);
+                e.Property(x => x.CreatedAt).IsRequired();
+
+                e.HasMany(x => x.Roles)
+                 .WithOne(r => r.Category)
+                 .HasForeignKey(r => r.SupportCategoryId)
+                 .OnDelete(DeleteBehavior.Cascade);
             });
 
-            builder.Entity<SupportCategoryRole>(entity =>
+            builder.Entity<SupportCategoryRole>(e =>
             {
-                entity.ToTable("SupportCategoryRoles");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.RoleName).IsRequired().HasMaxLength(100);
+                e.ToTable("SupportCategoryRoles");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.RoleName).IsRequired().HasMaxLength(100);
             });
 
-            builder.Entity<SupportTicket>(entity =>
+            builder.Entity<SupportTicket>(e =>
             {
-                entity.ToTable("SupportTickets");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.Description).IsRequired();
-                entity.Property(e => e.FilePath).HasMaxLength(500);
-                entity.Property(e => e.UnreadReplyCount).HasDefaultValue(0);
-                entity.HasOne(e => e.Category)
-                      .WithMany(c => c.Tickets)
-                      .HasForeignKey(e => e.CategoryId)
-                      .OnDelete(DeleteBehavior.SetNull);
+                e.ToTable("SupportTickets");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Title).IsRequired().HasMaxLength(200);
+                e.Property(x => x.Description).IsRequired();
+                e.Property(x => x.FilePath).HasMaxLength(500);
+                e.Property(x => x.UnreadReplyCount).HasDefaultValue(0);
+
+                e.HasOne(x => x.Category)
+                 .WithMany(c => c.Tickets)
+                 .HasForeignKey(x => x.CategoryId)
+                 .OnDelete(DeleteBehavior.SetNull);
             });
 
-            builder.Entity<ManualOrder>(entity =>
+            // ================= Orders =================
+            builder.Entity<ManualOrder>(e =>
             {
-                entity.ToTable("ManualOrders");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.CustomerName).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.CustomerSurname).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Phone).HasMaxLength(50);
-                entity.Property(e => e.Email).HasMaxLength(100);
-                entity.Property(e => e.Address).IsRequired().HasMaxLength(500);
-                entity.Property(e => e.City).HasMaxLength(100);
-                entity.Property(e => e.District).HasMaxLength(100);
-                entity.Property(e => e.PaymentType).HasMaxLength(50);
-                entity.Property(e => e.OrderNote).HasMaxLength(500);
-                entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
+                e.ToTable("ManualOrders");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.CustomerName).IsRequired().HasMaxLength(100);
+                e.Property(x => x.CustomerSurname).IsRequired().HasMaxLength(100);
+                e.Property(x => x.Phone).HasMaxLength(50);
+                e.Property(x => x.Email).HasMaxLength(100);
+                e.Property(x => x.Address).IsRequired().HasMaxLength(500);
+                e.Property(x => x.City).HasMaxLength(100);
+                e.Property(x => x.District).HasMaxLength(100);
+                e.Property(x => x.PaymentType).HasMaxLength(50);
+                e.Property(x => x.OrderNote).HasMaxLength(500);
+                e.Property(x => x.TotalAmount).HasColumnType("decimal(18,2)");
             });
 
-            builder.Entity<Discount>(entity =>
+            builder.Entity<DomainOrder>(e =>
             {
-                entity.ToTable("Discounts");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Type).IsRequired();
-                entity.Property(e => e.Value).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.IsActive).IsRequired();
-                entity.Property(e => e.CreatedByUserId).IsRequired();
-                entity.Property(e => e.CreatedAt).IsRequired();
+                e.ToTable("Orders");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.TotalAmount).HasColumnType("decimal(18,2)");
+                e.Property(x => x.Status).HasConversion<int>();
+
+                e.HasOne(x => x.Seller)
+                 .WithMany(u => u.Orders)
+                 .HasForeignKey(x => x.SellerId)
+                 .OnDelete(DeleteBehavior.SetNull);
+
+                e.HasOne(x => x.Customer)
+                 .WithMany()
+                 .HasForeignKey(x => x.CustomerId)
+                 .OnDelete(DeleteBehavior.SetNull);
             });
 
-            builder.Entity<PinCoverImage>(entity =>
+            builder.Entity<DomainCommission>(e =>
             {
-                entity.ToTable("PinCoverImages");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Url).IsRequired();
+                e.ToTable("Commissions");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+
+                e.HasOne(x => x.User)
+                 .WithMany(u => u.Commissions)
+                 .HasForeignKey(x => x.UserId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(x => x.Order)
+                 .WithMany()
+                 .HasForeignKey(x => x.OrderId)
+                 .OnDelete(DeleteBehavior.SetNull);
             });
 
-            builder.Entity<OrderCommission>(entity =>
+            // ================= Templates =================
+            builder.Entity<ResponseTemplate>(e =>
             {
-                entity.ToTable("OrderCommissions");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.CommissionRate).HasColumnType("decimal(18,4)");
-                entity.Property(e => e.EarnedAmount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.CreatedAt).IsRequired();
+                e.ToTable("ResponseTemplates");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Title).IsRequired().HasMaxLength(200);
+                e.Property(x => x.Body).IsRequired();
+                e.Property(x => x.CreatedAt).IsRequired();
+                e.Property(x => x.ModuleScope).HasMaxLength(100);
             });
 
-            builder.Entity<DomainOrder>(entity =>
+            // ================= Shopify =================
+            builder.Entity<ShopifyWebhookEvent>(e =>
             {
-                entity.ToTable("Orders");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
-                entity.Property(e => e.Status).HasConversion<int>();
-                entity.HasOne(e => e.Seller)
-                      .WithMany(u => u.Orders)
-                      .HasForeignKey(e => e.SellerId)
-                      .OnDelete(DeleteBehavior.SetNull);
-                entity.HasOne(e => e.Customer)
-                      .WithMany()
-                      .HasForeignKey(e => e.CustomerId)
-                      .OnDelete(DeleteBehavior.SetNull);
-            });
+                e.ToTable("ShopifyWebhookEvents");
+                e.HasKey(x => x.Id);
 
-            builder.Entity<DomainCommission>(entity =>
-            {
-                entity.ToTable("Commissions");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
-                entity.HasOne(c => c.User)
-                      .WithMany(u => u.Commissions)
-                      .HasForeignKey(c => c.UserId)
-                      .OnDelete(DeleteBehavior.Cascade);
-                entity.HasOne(c => c.Order)
-                      .WithMany()
-                      .HasForeignKey(c => c.OrderId)
-                      .OnDelete(DeleteBehavior.SetNull);
-            });
+                e.Property(x => x.Topic).IsRequired();
+                e.Property(x => x.ExternalId).HasMaxLength(100);
+                e.Property(x => x.Payload).IsRequired();
+                e.Property(x => x.CreatedAtUtc).IsRequired();
 
-            builder.Entity<Note>(entity =>
-            {
-                entity.ToTable("Notes");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.TargetType).IsRequired();
-                entity.Property(e => e.Text).IsRequired();
-                entity.Property(e => e.CreatedAt).IsRequired();
-            });
-
-            builder.Entity<AuditLog>(entity =>
-            {
-                entity.ToTable("AuditLogs");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Action).IsRequired();
-                entity.Property(e => e.TargetType).IsRequired();
-                entity.Property(e => e.Description);
-                entity.Property(e => e.Timestamp).IsRequired();
-            });
-
-            builder.Entity<Permission>(entity =>
-            {
-                entity.ToTable("Permissions");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Description).HasMaxLength(250);
-            });
-
-            builder.Entity<RolePermission>(entity =>
-            {
-                entity.ToTable("RolePermissions");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.RoleName).IsRequired().HasMaxLength(100);
-                entity.HasOne(rp => rp.Permission)
-                      .WithMany(p => p.RolePermissions)
-                      .HasForeignKey(rp => rp.PermissionId)
-                      .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            builder.Entity<UserMessage>(entity =>
-            {
-                entity.ToTable("UserMessages");
-                entity.HasKey(e => e.Id);
-                entity.HasOne(e => e.Sender)
-                      .WithMany()
-                      .HasForeignKey(e => e.SenderId)
-                      .OnDelete(DeleteBehavior.Restrict);
-                entity.HasOne(e => e.Receiver)
-                      .WithMany()
-                      .HasForeignKey(e => e.ReceiverId)
-                      .OnDelete(DeleteBehavior.Restrict);
-            });
-
-            builder.Entity<SupportTicketReply>(entity =>
-            {
-                entity.ToTable("SupportTicketReplies");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Message).IsRequired();
-                entity.HasOne(e => e.Ticket)
-                      .WithMany()
-                      .HasForeignKey(e => e.TicketId)
-                      .OnDelete(DeleteBehavior.Cascade);
-                entity.HasOne(e => e.User)
-                      .WithMany()
-                      .HasForeignKey(e => e.UserId)
-                      .OnDelete(DeleteBehavior.Restrict);
-            });
-
-            builder.Entity<UserNotification>(entity =>
-            {
-                entity.ToTable("UserNotifications");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.Type).HasMaxLength(50);
-                entity.Property(e => e.CreatedAt).IsRequired();
-            });
-
-            builder.Entity<UserBadge>(entity =>
-            {
-                entity.ToTable("UserBadges");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Badge).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.AwardedAt).IsRequired();
-            });
-
-            builder.Entity<UserUIPreference>(entity =>
-            {
-                entity.ToTable("UserUIPreferences");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.ModuleKey).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.PreferenceJson).IsRequired();
-                entity.Property(e => e.UpdatedAt).IsRequired();
-            });
-
-            builder.Entity<ActivityLog>(entity =>
-            {
-                entity.ToTable("ActivityLogs");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.ActionType).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.CreatedAt).IsRequired();
-            });
-
-            builder.Entity<ResponseTemplate>(entity =>
-            {
-                entity.ToTable("ResponseTemplates");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.Body).IsRequired();
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.ModuleScope).HasMaxLength(100);
-            });
-
-            builder.Entity<ModerationRule>(entity =>
-            {
-                entity.ToTable("ModerationRules");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Pattern).IsRequired();
-                entity.Property(e => e.Description).HasMaxLength(250);
-            });
-
-            builder.Entity<ModerationLog>(entity =>
-            {
-                entity.ToTable("ModerationLogs");
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Content).IsRequired();
-                entity.Property(e => e.CreatedAt).IsRequired();
+                e.HasIndex(x => new { x.Topic, x.ExternalId });
             });
         }
     }
