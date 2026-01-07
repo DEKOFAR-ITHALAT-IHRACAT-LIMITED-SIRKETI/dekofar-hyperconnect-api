@@ -3,12 +3,20 @@ using System.Text;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Utils
 {
+    /// <summary>
+    /// Shopify HMAC Validator
+    /// ✔ Webhook (X-Shopify-Hmac-Sha256)
+    /// ✔ OAuth Callback (query string)
+    /// ✔ Timing-attack safe
+    /// ✔ Shopify resmi dokümana %100 uyumlu
+    /// </summary>
     public static class ShopifyHmacValidator
     {
         // =====================================================
-        // 🔐 WEBHOOK HMAC (X-Shopify-Hmac-Sha256)
+        // 🔐 WEBHOOK HMAC VALIDATION
+        // Header: X-Shopify-Hmac-Sha256 (Base64)
         // =====================================================
-        public static bool Validate(
+        public static bool ValidateWebhook(
             string requestBody,
             string shopifyHmacHeader,
             string webhookSecret)
@@ -20,71 +28,70 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Utils
                 return false;
             }
 
-            var secretBytes = Encoding.UTF8.GetBytes(webhookSecret);
-            var bodyBytes = Encoding.UTF8.GetBytes(requestBody);
+            byte[] secretBytes = Encoding.UTF8.GetBytes(webhookSecret);
+            byte[] bodyBytes = Encoding.UTF8.GetBytes(requestBody);
 
             using var hmac = new HMACSHA256(secretBytes);
-            var hashBytes = hmac.ComputeHash(bodyBytes);
+            byte[] computedHash = hmac.ComputeHash(bodyBytes);
 
-            var calculatedHmac =
-                Convert.ToBase64String(hashBytes);
+            byte[] receivedHash;
+            try
+            {
+                receivedHash = Convert.FromBase64String(shopifyHmacHeader);
+            }
+            catch
+            {
+                return false;
+            }
 
-            return FixedTimeEquals(
-                calculatedHmac,
-                shopifyHmacHeader);
+            return CryptographicOperations.FixedTimeEquals(
+                computedHash,
+                receivedHash);
         }
 
         // =====================================================
-        // 🔐 OAUTH HMAC (QUERY STRING)
-        // Shopify OAuth callback için
+        // 🔐 OAUTH CALLBACK HMAC VALIDATION
+        // Shopify OAuth redirect query string
         // =====================================================
-        public static bool Validate(
+        public static bool ValidateOAuth(
             IDictionary<string, string> query,
             string clientSecret)
         {
-            if (query == null || query.Count == 0)
-                return false;
-
-            if (!query.TryGetValue("hmac", out var hmac))
-                return false;
-
-            var sorted = query
-                .Where(x => x.Key != "hmac" && x.Key != "signature")
-                .OrderBy(x => x.Key)
-                .Select(x => $"{x.Key}={x.Value}");
-
-            var message =
-                string.Join("&", sorted);
-
-            var secretBytes = Encoding.UTF8.GetBytes(clientSecret);
-
-            using var hmacSha256 = new HMACSHA256(secretBytes);
-            var hashBytes = hmacSha256.ComputeHash(
-                Encoding.UTF8.GetBytes(message));
-
-            var calculatedHmac =
-                Convert.ToHexString(hashBytes).ToLowerInvariant();
-
-            return FixedTimeEquals(
-                calculatedHmac,
-                hmac);
-        }
-
-        // =====================================================
-        // ⏱️ TIMING ATTACK SAFE COMPARE
-        // =====================================================
-        private static bool FixedTimeEquals(string a, string b)
-        {
-            if (a.Length != b.Length)
-                return false;
-
-            var diff = 0;
-            for (var i = 0; i < a.Length; i++)
+            if (query == null ||
+                query.Count == 0 ||
+                string.IsNullOrWhiteSpace(clientSecret))
             {
-                diff |= a[i] ^ b[i];
+                return false;
             }
 
-            return diff == 0;
+            if (!query.TryGetValue("hmac", out var providedHmac) ||
+                string.IsNullOrWhiteSpace(providedHmac))
+            {
+                return false;
+            }
+
+            var message = string.Join("&",
+                query
+                    .Where(kvp =>
+                        kvp.Key != "hmac" &&
+                        kvp.Key != "signature")
+                    .OrderBy(kvp => kvp.Key, StringComparer.Ordinal)
+                    .Select(kvp => $"{kvp.Key}={kvp.Value}")
+            );
+
+            byte[] secretBytes = Encoding.UTF8.GetBytes(clientSecret);
+            byte[] messageBytes = Encoding.UTF8.GetBytes(message);
+
+            using var hmacSha256 = new HMACSHA256(secretBytes);
+            byte[] computedHash = hmacSha256.ComputeHash(messageBytes);
+
+            var computedHmacHex =
+                Convert.ToHexString(computedHash)
+                    .ToLowerInvariant();
+
+            return CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(computedHmacHex),
+                Encoding.UTF8.GetBytes(providedHmac));
         }
     }
 }

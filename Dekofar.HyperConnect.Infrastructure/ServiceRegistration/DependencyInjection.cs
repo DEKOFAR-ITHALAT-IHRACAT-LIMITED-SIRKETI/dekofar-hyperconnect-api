@@ -28,7 +28,6 @@ using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
 using Dekofar.HyperConnect.Integrations.Shopify.Customers.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Fulfillment.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions;
-using Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Orders.Sms;
 using Dekofar.HyperConnect.Integrations.Shopify.Products.Services;
 using MediatR;
@@ -117,37 +116,29 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<INetGsmSmsInboxService, NetGsmSmsInboxService>();
 
             // =====================================================
-            // 🛍️ SHOPIFY GRAPHQL (ENV VAR – KRİTİK)
+            // 🛍️ SHOPIFY HTTP CLIENT (MULTI-STORE SAFE)
             // =====================================================
-            services.AddHttpClient<ShopifyGraphQlClient>(client =>
+            services.AddHttpClient("shopify", client =>
             {
-                var baseUrl = Environment.GetEnvironmentVariable("SHOPIFY_BASE_URL");
-                var token = Environment.GetEnvironmentVariable("SHOPIFY_ACCESS_TOKEN");
-
-                if (string.IsNullOrWhiteSpace(baseUrl))
-                    throw new InvalidOperationException(
-                        "SHOPIFY_BASE_URL env var missing");
-
-                if (string.IsNullOrWhiteSpace(token))
-                    throw new InvalidOperationException(
-                        "SHOPIFY_ACCESS_TOKEN env var missing");
-
-                client.BaseAddress = new Uri(baseUrl);
-                client.DefaultRequestHeaders.Add(
-                    "X-Shopify-Access-Token", token);
+                client.Timeout = TimeSpan.FromSeconds(30);
                 client.DefaultRequestHeaders.Accept.Add(
                     new MediaTypeWithQualityHeaderValue("application/json"));
             });
 
             // =====================================================
+            // 🛍️ SHOPIFY GRAPHQL CLIENT
+            // =====================================================
+            services.AddScoped<ShopifyGraphQlClient>();
+
+            // =====================================================
             // 🛍️ SHOPIFY SERVICES
             // =====================================================
-            services.AddScoped<ShopifyOrderReportService>();
+            //services.AddScoped<ShopifyOrderReportService>();
+            //services.AddScoped<ShopifyOrderAutoTagService>();
+            //services.AddScoped<ShopifyOrderReprocessService>();
             services.AddScoped<ShopifyCustomerService>();
             services.AddScoped<ShopifyProductService>();
             services.AddScoped<ShopifyFulfillmentService>();
-            services.AddScoped<ShopifyOrderAutoTagService>();
-            services.AddScoped<ShopifyOrderReprocessService>();
 
             // =====================================================
             // 🧠 DECISION & SMS

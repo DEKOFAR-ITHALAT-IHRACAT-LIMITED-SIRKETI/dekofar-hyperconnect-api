@@ -1,15 +1,20 @@
-﻿using Dekofar.HyperConnect.Infrastructure.Persistence;
+﻿using Dekofar.HyperConnect.Domain.Entities;
+using Dekofar.HyperConnect.Infrastructure.Persistence;
 using Dekofar.HyperConnect.Integrations.Shopify.Common;
-using Dekofar.HyperConnect.Domain.Entities;
+using Dekofar.HyperConnect.Integrations.Shopify.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 
 namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
 {
+    /// <summary>
+    /// Shopify OAuth Controller
+    /// ✔ Shopify resmi OAuth akışı
+    /// ✔ HMAC secure
+    /// ✔ Multi-store uyumlu
+    /// </summary>
     [ApiController]
     [Route("api/integrations/shopify/oauth")]
     public class ShopifyOAuthController : ControllerBase
@@ -31,19 +36,30 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
         // =====================================================
         // 1️⃣ INSTALL / AUTHORIZE
         // =====================================================
-        // GET:
-        // /api/integrations/shopify/oauth/start?shop=xxx.myshopify.com
-        // =====================================================
         [HttpGet("start")]
         public IActionResult Start([FromQuery] string shop)
         {
             if (string.IsNullOrWhiteSpace(shop))
                 return BadRequest("shop query param is required");
 
+            if (!shop.EndsWith(".myshopify.com", StringComparison.OrdinalIgnoreCase))
+                return BadRequest("Invalid shop domain");
+
             var redirectUri =
                 $"{_options.AppUrl}/api/integrations/shopify/oauth/callback";
 
             var state = Guid.NewGuid().ToString("N");
+
+            Response.Cookies.Append(
+                "shopify_oauth_state",
+                state,
+                new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Lax,
+                    MaxAge = TimeSpan.FromMinutes(5)
+                });
 
             var authorizeUrl =
                 $"https://{shop}/admin/oauth/authorize" +
@@ -58,8 +74,6 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
         // =====================================================
         // 2️⃣ CALLBACK
         // =====================================================
-        // Shopify buraya redirect eder
-        // =====================================================
         [HttpGet("callback")]
         public async Task<IActionResult> Callback(
             [FromQuery] string shop,
@@ -69,38 +83,30 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
         {
             if (string.IsNullOrWhiteSpace(shop) ||
                 string.IsNullOrWhiteSpace(code) ||
-                string.IsNullOrWhiteSpace(hmac))
+                string.IsNullOrWhiteSpace(hmac) ||
+                string.IsNullOrWhiteSpace(state))
             {
                 return BadRequest("Missing required parameters");
             }
 
-            // =====================================================
-            // 🔐 HMAC DOĞRULAMA (QUERY STRING)
-            // =====================================================
-            var message = Request.Query
-                .Where(x => x.Key != "hmac")
-                .OrderBy(x => x.Key)
-                .Select(x => $"{x.Key}={x.Value}")
-                .Aggregate((a, b) => $"{a}&{b}");
+            if (!Request.Cookies.TryGetValue(
+                    "shopify_oauth_state",
+                    out var storedState) ||
+                storedState != state)
+            {
+                return Unauthorized("Invalid state");
+            }
 
-            var secretBytes = Encoding.UTF8.GetBytes(_options.ClientSecret);
-            using var hmacSha256 = new HMACSHA256(secretBytes);
-            var hashBytes = hmacSha256.ComputeHash(
-                Encoding.UTF8.GetBytes(message));
+            var query = Request.Query
+                .ToDictionary(x => x.Key, x => x.Value.ToString());
 
-            var calculatedHmac =
-                Convert.ToHexString(hashBytes).ToLowerInvariant();
-
-            if (!CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(calculatedHmac),
-                Encoding.UTF8.GetBytes(hmac)))
+            if (!ShopifyHmacValidator.ValidateOAuth(
+                    query,
+                    _options.ClientSecret))
             {
                 return Unauthorized("Invalid HMAC");
             }
 
-            // =====================================================
-            // 🔑 ACCESS TOKEN AL
-            // =====================================================
             var client = _httpClientFactory.CreateClient();
 
             var tokenResponse = await client.PostAsJsonAsync(
@@ -109,7 +115,7 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
                 {
                     client_id = _options.ClientId,
                     client_secret = _options.ClientSecret,
-                    code = code
+                    code
                 });
 
             if (!tokenResponse.IsSuccessStatusCode)
@@ -126,15 +132,12 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
             var scopes =
                 tokenJson.GetProperty("scope").GetString()!;
 
-            // =====================================================
-            // 💾 DB KAYDI (ShopifyStore)
-            // =====================================================
-            var store = await _db.Set<Dekofar.HyperConnect.Domain.Entities.ShopifyStore>()
+            var store = await _db.ShopifyStores
                 .FirstOrDefaultAsync(x => x.ShopDomain == shop);
 
             if (store == null)
             {
-                store = new Dekofar.HyperConnect.Domain.Entities.ShopifyStore
+                store = new ShopifyStore
                 {
                     Id = Guid.NewGuid(),
                     ShopDomain = shop,
@@ -143,7 +146,7 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
                     InstalledAtUtc = DateTime.UtcNow
                 };
 
-                _db.Add(store);
+                _db.ShopifyStores.Add(store);
             }
             else
             {
@@ -154,28 +157,23 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
 
             await _db.SaveChangesAsync();
 
-            // =====================================================
-            // ✅ SUCCESS
-            // =====================================================
             return Ok(new
             {
                 success = true,
-                shop = shop,
-                scopes = scopes,
-                tokenPrefix = accessToken.Substring(0, 5) // shpat_
+                shop,
+                scopes,
+                tokenPrefix = accessToken[..5]
             });
         }
 
         // =====================================================
-        // 🧪 TOKEN TEST (Swagger için)
+        // 🧪 TOKEN TEST
         // =====================================================
         [HttpGet("test-token")]
         public async Task<IActionResult> TestToken([FromQuery] string shop)
         {
-            if (string.IsNullOrWhiteSpace(shop))
-                return BadRequest("shop is required");
-
-            var store = await _db.Set<Dekofar.HyperConnect.Domain.Entities.ShopifyStore>()
+            var store = await _db.ShopifyStores
+                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.ShopDomain == shop);
 
             if (store == null)
@@ -184,21 +182,20 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
             var client = _httpClientFactory.CreateClient();
             client.BaseAddress = new Uri($"https://{shop}");
             client.DefaultRequestHeaders.Add(
-                "X-Shopify-Access-Token", store.AccessToken);
-
-            var gqlQuery = new
-            {
-                query = @"query {
-            shop {
-                name
-                myshopifyDomain
-            }
-        }"
-            };
+                "X-Shopify-Access-Token",
+                store.AccessToken);
 
             var response = await client.PostAsJsonAsync(
                 "/admin/api/2024-04/graphql.json",
-                gqlQuery);
+                new
+                {
+                    query = @"query {
+                      shop {
+                        name
+                        myshopifyDomain
+                      }
+                    }"
+                });
 
             var body = await response.Content.ReadAsStringAsync();
 
@@ -208,12 +205,8 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
             return Ok(new
             {
                 success = true,
-                shop,
                 response = body
             });
         }
-
     }
-
-
 }

@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+
 using DomainOrder = Dekofar.HyperConnect.Domain.Entities.Order;
 using DomainCommission = Dekofar.HyperConnect.Domain.Entities.Commission;
 
@@ -16,17 +17,22 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
         : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>,
           IApplicationDbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        public ApplicationDbContext(
+            DbContextOptions<ApplicationDbContext> options)
             : base(options) { }
 
         // =====================================================
         // 🔐 Identity
         // =====================================================
         public DbSet<ApplicationUser> Users => Set<ApplicationUser>();
-        public DbSet<IdentityUserRole<Guid>> UserRoles => Set<IdentityUserRole<Guid>>();
         public DbSet<IdentityRole<Guid>> Roles => Set<IdentityRole<Guid>>();
-        public DbSet<ShopifyStore> ShopifyStores => Set<ShopifyStore>();
+        public DbSet<IdentityUserRole<Guid>> UserRoles => Set<IdentityUserRole<Guid>>();
 
+        // =====================================================
+        // 🛍️ SHOPIFY (OAUTH + WEBHOOK)
+        // =====================================================
+        public DbSet<ShopifyStore> ShopifyStores => Set<ShopifyStore>();
+        public DbSet<ShopifyWebhookEvent> ShopifyWebhookEvents => Set<ShopifyWebhookEvent>();
 
         // =====================================================
         // 🎧 Support
@@ -104,12 +110,6 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
         public DbSet<ResponseTemplate> ResponseTemplates => Set<ResponseTemplate>();
 
         // =====================================================
-        // 🛍️ SHOPIFY (SON EKLENEN – KRİTİK)
-        // =====================================================
-        public DbSet<ShopifyWebhookEvent> ShopifyWebhookEvents
-            => Set<ShopifyWebhookEvent>();
-
-        // =====================================================
         // 💾 SaveChanges
         // =====================================================
         public async Task<int> SaveChangesAsync(
@@ -117,10 +117,8 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
             => await base.SaveChangesAsync(cancellationToken);
 
         // =====================================================
-        // 🔧 Model Config
+        // 🔧 MODEL CONFIG
         // =====================================================
-
-
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -145,9 +143,9 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
                 e.Property(x => x.CreatedAt).IsRequired();
 
                 e.HasMany(x => x.Roles)
-                 .WithOne(r => r.Category)
-                 .HasForeignKey(r => r.SupportCategoryId)
-                 .OnDelete(DeleteBehavior.Cascade);
+                    .WithOne(r => r.Category)
+                    .HasForeignKey(r => r.SupportCategoryId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             builder.Entity<SupportCategoryRole>(e =>
@@ -167,28 +165,12 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
                 e.Property(x => x.UnreadReplyCount).HasDefaultValue(0);
 
                 e.HasOne(x => x.Category)
-                 .WithMany(c => c.Tickets)
-                 .HasForeignKey(x => x.CategoryId)
-                 .OnDelete(DeleteBehavior.SetNull);
+                    .WithMany(c => c.Tickets)
+                    .HasForeignKey(x => x.CategoryId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // ================= Orders =================
-            builder.Entity<ManualOrder>(e =>
-            {
-                e.ToTable("ManualOrders");
-                e.HasKey(x => x.Id);
-                e.Property(x => x.CustomerName).IsRequired().HasMaxLength(100);
-                e.Property(x => x.CustomerSurname).IsRequired().HasMaxLength(100);
-                e.Property(x => x.Phone).HasMaxLength(50);
-                e.Property(x => x.Email).HasMaxLength(100);
-                e.Property(x => x.Address).IsRequired().HasMaxLength(500);
-                e.Property(x => x.City).HasMaxLength(100);
-                e.Property(x => x.District).HasMaxLength(100);
-                e.Property(x => x.PaymentType).HasMaxLength(50);
-                e.Property(x => x.OrderNote).HasMaxLength(500);
-                e.Property(x => x.TotalAmount).HasColumnType("decimal(18,2)");
-            });
-
             builder.Entity<DomainOrder>(e =>
             {
                 e.ToTable("Orders");
@@ -197,14 +179,14 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
                 e.Property(x => x.Status).HasConversion<int>();
 
                 e.HasOne(x => x.Seller)
-                 .WithMany(u => u.Orders)
-                 .HasForeignKey(x => x.SellerId)
-                 .OnDelete(DeleteBehavior.SetNull);
+                    .WithMany(u => u.Orders)
+                    .HasForeignKey(x => x.SellerId)
+                    .OnDelete(DeleteBehavior.SetNull);
 
                 e.HasOne(x => x.Customer)
-                 .WithMany()
-                 .HasForeignKey(x => x.CustomerId)
-                 .OnDelete(DeleteBehavior.SetNull);
+                    .WithMany()
+                    .HasForeignKey(x => x.CustomerId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             builder.Entity<DomainCommission>(e =>
@@ -214,38 +196,33 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
                 e.Property(x => x.Amount).HasColumnType("decimal(18,2)");
 
                 e.HasOne(x => x.User)
-                 .WithMany(u => u.Commissions)
-                 .HasForeignKey(x => x.UserId)
-                 .OnDelete(DeleteBehavior.Cascade);
+                    .WithMany(u => u.Commissions)
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 e.HasOne(x => x.Order)
-                 .WithMany()
-                 .HasForeignKey(x => x.OrderId)
-                 .OnDelete(DeleteBehavior.SetNull);
-            });
-
-            // ================= Templates =================
-            builder.Entity<ResponseTemplate>(e =>
-            {
-                e.ToTable("ResponseTemplates");
-                e.HasKey(x => x.Id);
-                e.Property(x => x.Title).IsRequired().HasMaxLength(200);
-                e.Property(x => x.Body).IsRequired();
-                e.Property(x => x.CreatedAt).IsRequired();
-                e.Property(x => x.ModuleScope).HasMaxLength(100);
+                    .WithMany()
+                    .HasForeignKey(x => x.OrderId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // ================= Shopify =================
+            builder.Entity<ShopifyStore>(e =>
+            {
+                e.ToTable("ShopifyStores");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.ShopDomain).IsRequired().HasMaxLength(255);
+                e.HasIndex(x => x.ShopDomain).IsUnique();
+            });
+
             builder.Entity<ShopifyWebhookEvent>(e =>
             {
                 e.ToTable("ShopifyWebhookEvents");
                 e.HasKey(x => x.Id);
-
                 e.Property(x => x.Topic).IsRequired();
                 e.Property(x => x.ExternalId).HasMaxLength(100);
                 e.Property(x => x.Payload).IsRequired();
                 e.Property(x => x.CreatedAtUtc).IsRequired();
-
                 e.HasIndex(x => new { x.Topic, x.ExternalId });
             });
         }

@@ -2,162 +2,90 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl
 {
-    /// <summary>
-    /// Shopify GraphQL Client
-    /// ✔ ENV based token
-    /// ✔ Shopify 2026-01 uyumlu
-    /// ✔ Güçlü error handling
-    /// </summary>
-    public class ShopifyGraphQlClient
+    public sealed class ShopifyGraphQlClient
     {
-        private readonly HttpClient _http;
         private readonly ILogger<ShopifyGraphQlClient> _logger;
-
-        private const string DefaultApiVersion = "2026-01";
+        private const string ApiVersion = "2026-01";
 
         public ShopifyGraphQlClient(
-            HttpClient http,
             ILogger<ShopifyGraphQlClient> logger)
         {
-            _http = http;
             _logger = logger;
-
-            if (!_http.DefaultRequestHeaders.Accept.Any())
-            {
-                _http.DefaultRequestHeaders.Accept.Add(
-                    new MediaTypeWithQualityHeaderValue("application/json"));
-            }
         }
 
-        // =====================================================
-        // 🚀 EXECUTE
-        // =====================================================
         public async Task<JObject> ExecuteAsync(
+            string shopDomain,
+            string accessToken,
             string query,
             object? variables = null,
             CancellationToken ct = default)
         {
-            if (string.IsNullOrWhiteSpace(query))
-                throw new ArgumentException("GraphQL query is empty");
+            if (string.IsNullOrWhiteSpace(shopDomain))
+                throw new ArgumentException("shopDomain is required");
 
-            var payload = new
+            if (string.IsNullOrWhiteSpace(accessToken))
+                throw new ArgumentException("accessToken is required");
+
+            using var client = new HttpClient
+            {
+                BaseAddress = new Uri($"https://{shopDomain}")
+            };
+
+            client.DefaultRequestHeaders.Add(
+                "X-Shopify-Access-Token",
+                accessToken);
+
+            client.DefaultRequestHeaders.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var payload = JsonConvert.SerializeObject(new
             {
                 query,
                 variables
-            };
-
-            var jsonPayload = JsonConvert.SerializeObject(payload);
+            });
 
             using var content = new StringContent(
-                jsonPayload,
+                payload,
                 Encoding.UTF8,
                 "application/json");
 
-            HttpResponseMessage response;
+            var response = await client.PostAsync(
+                $"/admin/api/{ApiVersion}/graphql.json",
+                content,
+                ct);
 
-            var endpoint = $"/admin/api/{DefaultApiVersion}/graphql.json";
+            var body = await response.Content.ReadAsStringAsync(ct);
 
-            try
-            {
-                response = await _http.PostAsync(
-                    endpoint,
-                    content,
-                    ct);
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogWarning("SHOPIFY GRAPHQL REQUEST CANCELLED");
-                throw;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "SHOPIFY GRAPHQL HTTP REQUEST FAILED");
-                throw;
-            }
-
-            var responseBody = await response.Content
-                .ReadAsStringAsync(ct);
-
-            // =====================================================
-            // ❌ HTTP LEVEL ERRORS
-            // =====================================================
             if (!response.IsSuccessStatusCode)
             {
-                if (response.StatusCode == HttpStatusCode.Unauthorized)
-                {
-                    _logger.LogCritical(
-                        "SHOPIFY UNAUTHORIZED ❌ Access token invalid or missing");
-                }
-                else if (response.StatusCode == (HttpStatusCode)429)
-                {
-                    _logger.LogWarning(
-                        "SHOPIFY RATE LIMIT ⚠️ Too many requests");
-                }
-
                 _logger.LogError(
-                    "SHOPIFY GRAPHQL HTTP ERROR → Status={Status}, Body={Body}",
+                    "SHOPIFY HTTP ERROR → {Status} | {Body}",
                     response.StatusCode,
-                    responseBody);
+                    body);
 
                 throw new HttpRequestException(
-                    $"Shopify GraphQL HTTP {(int)response.StatusCode}");
+                    $"Shopify HTTP {(int)response.StatusCode}");
             }
 
-            JObject obj;
+            var json = JObject.Parse(body);
 
-            try
-            {
-                obj = JObject.Parse(responseBody);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "SHOPIFY GRAPHQL INVALID JSON RESPONSE → {Body}",
-                    responseBody);
-
-                throw new InvalidOperationException(
-                    "Invalid JSON response from Shopify GraphQL");
-            }
-
-            // =====================================================
-            // 🔴 GRAPHQL ERRORS
-            // =====================================================
-            if (obj["errors"] != null)
+            if (json["errors"] != null)
             {
                 _logger.LogError(
                     "SHOPIFY GRAPHQL ERROR → {Errors}",
-                    obj["errors"]!.ToString(Formatting.None));
+                    json["errors"]!.ToString());
 
                 throw new InvalidOperationException(
-                    $"Shopify GraphQL Error: {obj["errors"]}");
+                    "Shopify GraphQL error");
             }
 
-            // =====================================================
-            // 🔴 USER ERRORS (mutation)
-            // =====================================================
-            var userErrors = obj.SelectTokens("$..userErrors[*]")
-                .Select(e => e.ToString(Formatting.None))
-                .ToArray();
-
-            if (userErrors.Length > 0)
-            {
-                _logger.LogError(
-                    "SHOPIFY GRAPHQL USER ERRORS → {Errors}",
-                    string.Join(" | ", userErrors));
-
-                throw new InvalidOperationException(
-                    $"Shopify GraphQL UserErrors: {string.Join(" | ", userErrors)}");
-            }
-
-            return obj;
+            return json;
         }
     }
 }
