@@ -97,6 +97,9 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IBadgeService, BadgeService>();
             services.AddScoped<IWorkSessionService, WorkSessionService>();
 
+
+
+
             // 🌐 Genel repo & IP servisleri
             services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
             services.AddScoped<IAllowedAdminIpService, AllowedAdminIpService>();

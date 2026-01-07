@@ -365,6 +365,10 @@
               "target": "Package",
               "version": "[9.0.8, )"
             },
+            "Microsoft.Extensions.Http": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
             "Microsoft.Owin": {
               "target": "Package",
               "version": "[4.2.3, )"
