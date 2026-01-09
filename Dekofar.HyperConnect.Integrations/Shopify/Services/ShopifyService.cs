@@ -3,6 +3,7 @@ using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
 using Dekofar.HyperConnect.Integrations.Shopify.Models.Shopify;
 using Dekofar.HyperConnect.Integrations.Shopify.Models.Shopify.Dto;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -47,18 +48,18 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Services
         // =====================================================
         // 📦 SON 10 SİPARİŞ
         // =====================================================
-        public async Task<IReadOnlyList<object>> GetLatestOrdersAsync(
+        public async Task<IReadOnlyList<ShopifyOrderDto>> GetLatestOrdersAsync(
             string shopDomain,
             int limit,
             CancellationToken ct)
         {
+            // 🔐 Token + HttpClient hazırla
             await PrepareClientAsync(shopDomain, ct);
 
-            using var response =
-                await _httpClient.GetAsync(
-                    $"orders.json?limit={limit}&status=any",
-                    ct
-                );
+            using var response = await _httpClient.GetAsync(
+                $"orders.json?limit={limit}&status=any",
+                ct
+            );
 
             response.EnsureSuccessStatusCode();
 
@@ -66,12 +67,31 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Services
 
             using var doc = JsonDocument.Parse(json);
 
-            var orders =
-                doc.RootElement
-                   .GetProperty("orders")
-                   .Deserialize<List<object>>();
+            if (!doc.RootElement.TryGetProperty("orders", out var ordersElement))
+                return Array.Empty<ShopifyOrderDto>();
 
-            return orders ?? new List<object>();
+            var orders = new List<ShopifyOrderDto>();
+
+            foreach (var o in ordersElement.EnumerateArray())
+            {
+                orders.Add(new ShopifyOrderDto
+                {
+                    Id = o.GetProperty("id").GetInt64(),
+                    Name = o.GetProperty("name").GetString(),
+                    FinancialStatus = o.GetProperty("financial_status").GetString(),
+                    FulfillmentStatus = o.TryGetProperty("fulfillment_status", out var fs) && fs.ValueKind != JsonValueKind.Null
+                        ? fs.GetString()
+                        : null,
+                    TotalPrice = decimal.Parse(
+                        o.GetProperty("total_price").GetString(),
+                        CultureInfo.InvariantCulture
+                    ),
+                    Currency = o.GetProperty("currency").GetString(),
+                    CreatedAt = o.GetProperty("created_at").GetDateTime()
+                });
+            }
+
+            return orders;
         }
 
         // =====================================================
@@ -162,5 +182,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Services
             string? statusCsv = null,
             CancellationToken ct = default)
             => throw new NotImplementedException();
+
+
     }
 }

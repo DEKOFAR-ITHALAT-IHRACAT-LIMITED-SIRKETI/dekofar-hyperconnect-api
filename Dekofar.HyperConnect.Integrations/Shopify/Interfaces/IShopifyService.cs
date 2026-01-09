@@ -1,6 +1,7 @@
 ﻿using Dekofar.HyperConnect.Domain.Entities;
 using Dekofar.HyperConnect.Integrations.Shopify.Models.Shopify;
 using Dekofar.HyperConnect.Integrations.Shopify.Models.Shopify.Dto;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +11,17 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Interfaces
     public interface IShopifyService
     {
         Task<string> TestConnectionAsync(CancellationToken cancellationToken = default);
+
+        // ✅ SON SİPARİŞLER (DOĞRU İMZA)
+        Task<IReadOnlyList<ShopifyOrderDto>> GetLatestOrdersAsync(
+            string shopDomain,
+            int limit,
+            CancellationToken ct);
+
+        // -------------------------------------------------
+        // ⛔ Aşağıdakiler şimdilik boş (bilinçli)
+        // -------------------------------------------------
+
         Task<PagedResult<Order>> GetOrdersPagedAsync(string? pageInfo = null, int limit = 10, CancellationToken ct = default);
         Task<Order?> GetOrderByIdAsync(long orderId, CancellationToken ct = default);
         Task<ShopifyOrderDetailDto?> GetOrderDetailWithImagesAsync(long orderId, CancellationToken ct = default);
@@ -31,26 +43,14 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Interfaces
         Task<PagedResult<Order>> GetOpenOrdersWithCursorAsync(string? pageInfo, int limit, CancellationToken ct);
         Task<List<ShopifyOrderLiteDto>> SearchOrdersLiteAsync(string query, CancellationToken ct = default);
         Task<long?> GetOrderIdByTrackingNumberAsync(string trackingNumber, CancellationToken cancellationToken = default);
-        Task<bool> MarkOrderAsPaidAsync(long orderId, CancellationToken ct = default); // ✅ DOĞRU HALİ BU
+        Task<bool> MarkOrderAsPaidAsync(long orderId, CancellationToken ct = default);
 
-
-        /// <summary>
-        /// Shopify mağazasındaki son siparişleri getirir
-        /// </summary>
-        Task<IReadOnlyList<object>> GetLatestOrdersAsync(
-            string shopDomain,
-            int limit,
-            CancellationToken ct
-        );
         Task<List<ShopifyOrderItemSummaryDto>> GetOrderItemsSummaryAsync(
             DateTime? start = null,
             DateTime? end = null,
-            string? financialCsv = null,    // örn: "pending,authorized,paid,partially_paid,partially_refunded"
-            string? fulfillmentCsv = null,  // örn: "unfulfilled,partial"
-            string? statusCsv = null,       // örn: "open"
-            CancellationToken ct = default
-        );
-
-
+            string? financialCsv = null,
+            string? fulfillmentCsv = null,
+            string? statusCsv = null,
+            CancellationToken ct = default);
     }
 }
