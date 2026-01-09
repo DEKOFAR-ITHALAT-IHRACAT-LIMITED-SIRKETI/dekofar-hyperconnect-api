@@ -35,13 +35,14 @@ builder.Services.AddCors(options =>
     options.AddPolicy(MyAllowSpecificOrigins, policy =>
     {
         policy.WithOrigins(
-                "http://localhost:4200",
-                "http://192.168.1.100:4200",
-                "https://hyperconnect.dekofar.com"
-            )
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+            "http://localhost:4200",
+            "https://hyperconnect.dekofar.com",
+            "https://dekofar-hyperconnect-api-production.up.railway.app"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
+
     });
 });
 
