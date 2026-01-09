@@ -16,6 +16,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Dekofar.HyperConnect.Application\Dekofar.HyperConnect.Application.csproj" />
 		<ProjectReference Include="..\Dekofar.HyperConnect.Domain\Dekofar.HyperConnect.Domain.csproj" />
 	</ItemGroup>
 

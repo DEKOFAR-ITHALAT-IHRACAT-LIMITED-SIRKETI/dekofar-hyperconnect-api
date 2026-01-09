@@ -509,6 +509,9 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
+              "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Application\\Dekofar.HyperConnect.Application.csproj": {
+                "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Application\\Dekofar.HyperConnect.Application.csproj"
+              },
               "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj": {
                 "projectPath": "D:\\DekofarHyperConnect\\dekofar-hyperconnect-api\\Dekofar.HyperConnect.Domain\\Dekofar.HyperConnect.Domain.csproj"
               }

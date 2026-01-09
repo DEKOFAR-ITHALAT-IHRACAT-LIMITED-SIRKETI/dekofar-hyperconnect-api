@@ -20,10 +20,13 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
             _http = http;
         }
 
-        // 1️⃣ Install
+        // 1️⃣ INSTALL
         [HttpGet("install")]
         public IActionResult Install([FromQuery] string shop)
         {
+            if (string.IsNullOrWhiteSpace(shop))
+                return BadRequest("Shop is required");
+
             var redirectUri =
                 $"{_options.AppUrl}/api/integrations/shopify/oauth/callback";
 
@@ -36,12 +39,18 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
             return Redirect(url);
         }
 
-        // 2️⃣ Callback
         [HttpGet("callback")]
         public async Task<IActionResult> Callback(
             [FromQuery] string shop,
             [FromQuery] string code)
         {
+            // 🔐 HMAC doğrulaması
+            var query = Request.Query
+                .ToDictionary(x => x.Key, x => x.Value.ToString());
+
+            if (!ShopifyHmacValidator.IsValid(query, _options.ClientSecret))
+                return Unauthorized("Invalid HMAC");
+
             var client = _http.CreateClient();
 
             var response = await client.PostAsJsonAsync(
@@ -53,19 +62,18 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
                     code
                 });
 
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+                return BadRequest("Token exchange failed");
 
             var payload =
                 await response.Content.ReadFromJsonAsync<ShopifyTokenResponse>();
 
-            // TODO: DB’ye kaydet
-            // shop + payload.access_token
-
             return Ok(new
             {
                 shop,
-                token = payload!.access_token
+                accessToken = payload!.access_token
             });
         }
+
     }
 }

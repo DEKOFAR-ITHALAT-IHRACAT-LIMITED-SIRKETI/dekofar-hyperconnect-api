@@ -8,6 +8,8 @@ namespace Dekofar.HyperConnect.Application.Common.Interfaces
 {
     public interface IApplicationDbContext
     {
+        DbSet<ShopifyStore> ShopifyStores { get; }
+
         DbSet<SupportTicket> SupportTickets { get; }
         DbSet<SupportCategory> SupportCategories { get; }
         DbSet<SupportCategoryRole> SupportCategoryRoles { get; }

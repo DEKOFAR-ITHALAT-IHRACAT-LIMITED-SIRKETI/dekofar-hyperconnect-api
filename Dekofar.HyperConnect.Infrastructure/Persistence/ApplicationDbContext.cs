@@ -49,6 +49,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
         public DbSet<ModerationLog> ModerationLogs => Set<ModerationLog>();
         public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
         public DbSet<JobStat> JobStats => Set<JobStat>();
+        public DbSet<ShopifyStore> ShopifyStores => Set<ShopifyStore>();
 
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

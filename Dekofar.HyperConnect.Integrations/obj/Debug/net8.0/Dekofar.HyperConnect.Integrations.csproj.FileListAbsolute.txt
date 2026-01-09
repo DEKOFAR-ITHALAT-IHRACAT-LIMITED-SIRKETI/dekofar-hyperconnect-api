@@ -14,3 +14,5 @@ D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Integration
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Integrations\obj\Debug\net8.0\refint\Dekofar.HyperConnect.Integrations.dll
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Integrations\obj\Debug\net8.0\Dekofar.HyperConnect.Integrations.pdb
 D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Integrations\obj\Debug\net8.0\ref\Dekofar.HyperConnect.Integrations.dll
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Integrations\bin\Debug\net8.0\Dekofar.HyperConnect.Application.dll
+D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Integrations\bin\Debug\net8.0\Dekofar.HyperConnect.Application.pdb

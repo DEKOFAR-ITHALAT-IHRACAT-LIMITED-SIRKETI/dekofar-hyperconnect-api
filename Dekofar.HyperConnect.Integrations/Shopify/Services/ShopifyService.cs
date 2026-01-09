@@ -4,7 +4,6 @@ using Dekofar.HyperConnect.Integrations.Shopify.Models;
 using Dekofar.HyperConnect.Integrations.Shopify.Models.Shopify;
 using Dekofar.HyperConnect.Integrations.Shopify.Models.Shopify.Dto;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;

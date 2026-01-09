@@ -2354,6 +2354,7 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v8.0",
         "dependencies": {
+          "Dekofar.HyperConnect.Application": "1.0.0",
           "Dekofar.HyperConnect.Domain": "1.0.0",
           "Microsoft.Extensions.Caching.Memory": "9.0.8",
           "Microsoft.Extensions.Configuration.Abstractions": "9.0.8",
@@ -4721,6 +4722,7 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v8.0",
         "dependencies": {
+          "Dekofar.HyperConnect.Application": "1.0.0",
           "Dekofar.HyperConnect.Domain": "1.0.0",
           "Microsoft.Extensions.Caching.Memory": "9.0.8",
           "Microsoft.Extensions.Configuration.Abstractions": "9.0.8",
@@ -7088,6 +7090,7 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v8.0",
         "dependencies": {
+          "Dekofar.HyperConnect.Application": "1.0.0",
           "Dekofar.HyperConnect.Domain": "1.0.0",
           "Microsoft.Extensions.Caching.Memory": "9.0.8",
           "Microsoft.Extensions.Configuration.Abstractions": "9.0.8",
