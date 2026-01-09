@@ -1,6 +1,7 @@
 ﻿using Dekofar.HyperConnect.Application;
 using Dekofar.HyperConnect.Application.Common.Interfaces;
 using Dekofar.HyperConnect.Application.Interfaces;
+using Dekofar.HyperConnect.Application.Integrations.Shopify.Services;
 using Dekofar.HyperConnect.Domain.Entities;
 using Dekofar.HyperConnect.Infrastructure.Jobs;
 using Dekofar.HyperConnect.Infrastructure.Persistence;
@@ -80,6 +81,8 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
 
 
             // ileride: services.AddHttpClient<IPttDeleteService, PttDeleteService>();
+            // 🛍️ Shopify
+            services.AddScoped<ShopifyStoreService>();
 
             // 📦 Job Stats
             services.AddScoped<IJobStatsService, JobStatsService>();
