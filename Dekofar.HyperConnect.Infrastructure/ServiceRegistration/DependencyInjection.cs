@@ -1,7 +1,7 @@
 ﻿using Dekofar.HyperConnect.Application;
 using Dekofar.HyperConnect.Application.Common.Interfaces;
-using Dekofar.HyperConnect.Application.Interfaces;
 using Dekofar.HyperConnect.Application.Integrations.Shopify.Services;
+using Dekofar.HyperConnect.Application.Interfaces;
 using Dekofar.HyperConnect.Domain.Entities;
 using Dekofar.HyperConnect.Infrastructure.Jobs;
 using Dekofar.HyperConnect.Infrastructure.Persistence;
@@ -23,6 +23,7 @@ using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
+using Dekofar.HyperConnect.Integrations.Shopify.Services;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -83,6 +84,7 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             // ileride: services.AddHttpClient<IPttDeleteService, PttDeleteService>();
             // 🛍️ Shopify
             services.AddScoped<ShopifyStoreService>();
+            services.AddScoped<ShopifyService>(); // 👈 EKSİK OLAN BU
 
             // 📦 Job Stats
             services.AddScoped<IJobStatsService, JobStatsService>();
