@@ -2,6 +2,7 @@
 using Dekofar.HyperConnect.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dekofar.HyperConnect.Application.Integrations.Shopify.Services
@@ -15,13 +16,17 @@ namespace Dekofar.HyperConnect.Application.Integrations.Shopify.Services
             _db = db;
         }
 
+        /// <summary>
+        /// Shopify mağazasını ekler veya günceller
+        /// </summary>
         public async Task UpsertAsync(
             string shopDomain,
             string accessToken,
-            string scopes)
+            string scopes,
+            CancellationToken ct = default)
         {
             var store = await _db.ShopifyStores
-                .FirstOrDefaultAsync(x => x.ShopDomain == shopDomain);
+                .FirstOrDefaultAsync(x => x.ShopDomain == shopDomain, ct);
 
             if (store == null)
             {
@@ -43,7 +48,18 @@ namespace Dekofar.HyperConnect.Application.Integrations.Shopify.Services
                 store.InstalledAtUtc = DateTime.UtcNow;
             }
 
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(ct);
+        }
+
+        /// <summary>
+        /// Aktif (son kurulan) Shopify mağazasını getirir
+        /// </summary>
+        public async Task<ShopifyStore?> GetLatestAsync(
+            CancellationToken ct = default)
+        {
+            return await _db.ShopifyStores
+                .OrderByDescending(x => x.InstalledAtUtc)
+                .FirstOrDefaultAsync(ct);
         }
     }
 }

@@ -10,7 +10,6 @@ namespace Dekofar.HyperConnect.Domain.Entities
         public string AccessToken { get; set; } = null!;
         public string Scopes { get; set; } = null!;
 
-        // ⚠️ DB'de bu isim var
         public DateTime InstalledAtUtc { get; set; }
     }
 }

@@ -84,7 +84,7 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             // ileride: services.AddHttpClient<IPttDeleteService, PttDeleteService>();
             // 🛍️ Shopify
             services.AddScoped<ShopifyStoreService>();
-            services.AddScoped<ShopifyService>(); // 👈 EKSİK OLAN BU
+            services.AddHttpClient<ShopifyService>();
 
             // 📦 Job Stats
             services.AddScoped<IJobStatsService, JobStatsService>();
