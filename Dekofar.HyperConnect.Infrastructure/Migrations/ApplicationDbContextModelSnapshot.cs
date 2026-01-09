@@ -70,7 +70,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AllowedAdminIps");
+                    b.ToTable("AllowedAdminIps", (string)null);
                 });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.ApplicationUser", b =>
@@ -232,7 +232,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("BlacklistEntries");
+                    b.ToTable("BlacklistEntries", (string)null);
                 });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.CalendarTask", b =>
@@ -265,7 +265,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("CalendarTasks");
+                    b.ToTable("CalendarTasks", (string)null);
                 });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.Commission", b =>
@@ -323,7 +323,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DeploymentLogs");
+                    b.ToTable("DeploymentLogs", (string)null);
                 });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.Discount", b =>
@@ -495,7 +495,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
 
                     b.HasIndex("ManualOrderId");
 
-                    b.ToTable("ManualOrderItems");
+                    b.ToTable("ManualOrderItems", (string)null);
                 });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.ModerationLog", b =>
@@ -665,7 +665,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
 
                     b.HasIndex("TagId");
 
-                    b.ToTable("OrderTags");
+                    b.ToTable("OrderTags", (string)null);
                 });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.Orders.Tag", b =>
@@ -688,7 +688,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tags");
+                    b.ToTable("Tags", (string)null);
                 });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.Permission", b =>
@@ -819,7 +819,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ShopifyStores");
+                    b.ToTable("ShopifyStores", (string)null);
                 });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.SupportCategory", b =>
@@ -1101,7 +1101,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("WorkSessions");
+                    b.ToTable("WorkSessions", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>
