@@ -102,15 +102,15 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
         // =====================================================
         private bool IsValidShopifyHmac(string clientSecret)
         {
-            if (!Request.Query.ContainsKey("hmac"))
+            if (!Request.Query.TryGetValue("hmac", out var hmacValues))
                 return false;
 
-            var receivedHmac = Request.Query["hmac"].ToString();
+            var receivedHmac = hmacValues.ToString();
 
             var sortedQuery = Request.Query
                 .Where(x => x.Key != "hmac" && x.Key != "signature")
                 .OrderBy(x => x.Key)
-                .Select(x => $"{x.Key}={x.Value}")
+                .Select(x => $"{x.Key}={x.Value.ToString()}")
                 .ToArray();
 
             var message = string.Join("&", sortedQuery);
@@ -118,12 +118,11 @@ namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
             using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(clientSecret));
             var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(message));
 
-            var calculated =
-                BitConverter.ToString(hashBytes)
-                    .Replace("-", "")
-                    .ToLowerInvariant();
+            var calculatedHmac =
+                Convert.ToHexString(hashBytes).ToLowerInvariant();
 
-            return calculated == receivedHmac;
+            return calculatedHmac == receivedHmac;
         }
+
     }
 }
