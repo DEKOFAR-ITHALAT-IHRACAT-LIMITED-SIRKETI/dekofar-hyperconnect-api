@@ -31,7 +31,7 @@ namespace Dekofar.HyperConnect.Application.Integrations.Shopify.Services
                     ShopDomain = shopDomain,
                     AccessToken = accessToken,
                     Scopes = scopes,
-                    InstalledAt = DateTime.UtcNow,
+                    InstalledAtUtc = DateTime.UtcNow, // ✅ DÜZELTİLDİ
                     IsActive = true
                 };
 
@@ -42,7 +42,7 @@ namespace Dekofar.HyperConnect.Application.Integrations.Shopify.Services
                 store.AccessToken = accessToken;
                 store.Scopes = scopes;
                 store.IsActive = true;
-                store.InstalledAt = DateTime.UtcNow;
+                store.InstalledAtUtc = DateTime.UtcNow; // ✅ DÜZELTİLDİ
             }
 
             await _db.SaveChangesAsync();

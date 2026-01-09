@@ -10,6 +10,7 @@ public class ShopifyStore
     public string AccessToken { get; set; } = null!;
     public string Scopes { get; set; } = null!;
 
-    public DateTime InstalledAt { get; set; } = DateTime.UtcNow;
+    public DateTime InstalledAtUtc { get; set; } = DateTime.UtcNow;
+
     public bool IsActive { get; set; } = true;
 }
