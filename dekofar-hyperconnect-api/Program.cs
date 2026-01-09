@@ -134,23 +134,11 @@ builder.Services.AddSwaggerGen(c =>
         c.IncludeXmlComments(xmlPath);
 });
 
-//
-// 🛒 Shopify – Typed HttpClient (NET 8 SAFE)
-//
-builder.Services.AddHttpClient<IShopifyService, ShopifyService>()
-    .ConfigureHttpClient(client =>
-    {
-        client.Timeout = TimeSpan.FromSeconds(30);
-    })
-    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-    {
-        AutomaticDecompression =
-            DecompressionMethods.GZip | DecompressionMethods.Deflate,
+builder.Services.Configure<ShopifyOptions>(
+    builder.Configuration.GetSection("Shopify"));
 
-        PooledConnectionLifetime = TimeSpan.FromMinutes(10),
-        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(5),
-        MaxConnectionsPerServer = 10
-    });
+builder.Services.AddScoped<ShopifyOAuthService>();
+
 
 
 //

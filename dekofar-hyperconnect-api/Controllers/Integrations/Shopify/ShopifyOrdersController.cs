@@ -1,37 +1,43 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading;
+using System.Threading.Tasks;
 
-[ApiController]
-[Route("api/integrations/shopify/orders")]
-public class ShopifyOrdersController : ControllerBase
+namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
 {
-    private readonly ShopifyService _shopifyService;
-
-    public ShopifyOrdersController(ShopifyService shopifyService)
+    [ApiController]
+    [Route("api/integrations/shopify/orders")]
+    public class ShopifyOrdersController : ControllerBase
     {
-        _shopifyService = shopifyService;
-    }
+        private readonly IShopifyService _shopifyService;
 
-    [HttpGet("latest")]
-    public async Task<IActionResult> GetLatestOrders(
-        [FromQuery] string shop,
-        CancellationToken ct)
-    {
-        var orders = await _shopifyService.GetLatestOrdersAsync(
-            shop,
-            10,
-            ct
-        );
-
-        return Ok(new
+        public ShopifyOrdersController(IShopifyService shopifyService)
         {
-            count = orders.Count,
-            orders
-        });
-    }
+            _shopifyService = shopifyService;
+        }
 
-    [HttpPost("create")]
-    public IActionResult Create()
-    {
-        return Ok(new { message = "Webhook endpoint hazır" });
+        /// <summary>
+        /// Shopify mağazasındaki SON 10 siparişi getirir
+        /// </summary>
+        [HttpGet("latest")]
+        public async Task<IActionResult> GetLatestOrders(
+            [FromQuery] string shop,
+            CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(shop))
+                return BadRequest("shop query parameter is required");
+
+            var orders = await _shopifyService.GetLatestOrdersAsync(
+                shopDomain: shop,
+                limit: 10,
+                ct: ct
+            );
+
+            return Ok(new
+            {
+                count = orders.Count,
+                orders
+            });
+        }
     }
 }

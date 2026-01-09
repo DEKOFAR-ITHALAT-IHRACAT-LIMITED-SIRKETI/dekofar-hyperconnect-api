@@ -34,7 +34,14 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Interfaces
         Task<bool> MarkOrderAsPaidAsync(long orderId, CancellationToken ct = default); // ✅ DOĞRU HALİ BU
 
 
-
+        /// <summary>
+        /// Shopify mağazasındaki son siparişleri getirir
+        /// </summary>
+        Task<IReadOnlyList<object>> GetLatestOrdersAsync(
+            string shopDomain,
+            int limit,
+            CancellationToken ct
+        );
         Task<List<ShopifyOrderItemSummaryDto>> GetOrderItemsSummaryAsync(
             DateTime? start = null,
             DateTime? end = null,

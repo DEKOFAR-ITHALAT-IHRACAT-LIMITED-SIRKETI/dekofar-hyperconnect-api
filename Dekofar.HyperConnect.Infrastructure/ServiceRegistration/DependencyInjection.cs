@@ -23,6 +23,8 @@ using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
+using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
+using Dekofar.HyperConnect.Integrations.Shopify.Services;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -78,11 +80,15 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddHttpClient<IPttShipmentService, PttShipmentService>(); // gönderi yükleme
             services.AddHttpClient<IPttDeleteService, PttDeleteService>();     // silme
             services.AddHttpClient<IPttTrackingService, PttTrackingService>(); // 🔹 takip
-
-
-            // ileride: services.AddHttpClient<IPttDeleteService, PttDeleteService>();
-            // 🛍️ Shopify
+                                                                               // 🛍️ Shopify
+                                                                               // 🛍️ Shopify
             services.AddScoped<ShopifyStoreService>();
+
+            services.AddHttpClient<IShopifyService, ShopifyService>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+
 
             // 📦 Job Stats
             services.AddScoped<IJobStatsService, JobStatsService>();
