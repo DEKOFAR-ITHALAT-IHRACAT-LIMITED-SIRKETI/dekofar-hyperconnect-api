@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dekofar.HyperConnect.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250819205132_AddAvatarUrlToUsers")]
-    partial class AddAvatarUrlToUsers
+    [Migration("20260109212306_AddIsActiveToShopifyStores_Correct")]
+    partial class AddIsActiveToShopifyStores_Correct
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -364,6 +364,30 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Discounts", (string)null);
+                });
+
+            modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.JobStat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CancelTagged")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PaidMarked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("Id");
+
+                    b.ToTable("JobStats", (string)null);
                 });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.ManualOrder", b =>
@@ -1182,6 +1206,35 @@ namespace Dekofar.HyperConnect.Infrastructure.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("ShopifyStore", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccessToken")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("InstalledAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Scopes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ShopDomain")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ShopifyStores");
                 });
 
             modelBuilder.Entity("Dekofar.HyperConnect.Domain.Entities.Commission", b =>

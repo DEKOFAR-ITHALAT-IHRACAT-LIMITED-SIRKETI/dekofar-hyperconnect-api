@@ -12,7 +12,6 @@ using Dekofar.HyperConnect.Infrastructure.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
 using Dekofar.HyperConnect.Integrations.Shopify.Common;
-using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
 using Dekofar.HyperConnect.Integrations.Shopify.OAuth;
 using Hangfire;
 using Hangfire.MemoryStorage;
@@ -23,8 +22,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json;
 using System.IO.Compression;
-using System.Net;
-using System.Net.Http;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -82,12 +79,11 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IModerationService, ModerationService>();
 
-
+//
 // 🛒 Shopify OAuth
 //
 builder.Services.Configure<ShopifyOptions>(
     builder.Configuration.GetSection("Shopify"));
-
 builder.Services.AddScoped<ShopifyOAuthService>();
 
 //
@@ -136,15 +132,7 @@ builder.Services.AddSwaggerGen(c =>
         c.IncludeXmlComments(xmlPath);
 });
 
-builder.Services.Configure<ShopifyOptions>(
-    builder.Configuration.GetSection("Shopify"));
-
-builder.Services.AddScoped<ShopifyOAuthService>();
-
-
-
 //
-
 // 🛰️ Forwarded Headers (Railway)
 //
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -156,6 +144,15 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 var app = builder.Build();
+
+//
+// 🧱 AUTO MIGRATION (PROD SAFE)
+//
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+}
 
 //
 // 🧭 Middleware
@@ -178,13 +175,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseHangfireDashboard();
-
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
-}
-
 
 //
 // 🗺️ Endpoints
