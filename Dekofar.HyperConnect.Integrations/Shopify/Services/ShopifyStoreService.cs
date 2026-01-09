@@ -50,6 +50,14 @@ namespace Dekofar.HyperConnect.Application.Integrations.Shopify.Services
 
             await _db.SaveChangesAsync(ct);
         }
+        public async Task<ShopifyStore?> GetByShopDomainAsync(
+    string shopDomain,
+    CancellationToken ct)
+        {
+            return await _db.ShopifyStores
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ShopDomain == shopDomain, ct);
+        }
 
         /// <summary>
         /// Aktif (son kurulan) Shopify mağazasını getirir

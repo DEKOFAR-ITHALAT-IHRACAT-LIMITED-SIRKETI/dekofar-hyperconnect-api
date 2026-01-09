@@ -23,7 +23,6 @@ using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
-using Dekofar.HyperConnect.Integrations.Shopify.Services;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -84,7 +83,6 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             // ileride: services.AddHttpClient<IPttDeleteService, PttDeleteService>();
             // 🛍️ Shopify
             services.AddScoped<ShopifyStoreService>();
-            services.AddHttpClient<ShopifyService>();
 
             // 📦 Job Stats
             services.AddScoped<IJobStatsService, JobStatsService>();

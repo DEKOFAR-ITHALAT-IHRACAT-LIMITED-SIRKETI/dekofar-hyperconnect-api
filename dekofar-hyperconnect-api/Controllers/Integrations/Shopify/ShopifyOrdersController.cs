@@ -1,44 +1,37 @@
-﻿using Dekofar.HyperConnect.Application.Integrations.Shopify.Services;
-using Dekofar.HyperConnect.Integrations.Shopify.Services;
-using Microsoft.AspNetCore.Mvc;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Mvc;
 
-namespace dekofar_hyperconnect_api.Controllers.Integrations.Shopify
+[ApiController]
+[Route("api/integrations/shopify/orders")]
+public class ShopifyOrdersController : ControllerBase
 {
-    [ApiController]
-    [Route("api/integrations/shopify/orders")]
-    public class ShopifyOrdersController : ControllerBase
+    private readonly ShopifyService _shopifyService;
+
+    public ShopifyOrdersController(ShopifyService shopifyService)
     {
-        private readonly ShopifyService _shopifyService;
+        _shopifyService = shopifyService;
+    }
 
-        public ShopifyOrdersController(ShopifyService shopifyService)
+    [HttpGet("latest")]
+    public async Task<IActionResult> GetLatestOrders(
+        [FromQuery] string shop,
+        CancellationToken ct)
+    {
+        var orders = await _shopifyService.GetLatestOrdersAsync(
+            shop,
+            10,
+            ct
+        );
+
+        return Ok(new
         {
-            _shopifyService = shopifyService;
-        }
+            count = orders.Count,
+            orders
+        });
+    }
 
-        /// <summary>
-        /// Shopify mağazasındaki SON 10 siparişi getirir
-        /// </summary>
-        /// <remarks>
-        /// Aktif ShopifyStore kaydı olan mağazadan verileri çeker
-        /// </remarks>
-        [HttpGet("latest")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetLatestOrders(CancellationToken ct)
-        {
-            var result = await _shopifyService.GetOrdersPagedAsync(
-                pageInfo: null, // ilk sayfa
-                limit: 10,
-                ct: ct
-            );
-
-            return Ok(new
-            {
-                count = result.Items.Count,
-                orders = result.Items
-            });
-        }
+    [HttpPost("create")]
+    public IActionResult Create()
+    {
+        return Ok(new { message = "Webhook endpoint hazır" });
     }
 }

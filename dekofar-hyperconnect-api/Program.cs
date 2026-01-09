@@ -13,7 +13,6 @@ using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
 using Dekofar.HyperConnect.Integrations.Shopify.Common;
 using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
 using Dekofar.HyperConnect.Integrations.Shopify.OAuth;
-using Dekofar.HyperConnect.Integrations.Shopify.Services;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authorization;
@@ -81,22 +80,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IModerationService, ModerationService>();
 
-//
-// 🛒 Shopify – Typed HttpClient (NET 8 SAFE)
-//
-builder.Services.AddHttpClient<IShopifyService, ShopifyService>(client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(30);
-})
-.ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-{
-    AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-    PooledConnectionLifetime = TimeSpan.FromMinutes(10),
-    PooledConnectionIdleTimeout = TimeSpan.FromMinutes(5),
-    MaxConnectionsPerServer = 10
-});
 
-//
 // 🛒 Shopify OAuth
 //
 builder.Services.Configure<ShopifyOptions>(
@@ -151,6 +135,26 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 //
+// 🛒 Shopify – Typed HttpClient (NET 8 SAFE)
+//
+builder.Services.AddHttpClient<IShopifyService, ShopifyService>()
+    .ConfigureHttpClient(client =>
+    {
+        client.Timeout = TimeSpan.FromSeconds(30);
+    })
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+    {
+        AutomaticDecompression =
+            DecompressionMethods.GZip | DecompressionMethods.Deflate,
+
+        PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(5),
+        MaxConnectionsPerServer = 10
+    });
+
+
+//
+
 // 🛰️ Forwarded Headers (Railway)
 //
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -184,6 +188,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseHangfireDashboard();
+
+
 
 //
 // 🗺️ Endpoints

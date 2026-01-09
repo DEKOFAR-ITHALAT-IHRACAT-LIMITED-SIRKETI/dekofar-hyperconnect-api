@@ -1,1260 +1,169 @@
-﻿using Dekofar.HyperConnect.Domain.Entities;
+﻿using Dekofar.HyperConnect.Application.Integrations.Shopify.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
-using Dekofar.HyperConnect.Integrations.Shopify.Models;
 using Dekofar.HyperConnect.Integrations.Shopify.Models.Shopify;
 using Dekofar.HyperConnect.Integrations.Shopify.Models.Shopify.Dto;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using RestSharp;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Net.Http.Json;
 
-namespace Dekofar.HyperConnect.Integrations.Shopify.Services
+public class ShopifyService : IShopifyService
 {
-    public class ShopifyService : IShopifyService
+    private readonly HttpClient _httpClient;
+    private readonly ShopifyStoreService _storeService;
+
+    public ShopifyService(
+        HttpClient httpClient,
+        ShopifyStoreService storeService)
     {
-        private readonly IMemoryCache _memoryCache;
-        private readonly HttpClient _httpClient;
-        private readonly ILogger<ShopifyService> _logger;
-        private readonly string _baseUrl;
-        private readonly string _accessToken;
-
-        public ShopifyService(HttpClient httpClient, IConfiguration configuration, ILogger<ShopifyService> logger, IMemoryCache memoryCache)
-        {
-            _httpClient = httpClient;
-            _logger = logger;
-            _memoryCache = memoryCache;
-
-            _baseUrl = configuration["Shopify:BaseUrl"];
-            _accessToken = configuration["Shopify:AccessToken"];
-
-            _httpClient.BaseAddress = new Uri(_baseUrl);
-            _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("X-Shopify-Access-Token", _accessToken);
-            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        }
-
-        private async Task<List<Order>> GetAllOrdersCachedAsync(CancellationToken ct = default)
-        {
-            const string cacheKey = "shopify_orders_cache";
-
-            if (_memoryCache.TryGetValue(cacheKey, out List<Order> cachedOrders))
-                return cachedOrders;
-
-            var allOrders = new List<Order>();
-            string? nextPageInfo = null;
-            bool isFirstPage = true;
-            int pageCounter = 0;
-            int maxPages = 4; // 4 x 250 = 1000 sipariş
-
-            do
-            {
-                string url = isFirstPage
-                    ? "/admin/api/2024-04/orders.json?status=any&limit=250"
-                    : $"/admin/api/2024-04/orders.json?limit=250&page_info={WebUtility.UrlEncode(nextPageInfo)}";
-
-                isFirstPage = false;
-
-                var response = await _httpClient.GetAsync(url, ct);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    var error = await response.Content.ReadAsStringAsync(ct);
-                    _logger.LogError("❌ Shopify API hatası: {StatusCode} - {Error}", response.StatusCode, error);
-                    throw new Exception($"Shopify API hatası: {response.StatusCode} - {error}");
-                }
-
-                var content = await response.Content.ReadAsStringAsync(ct);
-                var result = JsonConvert.DeserializeObject<OrdersResponse>(content);
-
-                if (result?.Orders != null)
-                    allOrders.AddRange(result.Orders);
-
-                nextPageInfo = null;
-                if (response.Headers.TryGetValues("Link", out var linkHeaders))
-                {
-                    var linkHeader = linkHeaders.FirstOrDefault();
-                    var match = Regex.Match(linkHeader ?? "", @"<[^>]+page_info=([^&>]+)[^>]*>; rel=""next""");
-                    if (match.Success)
-                        nextPageInfo = match.Groups[1].Value;
-                }
-
-                pageCounter++;
-                if (pageCounter >= maxPages) break;
-
-            } while (!string.IsNullOrEmpty(nextPageInfo));
-
-            _memoryCache.Set(cacheKey, allOrders, TimeSpan.FromMinutes(5)); // 5 dakikalık cache
-
-            return allOrders;
-        }
-
-        /// <summary>
-        /// Shopify mağazasıyla bağlantıyı test eder.
-        /// /shop.json endpointine GET isteği atar ve mağaza bilgilerini döner.
-        /// </summary>
-        public async Task<string> TestConnectionAsync(CancellationToken cancellationToken = default)
-        {
-            // Mağaza bilgilerini almak için istek gönderilir
-            var resp = await _httpClient.GetAsync("/admin/api/2024-04/shop.json", cancellationToken);
-
-            // Başarısızsa exception fırlatır
-            resp.EnsureSuccessStatusCode();
-
-            // Yanıt içeriği okunur
-            var content = await resp.Content.ReadAsStringAsync();
-
-            // Loglama yapılır
-            _logger.LogInformation("🔐 Shopify bağlantı başarılı. Yanıt: {Content}", content);
-
-            return content;
-        }
-
-        /// <summary>
-        /// Sayfalama destekli olarak açık (open) siparişleri çeker.
-        /// Shopify'dan gelen Link header üzerinden next page bilgisi de ayrıştırılır.
-        /// </summary>
-        /// <param name="pageInfo">Sonraki sayfa bilgisi (Shopify'in verdiği page_info değeri)</param>
-        /// <param name="limit">Sayfa başına kaç sipariş getirileceği</param>
-        /// <param name="ct">İptal token'ı</param>
-        /// <returns>PagedResult tipinde sipariş listesi ve varsa bir sonraki sayfa bilgisi</returns>
-        public async Task<PagedResult<Order>> GetOrdersPagedAsync(string? pageInfo, int limit, CancellationToken ct)
-        {
-            var url = $"{_baseUrl}/admin/api/2023-04/orders.json?limit={limit}";
-
-            // ⛔ Eğer page_info varsa, başka parametre geçme
-            if (!string.IsNullOrWhiteSpace(pageInfo))
-            {
-                url += $"&page_info={WebUtility.UrlEncode(pageInfo)}";
-            }
-            else
-            {
-                // ✅ İlk istek ise, filtrelemeyi burada yap
-                url += "&status=open&order=created_at+desc";
-            }
-
-            _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("X-Shopify-Access-Token", _accessToken);
-            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-            var response = await _httpClient.GetAsync(url, ct);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Shopify API hatası: {(int)response.StatusCode} - {errorContent}");
-            }
-
-            var content = await response.Content.ReadAsStringAsync();
-            var ordersWrapper = JsonConvert.DeserializeObject<ShopifyOrdersResponse>(content);
-
-            var linkHeader = response.Headers.TryGetValues("Link", out var values) ? values.FirstOrDefault() : null;
-            var nextPageInfo = ExtractNextPageInfoFromLinkHeader(linkHeader);
-
-            return new PagedResult<Order>
-            {
-                Items = ordersWrapper?.Orders ?? new(),
-                NextPageInfo = nextPageInfo
-            };
-        }
-
-        private string? ExtractNextPageInfoFromLinkHeader(string? linkHeader)
-        {
-            if (string.IsNullOrWhiteSpace(linkHeader)) return null;
-
-            // Örnek header:
-            // <https://your-shop.myshopify.com/admin/api/2023-04/orders.json?page_info=xxx&limit=10>; rel="next"
-            var match = Regex.Match(linkHeader, @"<[^>]*[?&]page_info=([^&>]*)[^>]*>; rel=""next""");
-
-            return match.Success ? match.Groups[1].Value : null;
-        }
-
-        /// <summary>
-        /// Belirli bir sipariş ID'sine göre Shopify sipariş detayını çeker.
-        /// </summary>
-        /// <param name="orderId">Shopify sipariş ID'si</param>
-        /// <param name="ct">İptal token'ı</param>
-        /// <returns>Sipariş bulunursa Order nesnesi, bulunamazsa null</returns>
-        public async Task<Order?> GetOrderByIdAsync(long orderId, CancellationToken ct = default)
-        {
-            try
-            {
-                // API isteği için URL
-                var url = $"/admin/api/2024-04/orders/{orderId}.json";
-
-                // HTTP isteği gönder
-                var response = await _httpClient.GetAsync(url, ct);
-                response.EnsureSuccessStatusCode();
-
-                // JSON içeriğini al
-                var content = await response.Content.ReadAsStringAsync(ct);
-                _logger.LogInformation("📄 Shopify sipariş detayı (ham JSON): {Content}", content);
-
-                // JSON'u Order objesine deserialize et
-                var parsed = JsonConvert.DeserializeObject<Dictionary<string, Order>>(content);
-
-                // "order" alanı varsa döndür
-                if (parsed != null && parsed.TryGetValue("order", out var order))
-                    return order;
-
-                _logger.LogWarning("⚠️ Sipariş detayı boş veya 'order' alanı eksik. ID: {OrderId}", orderId);
-                return null;
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "❌ Shopify API hatası - OrderId: {OrderId}", orderId);
-                throw;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Shopify sipariş detayı çekme hatası - ID: {OrderId}", orderId);
-                throw new Exception("Shopify sipariş detayı çekilemedi.");
-            }
-        }
-        /// <summary>
-        /// Belirtilen ürün ve varyanta ait uygun görsel URL'sini getirir.
-        /// </summary>
-        /// <param name="productId">Ürün ID'si</param>
-        /// <param name="variantId">Varyant ID'si (opsiyonel)</param>
-        /// <param name="ct">İptal token'ı</param>
-        /// <returns>Görsel URL'si veya null</returns>
-        private async Task<string?> GetImageUrlFromProductAsync(long productId, long? variantId = null, CancellationToken ct = default)
-        {
-            // Ürünü Shopify API'den çek
-            var productResp = await _httpClient.GetAsync($"/admin/api/2024-04/products/{productId}.json", ct);
-            productResp.EnsureSuccessStatusCode();
-
-            var content = await productResp.Content.ReadAsStringAsync(ct);
-            dynamic productData = JsonConvert.DeserializeObject<dynamic>(content);
-            var product = productData?.product;
-
-            if (product == null || product.images == null)
-                return null;
-
-            long? imageId = null;
-
-            // 1️⃣ Varyant ID varsa, buna karşılık gelen image_id bulunur
-            if (variantId != null && product.variants != null)
-            {
-                foreach (var variant in product.variants)
-                {
-                    if ((long)variant.id == variantId)
-                    {
-                        imageId = variant.image_id;
-                        break;
-                    }
-                }
-            }
-
-            // 2️⃣ image_id eşleşmesi varsa, karşılık gelen görsel döndürülür
-            if (imageId != null)
-            {
-                foreach (var img in product.images)
-                {
-                    if ((long)img.id == imageId)
-                        return (string)img.src;
-                }
-            }
-
-            // 3️⃣ Yoksa ürünün ilk görseli döndürülür
-            if (product.images.Count > 0)
-                return (string)product.images[0].src;
-
-            return null;
-        }
-        /// <summary>
-        /// Belirtilen sipariş ID’sine ait detaylı sipariş bilgisini getirir.
-        /// Her bir ürün kalemi için uygun ürün görseli de ilişkilendirilir.
-        /// </summary>
-        /// <param name="orderId">Shopify sipariş ID</param>
-        /// <param name="ct">İptal token’ı</param>
-        /// <returns>ShopifyOrderDetailDto – görseller dahil detaylı sipariş bilgisi</returns>
-        public async Task<ShopifyOrderDetailDto?> GetOrderDetailWithImagesAsync(long orderId, CancellationToken ct = default)
-        {
-            // 🧾 Sipariş detayını getir
-            var order = await GetOrderByIdAsync(orderId, ct);
-            if (order == null) return null;
-
-            var lineItems = new List<ShopifyOrderDetailDto.LineItemDto>();
-
-            // 🛒 Sipariş içerisindeki ürünleri tek tek işle
-            foreach (var item in order.LineItems)
-            {
-                string? imageUrl = null;
-
-                try
-                {
-                    var productId = item.ProductId;
-                    if (productId <= 0) continue;
-
-                    // 📦 Ürün detaylarını çek
-                    var productResp = await _httpClient.GetAsync($"/admin/api/2024-04/products/{productId}.json", ct);
-                    productResp.EnsureSuccessStatusCode();
-
-                    var content = await productResp.Content.ReadAsStringAsync(ct);
-                    dynamic productData = JsonConvert.DeserializeObject<dynamic>(content);
-                    var product = productData?.product;
-
-                    if (product == null || product.images == null) continue;
-
-                    long? imageId = null;
-
-                    // 🔍 VARIANT_ID üzerinden image_id bul
-                    if (item.VariantId.HasValue && product.variants != null)
-                    {
-                        foreach (var variant in product.variants)
-                        {
-                            if ((long)variant.id == item.VariantId.Value)
-                            {
-                                imageId = variant.image_id;
-                                break;
-                            }
-                        }
-                    }
-
-                    // 🎯 image_id eşleşirse ilgili görseli kullan
-                    if (imageId != null)
-                    {
-                        foreach (var img in product.images)
-                        {
-                            if ((long)img.id == imageId)
-                            {
-                                imageUrl = (string)img.src;
-                                break;
-                            }
-                        }
-                    }
-
-                    // 🖼️ Eşleşme yoksa ilk görseli kullan
-                    if (imageUrl == null && product.images.Count > 0)
-                    {
-                        imageUrl = (string)product.images[0].src;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, $"🖼️ Ürün görseli alınamadı (ProductId: {item.ProductId})");
-                }
-
-                // ➕ Görselli ürün kalemini DTO listesine ekle
-                lineItems.Add(new ShopifyOrderDetailDto.LineItemDto
-                {
-                    Title = item.Title,
-                    VariantTitle = item.VariantTitle,
-                    Quantity = item.Quantity,
-                    ImageUrl = imageUrl
-                });
-            }
-
-            // ✅ Tüm sipariş verilerini DTO olarak hazırla ve dön
-            return new ShopifyOrderDetailDto
-            {
-                OrderId = order.Id,
-                OrderNumber = order.OrderNumber,
-                CreatedAt = DateTime.Parse(order.CreatedAt),
-                Currency = order.Currency,
-                TotalPrice = order.TotalPrice,
-                FinancialStatus = order.FinancialStatus,
-                FulfillmentStatus = order.FulfillmentStatus,
-                Note = order.Note,
-                NoteAttributes = order.NoteAttributes,
-                Tags = order.Tags,
-
-                Customer = new CustomerDto
-                {
-                    Id = order.Customer?.Id ?? 0,
-                    FirstName = order.Customer?.FirstName,
-                    LastName = order.Customer?.LastName,
-                    Phone = order.Customer?.Phone,
-                    Email = order.Customer?.Email,
-                    OrdersCount = order.Customer?.OrdersCount ?? 0
-                },
-
-                BillingAddress = new AddressDto
-                {
-                    FirstName = order.BillingAddress?.FirstName,
-                    LastName = order.BillingAddress?.LastName,
-                    Address1 = order.BillingAddress?.Address1,
-                    Address2 = order.BillingAddress?.Address2,
-                    City = order.BillingAddress?.City,
-                    Province = order.BillingAddress?.Province,
-                    Country = order.BillingAddress?.Country,
-                    Zip = order.BillingAddress?.Zip,
-                    Phone = order.BillingAddress?.Phone
-                },
-
-                LineItems = lineItems
-            };
-        }
-        /// <summary>
-        /// Shopify bağlantısının çalıştığını test etmek için basit bir GET isteği yapar.
-        /// </summary>
-        Task<string> IShopifyService.TestConnectionAsync(CancellationToken cancellationToken)
-        {
-            return TestConnectionAsync(cancellationToken);
-        }
-        /// <summary>
-        /// Shopify'dan sayfalı sipariş listesini getirir (open statüsündeki siparişler).
-        /// </summary>
-        Task<PagedResult<Order>> IShopifyService.GetOrdersPagedAsync(string? pageInfo, int limit, CancellationToken ct)
-        {
-            return GetOrdersPagedAsync(pageInfo, limit, ct);
-        }
-        /// <summary>
-        /// Belirtilen ID’ye sahip Shopify siparişini getirir.
-        /// </summary>
-        Task<Order?> IShopifyService.GetOrderByIdAsync(long orderId, CancellationToken ct)
-        {
-            return GetOrderByIdAsync(orderId, ct);
-        }
-        /// <summary>
-        /// Sipariş ID’sine göre sadeleştirilmiş sipariş detayını (ürün görselleri dahil) getirir.
-        /// </summary>
-        Task<ShopifyOrderDetailDto?> IShopifyService.GetOrderDetailWithImagesAsync(long orderId, CancellationToken ct)
-        {
-            return GetOrderDetailWithImagesAsync(orderId, ct);
-        }
-        /// <summary>
-        /// Shopify mağazasındaki tüm ürünleri getirir.
-        /// </summary>
-        public async Task<List<ShopifyProduct>> GetAllProductsAsync(CancellationToken ct = default)
-        {
-            var response = await _httpClient.GetAsync("/admin/api/2024-04/products.json", ct);
-            response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync(ct);
-            var parsed = JsonConvert.DeserializeObject<Dictionary<string, List<ShopifyProduct>>>(content);
-
-            if (parsed != null && parsed.TryGetValue("products", out var products))
-                return products;
-
-            return new List<ShopifyProduct>();
-        }
-        /// <summary>
-        /// Belirli bir ürün ID'sine göre Shopify ürününü getirir.
-        /// </summary>
-        public async Task<ShopifyProduct?> GetProductByIdAsync(long productId, CancellationToken ct = default)
-        {
-            var response = await _httpClient.GetAsync($"/admin/api/2024-04/products/{productId}.json", ct);
-            response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync(ct);
-            var parsed = JsonConvert.DeserializeObject<Dictionary<string, ShopifyProduct>>(content);
-
-            if (parsed != null && parsed.TryGetValue("product", out var product))
-                return product;
-
-            return null;
-        }
-        /// <summary>
-        /// Ürün başlığına göre Shopify ürünlerinde arama yapar.
-        /// </summary>
-        public async Task<List<ShopifyProduct>> SearchProductsAsync(string query, CancellationToken ct = default)
-        {
-            // title parametresi ile başlıkta geçen ürünleri filtrele
-            var url = $"/admin/api/2024-04/products.json?title={WebUtility.UrlEncode(query)}&limit=50";
-
-            var response = await _httpClient.GetAsync(url, ct);
-            response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync(ct);
-            var parsed = JsonConvert.DeserializeObject<Dictionary<string, List<ShopifyProduct>>>(content);
-
-            if (parsed != null && parsed.TryGetValue("products", out var products))
-                return products;
-
-            return new List<ShopifyProduct>();
-        }
-        /// <summary>
-        /// Variant ID’sine göre Shopify ürün varyantını getirir.
-        /// </summary>
-        public async Task<ShopifyVariant?> GetVariantByIdAsync(long variantId, CancellationToken ct = default)
-        {
-            var url = $"/admin/api/2024-04/variants/{variantId}.json";
-
-            var response = await _httpClient.GetAsync(url, ct);
-            response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync(ct);
-            var parsed = JsonConvert.DeserializeObject<Dictionary<string, ShopifyVariant>>(content);
-
-            if (parsed != null && parsed.TryGetValue("variant", out var variant))
-                return variant;
-
-            return null;
-        }
-        /// <summary>
-        /// Belirtilen ürün ID'sine ait tüm varyantları getirir.
-        /// </summary>
-        public async Task<List<ShopifyVariant>> GetVariantsByProductIdAsync(long productId, CancellationToken ct = default)
-        {
-            var url = $"/admin/api/2024-04/products/{productId}.json";
-
-            var response = await _httpClient.GetAsync(url, ct);
-            response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync(ct);
-            dynamic productData = JsonConvert.DeserializeObject<dynamic>(content);
-
-            var variants = new List<ShopifyVariant>();
-
-            if (productData?.product?.variants != null)
-            {
-                foreach (var variant in productData.product.variants)
-                {
-                    var variantJson = JsonConvert.SerializeObject(variant);
-                    var parsedVariant = JsonConvert.DeserializeObject<ShopifyVariant>(variantJson);
-                    if (parsedVariant != null)
-                        variants.Add(parsedVariant);
-                }
-            }
-
-            return variants;
-        }
-        /// <summary>
-        /// Stok adedi belirtilen eşik değerinden düşük olan ürünleri getirir (tüm varyantlar taranır).
-        /// </summary>
-        public async Task<List<ShopifyProduct>> GetLowStockProductsAsync(int threshold, CancellationToken ct = default)
-        {
-            var lowStockProducts = new List<ShopifyProduct>();
-
-            var response = await _httpClient.GetAsync("/admin/api/2024-04/products.json?limit=250", ct);
-            response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync(ct);
-            var parsed = JsonConvert.DeserializeObject<Dictionary<string, List<ShopifyProduct>>>(content);
-
-            if (parsed != null && parsed.TryGetValue("products", out var allProducts))
-            {
-                foreach (var product in allProducts)
-                {
-                    if (product.Variants != null && product.Variants.Any(v => v.InventoryQuantity < threshold))
-                    {
-                        lowStockProducts.Add(product);
-                    }
-                }
-            }
-
-            return lowStockProducts;
-        }
-        /// <summary>
-        /// Belirtilen ürünün etiketlerini günceller veya yeni etiket ekler.
-        /// </summary>
-        /// <param name="productId">Shopify ürün ID'si</param>
-        /// <param name="tags">Virgülle ayrılmış etiket listesi (örneğin: "stok_dustu,kritik")</param>
-        /// <param name="ct">İptal tokeni</param>
-        /// <returns>true: başarıyla güncellendi | false: hata oluştu</returns>
-        public async Task<bool> AddOrUpdateProductTagsAsync(long productId, string tags, CancellationToken ct = default)
-        {
-            var requestBody = new
-            {
-                product = new
-                {
-                    id = productId,
-                    tags = tags
-                }
-            };
-
-            var json = JsonConvert.SerializeObject(requestBody);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PutAsync($"/admin/api/2024-04/products/{productId}.json", content, ct);
-
-            if (response.IsSuccessStatusCode)
-            {
-                _logger.LogInformation($"🏷️ Ürün etiketleri güncellendi (ID: {productId}, Tags: {tags})");
-                return true;
-            }
-
-            _logger.LogWarning($"⚠️ Ürün etiketleri güncellenemedi (ID: {productId}) - StatusCode: {response.StatusCode}");
-            return false;
-        }
-
-        public async Task<bool> UpdateOrderTagsAsync(long orderId, string newTag, CancellationToken ct = default)
-        {
-            // 1️⃣ Önce sipariş detayını çekelim (mevcut etiketleri öğrenmek için)
-            var order = await GetOrderByIdAsync(orderId, ct);
-            if (order == null)
-            {
-                _logger.LogWarning("⚠️ Sipariş bulunamadı, etiket güncellenemedi. OrderId: {OrderId}", orderId);
-                return false;
-            }
-
-            // 2️⃣ Mevcut etiketleri liste haline getir
-            var existingTags = string.IsNullOrWhiteSpace(order.Tags)
-                ? new List<string>()
-                : order.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                            .Select(t => t.Trim())
-                            .ToList();
-
-            // 3️⃣ Yeni etiket zaten varsa ekleme
-            if (existingTags.Contains(newTag, StringComparer.OrdinalIgnoreCase))
-            {
-                _logger.LogInformation("ℹ️ Sipariş {OrderId} için '{Tag}' etiketi zaten mevcut.", orderId, newTag);
-                return true;
-            }
-
-            // 4️⃣ Yeni etiketi ekle
-            existingTags.Add(newTag);
-
-            var updatedTags = string.Join(", ", existingTags);
-
-            var body = new { order = new { id = orderId, tags = updatedTags } };
-            var json = JsonConvert.SerializeObject(body);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var resp = await _httpClient.PutAsync($"/admin/api/2024-04/orders/{orderId}.json", content, ct);
-
-            if (resp.IsSuccessStatusCode)
-            {
-                _logger.LogInformation("🏷️ Sipariş {OrderId} etiketleri güncellendi → {Tags}", orderId, updatedTags);
-                return true;
-            }
-
-            var error = await resp.Content.ReadAsStringAsync(ct);
-            _logger.LogError("❌ Sipariş {OrderId} etiket güncellenemedi: {Error}", orderId, error);
-            return false;
-        }
-
-
-        /// <summary>
-        /// Update order note field.
-        /// </summary>
-        public async Task<bool> UpdateOrderNoteAsync(long orderId, string note, CancellationToken ct = default)
-        {
-            var body = new { order = new { id = orderId, note } };
-            var json = JsonConvert.SerializeObject(body);
-            var resp = await _httpClient.PutAsync($"/admin/api/2024-04/orders/{orderId}.json", new StringContent(json, Encoding.UTF8, "application/json"), ct);
-            return resp.IsSuccessStatusCode;
-        }
-
-        /// <summary>
-        /// Retrieve customer information by ID.
-        /// </summary>
-        public async Task<Customer?> GetCustomerByIdAsync(long customerId, CancellationToken ct = default)
-        {
-            var resp = await _httpClient.GetAsync($"/admin/api/2024-04/customers/{customerId}.json", ct);
-            if (!resp.IsSuccessStatusCode) return null;
-            var content = await resp.Content.ReadAsStringAsync(ct);
-            var parsed = JsonConvert.DeserializeObject<Dictionary<string, Customer>>(content);
-            return parsed != null && parsed.TryGetValue("customer", out var c) ? c : null;
-        }
-
-        /// <summary>
-        /// Create a new order on Shopify.
-        /// </summary>
-        public async Task<Order?> CreateOrderAsync(Order order, CancellationToken ct = default)
-        {
-            var body = new { order };
-            var json = JsonConvert.SerializeObject(body);
-            var resp = await _httpClient.PostAsync("/admin/api/2024-04/orders.json", new StringContent(json, Encoding.UTF8, "application/json"), ct);
-            if (!resp.IsSuccessStatusCode) return null;
-            var content = await resp.Content.ReadAsStringAsync(ct);
-            var parsed = JsonConvert.DeserializeObject<Dictionary<string, Order>>(content);
-            return parsed != null && parsed.TryGetValue("order", out var o) ? o : null;
-        }
-
-        /// <summary>
-        /// Create fulfillment for an order.
-        /// </summary>
-        public async Task<string> CreateFulfillmentAsync(long orderId, FulfillmentCreateRequest request, CancellationToken ct = default)
-        {
-            var body = new { fulfillment = new { location_id = request.LocationId, tracking_number = request.TrackingNumber, tracking_company = request.TrackingCompany } };
-            var json = JsonConvert.SerializeObject(body);
-            var resp = await _httpClient.PostAsync($"/admin/api/2024-04/orders/{orderId}/fulfillments.json", new StringContent(json, Encoding.UTF8, "application/json"), ct);
-            resp.EnsureSuccessStatusCode();
-            return await resp.Content.ReadAsStringAsync(ct);
-        }
-
-        /// <summary>
-        /// Search orders via GraphQL and cache result.
-        /// </summary>
-        public async Task<List<Order>> GetOrdersBySearchQueryAsync(string query, CancellationToken ct = default)
-        {
-            var cacheKey = $"shopify_order_search_{query}";
-            if (_memoryCache.TryGetValue(cacheKey, out List<Order> cached))
-                return cached;
-
-            var gql = $"{{ orders(first: 250, query: \"{query}\") {{ edges {{ node {{ id name createdAt totalPriceSet {{ shopMoney {{ amount currencyCode }} }} customer {{ firstName lastName phone }} }} }} }} }}";
-            var payload = new StringContent(JsonConvert.SerializeObject(new { query = gql }), Encoding.UTF8, "application/json");
-            var resp = await _httpClient.PostAsync("/admin/api/2024-04/graphql.json", payload, ct);
-            resp.EnsureSuccessStatusCode();
-            var content = await resp.Content.ReadAsStringAsync(ct);
-            var result = JsonConvert.DeserializeObject<ShopifyGraphQlPagedResult>(content);
-
-            var orders = new List<Order>();
-            if (result?.data?.orders?.edges != null)
-            {
-                foreach (var edge in result.data.orders.edges)
-                {
-                    var node = edge.node;
-                    var idPart = node.id?.Split('/')?.LastOrDefault();
-                    long.TryParse(idPart, out var id);
-                    orders.Add(new Order
-                    {
-                        Id = id,
-                        OrderNumber = node.name,
-                        CreatedAt = node.createdAt,
-                        TotalPrice = node.totalPriceSet?.shopMoney?.amount,
-                        Currency = node.totalPriceSet?.shopMoney?.currencyCode,
-                        Customer = node.customer == null ? null : new Customer
-                        {
-                            FirstName = node.customer.firstName,
-                            LastName = node.customer.lastName,
-                            Phone = node.customer.phone
-                        }
-                    });
-                }
-            }
-
-            _memoryCache.Set(cacheKey, orders, TimeSpan.FromMinutes(5));
-            return orders;
-        }
-        public async Task<List<Order>> SearchOrdersAsync(string query, CancellationToken ct = default)
-        {
-            if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
-                return new List<Order>();
-
-            var result = await GetOrdersBySearchQueryAsync(query, ct);
-            return result;
-        }
-
-        public async Task<List<ShopifyOrderLiteDto>> SearchOrdersLiteAsync(string query, CancellationToken ct = default)
-        {
-            var orders = await GetOrdersBySearchQueryAsync(query, ct);
-
-            return orders.Select(order => new ShopifyOrderLiteDto
-            {
-                Id = order.Id,
-                OrderNumber = order.OrderNumber ?? order.Name ?? $"#{order.Id}",
-                CreatedAt = order.CreatedAt,
-                TotalPrice = order.TotalPrice,
-                Currency = order.Currency ?? "TRY",
-
-                FinancialStatus = order.FinancialStatus ?? "",
-                FulfillmentStatus = order.FulfillmentStatus ?? "",
-
-                Status = GetStatus(order.FinancialStatus, order.FulfillmentStatus),
-
-                CustomerName = $"{order.Customer?.FirstName ?? ""} {order.Customer?.LastName ?? ""}".Trim(),
-                CustomerPhone = order.Customer?.Phone,
-                CustomerOrderCount = order.Customer?.OrdersCount ?? 0,
-
-                ItemCount = order.LineItems?.Count ?? 0
-
-            }).ToList();
-        }
-        private static string GetStatus(string? financial, string? fulfillment)
-        {
-            financial = (financial ?? "").ToLower();
-            fulfillment = (fulfillment ?? "").ToLower();
-
-            if (financial == "paid" && fulfillment == "fulfilled") return "Tamamlandı";
-            if (financial == "paid" && fulfillment == "unfulfilled") return "Hazırlanıyor";
-            if (financial == "refunded") return "İade Edildi";
-            if (financial == "partially_refunded") return "Kısmi İade";
-            if (financial == "pending") return "Beklemede";
-            if (financial == "authorized") return "Onaylandı";
-            if (financial == "voided") return "İptal";
-            return "Bilinmiyor";
-        }
-
-
-
-
-        public async Task<PagedResult<Order>> GetOpenOrdersWithCursorAsync(string? pageInfo, int limit, CancellationToken ct)
-        {
-            var url = $"{_baseUrl}/admin/api/2023-04/orders.json?limit={limit}";
-
-            if (!string.IsNullOrWhiteSpace(pageInfo))
-            {
-                // Sayfalamada status filtresi KULLANILMAZ!
-                url += $"&page_info={WebUtility.UrlEncode(pageInfo)}";
-            }
-            else
-            {
-                // İlk sayfa sorgusu — filtre sadece burada geçerli
-                url += "&status=open&order=created_at+desc";
-            }
-
-            _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("X-Shopify-Access-Token", _accessToken);
-            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-            var response = await _httpClient.GetAsync(url, ct);
-            if (!response.IsSuccessStatusCode)
-            {
-                var err = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Shopify API hatası: {(int)response.StatusCode} - {err}");
-            }
-
-            var content = await response.Content.ReadAsStringAsync();
-            var ordersWrapper = JsonConvert.DeserializeObject<ShopifyOrdersResponse>(content);
-
-            var linkHeader = response.Headers.TryGetValues("Link", out var values) ? values.FirstOrDefault() : null;
-            var nextPageInfo = ExtractNextPageInfoFromLinkHeader(linkHeader);
-
-            return new PagedResult<Order>
-            {
-                Items = ordersWrapper?.Orders ?? new(),
-                NextPageInfo = nextPageInfo
-            };
-        }
-
-        /// <summary>
-        /// Gelişmiş sipariş arama ve detaylı veri birleştirme işlemi gerçekleştirir.
-        /// </summary>
-        public async Task<List<Order>> SearchOrdersWithDetailsAsync(string query, CancellationToken ct = default)
-        {
-            var baseOrders = await GetOrdersBySearchQueryAsync(query, ct);
-            var enrichedOrders = new List<Order>();
-
-            foreach (var order in baseOrders)
-            {
-                try
-                {
-                    // Tam detayları REST ile al (financial_status, fulfillment_status, line_items vs.)
-                    var fullOrder = await GetOrderByIdAsync(order.Id, ct);
-                    if (fullOrder != null)
-                    {
-                        // Önceki GraphQL'den gelen eksik alanları buradan tamamlıyoruz
-                        fullOrder.OrderNumber = order.OrderNumber ?? fullOrder.OrderNumber;
-                        fullOrder.Customer ??= order.Customer;
-
-                        enrichedOrders.Add(fullOrder);
-                    }
-                    else
-                    {
-                        enrichedOrders.Add(order);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "⚠️ Shopify sipariş detay yüklenemedi: {OrderId}", order.Id);
-                    enrichedOrders.Add(order);
-                }
-            }
-
-            return enrichedOrders;
-        }
-
-        public async Task<List<Order>> SearchOrdersAsync(OrderSearchFilter filter, CancellationToken ct = default)
-        {
-            if (filter == null || string.IsNullOrWhiteSpace(filter.Query))
-                return new List<Order>();
-
-            var orders = await GetOrdersBySearchQueryAsync(filter.Query, ct);
-            var enriched = new List<Order>();
-
-            foreach (var order in orders)
-            {
-                var fullOrder = await GetOrderByIdAsync(order.Id, ct);
-                if (fullOrder == null) continue;
-
-                if (filter.CreatedAfter.HasValue && DateTime.Parse(fullOrder.CreatedAt) < filter.CreatedAfter.Value)
-                    continue;
-
-                if (filter.CreatedBefore.HasValue && DateTime.Parse(fullOrder.CreatedAt) > filter.CreatedBefore.Value)
-                    continue;
-
-                if (!string.IsNullOrWhiteSpace(filter.Status) && fullOrder.FinancialStatus != filter.Status)
-                    continue;
-
-                enriched.Add(fullOrder);
-            }
-
-            return enriched.Take(filter.Limit ?? 50).ToList();
-        }
-
-
-        /// <summary>
-        /// DHL gönderi numarasına (tracking number) göre Shopify sipariş ID'sini bulur.
-        /// </summary>
-        public async Task<long?> GetOrderIdByTrackingNumberAsync(string trackingNumber, CancellationToken ct = default)
-        {
-            // Tüm açık siparişleri (veya son 250 siparişi) çekiyoruz
-            var orders = await GetAllOrdersCachedAsync(ct);
-
-            foreach (var order in orders)
-            {
-                if (order.Fulfillments == null) continue;
-
-                foreach (var f in order.Fulfillments)
-                {
-                    if (f.TrackingNumbers != null && f.TrackingNumbers.Contains(trackingNumber))
-                    {
-                        return order.Id; // Shopify gerçek OrderId
-                    }
-                }
-            }
-
-            return null; // Eşleşme bulunamadı
-        }
-
-        /// <summary>
-        /// DHL gönderi numarasına (tracking number) göre Shopify sipariş ID'sini bulur.
-        /// </summary>
-        Task<long?> IShopifyService.GetOrderIdByTrackingNumberAsync(string trackingNumber, CancellationToken cancellationToken)
-        {
-            return GetOrderIdByTrackingNumberAsync(trackingNumber, cancellationToken);
-        }
-
-        /// <summary>
-        /// Shopify siparişini 'paid' durumuna işaretler.
-        /// </summary>
-        public async Task<bool> MarkOrderAsPaidAsync(long orderId, CancellationToken ct = default)
-        {
-            var order = await GetOrderByIdAsync(orderId, ct);
-            if (order == null)
-            {
-                _logger.LogWarning("⚠️ Sipariş bulunamadı (ID: {OrderId})", orderId);
-                return false;
-            }
-
-            if (string.Equals(order.FinancialStatus, "paid", StringComparison.OrdinalIgnoreCase))
-            {
-                _logger.LogInformation("ℹ️ Sipariş {OrderId} zaten 'paid' durumunda.", orderId);
-                return true;
-            }
-
-            var transaction = new
-            {
-                transaction = new
-                {
-                    kind = "sale",
-                    status = "success"
-                }
-            };
-
-            var json = JsonConvert.SerializeObject(transaction);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var url = $"/admin/api/2024-04/orders/{orderId}/transactions.json";
-            var response = await _httpClient.PostAsync(url, content, ct);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var error = await response.Content.ReadAsStringAsync(ct);
-                _logger.LogError("❌ MarkOrderAsPaid hata: {StatusCode} - {Error}", response.StatusCode, error);
-                return false;
-            }
-
-            _logger.LogInformation("✅ Sipariş {OrderId} başarıyla 'paid' işaretlendi.", orderId);
-            return true;
-        }
-
-
-
-
-
-
-
-
-
-
-        // ----------------- Helpers -----------------
-        private static HashSet<string> ParseSet(string? csv)
-        {
-            return string.IsNullOrWhiteSpace(csv)
-                ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                : csv.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                     .Select(s => s.Trim())
-                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        }
-
-        // fulfillment_status normalize: null/"" → unfulfilled
-        private static string NormalizeFulfillment(string? f)
-        {
-            var v = (f ?? "").Trim().ToLowerInvariant();
-            return string.IsNullOrEmpty(v) ? "unfulfilled" : v;
-        }
-
-        // UTC/yerel farklarına takılmamak için ISO string'i güvenle filtrele
-        private static bool InRangeByIso(string? iso, DateTime? startUtc, DateTime? endUtc)
-        {
-            if (string.IsNullOrWhiteSpace(iso)) return false;
-            if (!DateTimeOffset.TryParse(iso, out var dto)) return false;
-            var t = dto.UtcDateTime;
-
-            if (startUtc.HasValue && t < startUtc.Value) return false;
-            if (endUtc.HasValue && t >= endUtc.Value) return false;
-            return true;
-        }
-
-        // ---- Cache key helper ----
-        private static string CacheKeyForSummary(DateTime? s, DateTime? e, string? fin, string? ful, string? st)
-        {
-            string ks = s?.ToUniversalTime().ToString("O") ?? "-";
-            string ke = e?.ToUniversalTime().ToString("O") ?? "-";
-            return $"shopify_order_items_summary::{ks}::{ke}::{fin ?? "-"}::{ful ?? "-"}::{st ?? "-"}";
-        }
-
-        // ---- Media batch helper’ları ----
-        private sealed class ProductImageMaps
-        {
-            public string? FirstImage { get; init; }
-            public Dictionary<long, string> ImageMap { get; init; } = new();        // image_id -> src
-            public Dictionary<long, long?> VariantImageMap { get; init; } = new();  // variant_id -> image_id?
-        }
-
-        private async Task<Dictionary<long, ProductImageMaps>> GetProductMediaBatchAsync(
-            IEnumerable<long> productIds, CancellationToken ct)
-        {
-            var distinct = productIds.Where(id => id > 0).Distinct().ToArray();
-            var result = new Dictionary<long, ProductImageMaps>();
-            if (distinct.Length == 0) return result;
-
-            // Aynı anda en fazla 6 istek
-            var sem = new SemaphoreSlim(6);
-            var tasks = new List<Task>();
-
-            foreach (var pid in distinct)
-            {
-                tasks.Add(Task.Run(async () =>
-                {
-                    var cacheKey = $"shopify_product_media::{pid}";
-                    if (_memoryCache.TryGetValue(cacheKey, out ProductImageMaps cached))
-                    {
-                        lock (result) result[pid] = cached;
-                        return;
-                    }
-
-                    await sem.WaitAsync(ct);
-                    try
-                    {
-                        // ⬇️ Sadece gerekli alanlar: images + variants
-                        var resp = await _httpClient.GetAsync(
-                            $"/admin/api/2024-04/products/{pid}.json?fields=images,variants", ct);
-
-                        if (!resp.IsSuccessStatusCode) return;
-
-                        var json = await resp.Content.ReadAsStringAsync(ct);
-                        dynamic product = JsonConvert.DeserializeObject<dynamic>(json)?.product;
-                        if (product == null) return;
-
-                        string? firstImage = (product.images != null && product.images.Count > 0)
-                            ? (string)product.images[0].src
-                            : null;
-
-                        var imageMap = new Dictionary<long, string>();
-                        if (product.images != null)
-                            foreach (var img in product.images)
-                                imageMap[(long)img.id] = (string)img.src;
-
-                        var variantImageMap = new Dictionary<long, long?>();
-                        if (product.variants != null)
-                            foreach (var v in product.variants)
-                                variantImageMap[(long)v.id] = v.image_id != null ? (long?)v.image_id : null;
-
-                        var pack = new ProductImageMaps
-                        {
-                            FirstImage = firstImage,
-                            ImageMap = imageMap,
-                            VariantImageMap = variantImageMap
-                        };
-
-                        // Ürün medyasını 20 dk cachele
-                        _memoryCache.Set(cacheKey, pack, TimeSpan.FromMinutes(20));
-
-                        lock (result) result[pid] = pack;
-                    }
-                    catch
-                    {
-                        // tek ürün hatası akışı bozmasın
-                    }
-                    finally
-                    {
-                        sem.Release();
-                    }
-                }, ct));
-            }
-
-            await Task.WhenAll(tasks);
-            return result;
-        }
-
-        // ---- Dar pencere sipariş getirme + cache ----
-        private async Task<List<Order>> GetOrdersWindowCachedAsync(
-            DateTime? startUtc, DateTime? endUtc, CancellationToken ct)
-        {
-            var key = $"shopify_orders::{startUtc?.ToString("O") ?? "-"}::{endUtc?.ToString("O") ?? "-"}";
-            if (_memoryCache.TryGetValue(key, out List<Order> cached))
-                return cached;
-
-            var all = new List<Order>();
-            string? next = null;
-            bool first = true;
-
-            // İlk sayfada sadece gerekli alanları iste (fields):
-            // line_items gerekiyor → alt alan kısıtlayamıyoruz, ama toplam payload yine de azalır.
-            var qs = new List<string>
+        _httpClient = httpClient;
+        _storeService = storeService;
+    }
+
+private async Task PrepareClientAsync(string shopDomain, CancellationToken ct)
     {
-        "limit=250",
-        "status=any",
-        "order=created_at+desc",
-        "fields=id,created_at,financial_status,fulfillment_status,cancelled_at,cancel_reason,closed_at,line_items"
-    };
-            if (startUtc.HasValue) qs.Add($"created_at_min={Uri.EscapeDataString(startUtc.Value.ToString("o"))}");
-            if (endUtc.HasValue) qs.Add($"created_at_max={Uri.EscapeDataString(endUtc.Value.ToString("o"))}");
+        var store = await _storeService.GetByShopDomainAsync(shopDomain, ct);
 
-            int pages = 0, maxPages = 8; // İhtiyaca göre sınır
+        if (store == null)
+            throw new InvalidOperationException("Shop not installed");
 
-            do
-            {
-                string url = first
-                    ? $"/admin/api/2024-04/orders.json?{string.Join("&", qs)}"
-                    : $"/admin/api/2024-04/orders.json?limit=250&page_info={WebUtility.UrlEncode(next)}";
+        _httpClient.BaseAddress = new Uri($"https://{store.ShopDomain}/admin/api/2024-01/");
+        _httpClient.DefaultRequestHeaders.Clear();
+        _httpClient.DefaultRequestHeaders.Add(
+            "X-Shopify-Access-Token",
+            store.AccessToken
+        );
+    }
 
-                first = false;
+    public async Task<IReadOnlyList<object>> GetLatestOrdersAsync(
+        string shopDomain,
+        int limit,
+        CancellationToken ct)
+    {
+        await PrepareClientAsync(shopDomain, ct);
 
-                var resp = await _httpClient.GetAsync(url, ct);
-                resp.EnsureSuccessStatusCode();
+        var res = await _httpClient.GetFromJsonAsync<dynamic>(
+            $"orders.json?limit={limit}&status=any",
+            ct
+        );
 
-                var json = await resp.Content.ReadAsStringAsync(ct);
-                var result = JsonConvert.DeserializeObject<OrdersResponse>(json);
-                if (result?.Orders != null) all.AddRange(result.Orders);
+        return res.orders.ToObject<List<object>>();
+    }
 
-                next = null;
-                if (resp.Headers.TryGetValues("Link", out var links))
-                {
-                    var m = Regex.Match(links.FirstOrDefault() ?? "", @"<[^>]+page_info=([^&>]+)[^>]*>; rel=""next""");
-                    if (m.Success) next = m.Groups[1].Value;
-                }
+    public Task<string> TestConnectionAsync(CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 
-                pages++;
-            } while (!string.IsNullOrEmpty(next) && pages < maxPages);
+    public Task<PagedResult<Order>> GetOrdersPagedAsync(string? pageInfo = null, int limit = 10, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-            _memoryCache.Set(key, all, TimeSpan.FromMinutes(5));
-            return all;
-        }
+    public Task<Order?> GetOrderByIdAsync(long orderId, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
+    public Task<ShopifyOrderDetailDto?> GetOrderDetailWithImagesAsync(long orderId, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-        // ----------------- ANA SERVİS METODU -----------------
-        public async Task<List<ShopifyOrderItemSummaryDto>> GetOrderItemsSummaryAsync(
-            DateTime? start = null,
-            DateTime? end = null,
-            string? financialCsv = null,    // ör: "pending,authorized,paid,partially_paid,partially_refunded"
-            string? fulfillmentCsv = null,  // ör: "unfulfilled,partial"
-            string? statusCsv = null,       // ör: "open"
-            CancellationToken ct = default)
-        {
-            // 0) Kısa ömürlü summary cache
-            var cacheKey = CacheKeyForSummary(start, end, financialCsv, fulfillmentCsv, statusCsv);
-            if (_memoryCache.TryGetValue(cacheKey, out List<ShopifyOrderItemSummaryDto> cached))
-                return cached;
+    public Task<List<ShopifyProduct>> GetAllProductsAsync(CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-            // 1) Tarih filtresi — siparişleri dar pencerede getir (server-side fields ile)
-            DateTime? startUtc = start?.ToUniversalTime();
-            DateTime? endUtc = end?.ToUniversalTime();
-            var orders = await GetOrdersWindowCachedAsync(startUtc, endUtc, ct);
+    public Task<ShopifyProduct?> GetProductByIdAsync(long productId, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-            // 2) İptalleri HER ZAMAN dışla (cancelled/cancel_reason) + financial_status=voided
-            orders = orders.Where(o =>
-            {
-                var isCancelled = !string.IsNullOrWhiteSpace(o.CancelledAt)
-                                  || !string.IsNullOrWhiteSpace(o.CancelReason);
-                var fin = (o.FinancialStatus ?? "").Trim().ToLowerInvariant();
-                var isVoided = fin == "voided";
-                return !isCancelled && !isVoided;
-            }).ToList();
+    public Task<List<ShopifyProduct>> SearchProductsAsync(string query, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-            // 3) "open" istenirse: closed_at boş olanlar (cancelled zaten dışlandı)
-            var statusSet = ParseSet(statusCsv);
-            if (statusSet.Count > 0 && statusSet.Contains("open"))
-                orders = orders.Where(o => string.IsNullOrWhiteSpace(o.ClosedAt)).ToList();
+    public Task<ShopifyVariant?> GetVariantByIdAsync(long variantId, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-            // 4) Ödeme (çoklu) — HashSet zaten case-insensitive
-            var finSet = ParseSet(financialCsv);
-            if (finSet.Count > 0)
-                orders = orders.Where(o => finSet.Contains((o.FinancialStatus ?? "").Trim())).ToList();
+    public Task<List<ShopifyVariant>> GetVariantsByProductIdAsync(long productId, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-            // 5) Gönderim (çoklu) — boş/null → unfulfilled say
-            var fullSet = ParseSet(fulfillmentCsv);
-            if (fullSet.Count > 0)
-                orders = orders.Where(o => fullSet.Contains(NormalizeFulfillment(o.FulfillmentStatus))).ToList();
+    public Task<List<ShopifyProduct>> GetLowStockProductsAsync(int threshold, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-            // 6) Ürün + Varyant bazlı grupla
-            var dict = new Dictionary<(long ProductId, long? VariantId, string Title, string? VariantTitle), int>();
-            foreach (var o in orders)
-            {
-                if (o.LineItems == null) continue;
-                foreach (var li in o.LineItems)
-                {
-                    var key = (li.ProductId, li.VariantId, li.Title ?? "", li.VariantTitle);
-                    dict.TryGetValue(key, out var q);
-                    dict[key] = q + li.Quantity;
-                }
-            }
+    public Task<bool> AddOrUpdateProductTagsAsync(long productId, string tags, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-            var result = dict
-                .OrderByDescending(kv => kv.Value)
-                .Select(kv => new ShopifyOrderItemSummaryDto
-                {
-                    ProductId = kv.Key.ProductId,
-                    VariantId = kv.Key.VariantId,
-                    Title = kv.Key.Title,
-                    VariantTitle = kv.Key.VariantTitle,
-                    TotalQuantity = kv.Value
-                })
-                .ToList();
+    public Task<List<Order>> SearchOrdersAsync(OrderSearchFilter filter, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-            // 7) Görselleri BAĞLA — tek batch + cache
-            var productIds = result.Select(r => r.ProductId).Distinct();
-            var mediaMaps = await GetProductMediaBatchAsync(productIds, ct);
+    public Task<List<Order>> GetOrdersBySearchQueryAsync(string query, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-            foreach (var row in result)
-            {
-                if (!mediaMaps.TryGetValue(row.ProductId, out var pack))
-                    continue;
+    public Task<bool> UpdateOrderTagsAsync(long orderId, string tags, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-                if (row.VariantId.HasValue &&
-                    pack.VariantImageMap.TryGetValue(row.VariantId.Value, out var imgId) &&
-                    imgId.HasValue &&
-                    pack.ImageMap.TryGetValue(imgId.Value, out var src))
-                {
-                    row.ImageUrl = src;
-                }
-                else
-                {
-                    row.ImageUrl = pack.FirstImage;
-                }
-            }
+    public Task<bool> UpdateOrderNoteAsync(long orderId, string note, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-            // 8) Sonucu kısa ömürlü cache’e koy
-            _memoryCache.Set(cacheKey, result, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60),
-                SlidingExpiration = TimeSpan.FromSeconds(30)
-            });
+    public Task<Customer?> GetCustomerByIdAsync(long customerId, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-            return result;
-        }
+    public Task<Order?> CreateOrderAsync(Order order, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
+    public Task<string> CreateFulfillmentAsync(long orderId, FulfillmentCreateRequest request, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
+    public Task<List<Order>> SearchOrdersWithDetailsAsync(string query, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
+    public Task<PagedResult<Order>> GetOpenOrdersWithCursorAsync(string? pageInfo, int limit, CancellationToken ct)
+    {
+        throw new NotImplementedException();
+    }
 
+    public Task<List<ShopifyOrderLiteDto>> SearchOrdersLiteAsync(string query, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
+    public Task<long?> GetOrderIdByTrackingNumberAsync(string trackingNumber, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 
+    public Task<bool> MarkOrderAsPaidAsync(long orderId, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
 
-
-
-
-
-
-
-
-
-
+    public Task<List<ShopifyOrderItemSummaryDto>> GetOrderItemsSummaryAsync(DateTime? start = null, DateTime? end = null, string? financialCsv = null, string? fulfillmentCsv = null, string? statusCsv = null, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
     }
 }
