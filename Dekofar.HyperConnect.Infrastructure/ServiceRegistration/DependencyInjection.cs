@@ -23,7 +23,10 @@ using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Services;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
+using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
 using Dekofar.HyperConnect.Integrations.Shopify.Interfaces;
+using Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions;
+using Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
 using Dekofar.HyperConnect.Integrations.Shopify.Services;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
@@ -36,16 +39,23 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
 {
     public static class DependencyInjection
     {
-        public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddInfrastructure(
+            this IServiceCollection services,
+            IConfiguration configuration)
         {
+            // =====================================================
             // 📦 DbContext
+            // =====================================================
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+                options.UseNpgsql(
+                    configuration.GetConnectionString("DefaultConnection")));
 
-            // 📦 IApplicationDbContext implementasyonu
-            services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+            services.AddScoped<IApplicationDbContext>(provider =>
+                provider.GetRequiredService<ApplicationDbContext>());
 
-            // 🔐 Identity (ApplicationUser + Role<Guid>)
+            // =====================================================
+            // 🔐 Identity
+            // =====================================================
             services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
             {
                 options.Password.RequireDigit = true;
@@ -57,7 +67,37 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-            // 🔑 DHL servisleri
+            // =====================================================
+            // 🛍️ SHOPIFY – REST
+            // =====================================================
+            services.AddScoped<ShopifyStoreService>();
+
+            services.AddHttpClient<IShopifyService, ShopifyService>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+
+            // =====================================================
+            // 🛍️ SHOPIFY – GRAPHQL CORE
+            // =====================================================
+            services.AddHttpClient<ShopifyGraphQlClient>();
+
+            services.AddScoped<OrderDecisionEngine>();
+            services.AddScoped<ShopifyOrderAutoTagService>();
+            services.AddScoped<ShopifyOrderReprocessService>();
+            services.AddScoped<ShopifyOrderReportService>();
+
+            // =====================================================
+            // 📦 JOBS
+            // =====================================================
+            services.AddScoped<IRecurringJob, DhlShopifySyncJob>();
+            services.AddScoped<DhlShopifySyncJob>();
+
+            services.AddScoped<IJobStatsService, JobStatsService>();
+
+            // =====================================================
+            // 🚚 DHL
+            // =====================================================
             services.AddScoped<IShipmentByDateService, ShipmentByDateService>();
             services.AddScoped<IDeliveredShipmentService, DeliveredShipmentService>();
             services.AddScoped<IStatusChangedShipmentService, StatusChangedShipmentService>();
@@ -65,7 +105,6 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<ICbsInfoService, CbsInfoService>();
             services.AddScoped<IAuthService, AuthService>();
 
-            // 📦 DHL StandardQuery servisleri
             services.AddScoped<IGetOrderService, GetOrderService>();
             services.AddScoped<IGetShipmentService, GetShipmentService>();
             services.AddScoped<IGetShipmentByShipmentIdService, GetShipmentByShipmentIdService>();
@@ -74,30 +113,23 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<ITrackShipmentByReferenceIdService, TrackShipmentByReferenceIdService>();
             services.AddScoped<ITrackShipmentByShipmentIdService, TrackShipmentByShipmentIdService>();
 
-            // 📦 PTT servisleri
-            // 📦 PTT servisleri
-            services.AddScoped<IPttAuthService, PttAuthService>(); // önce Auth
-            services.AddHttpClient<IPttShipmentService, PttShipmentService>(); // gönderi yükleme
-            services.AddHttpClient<IPttDeleteService, PttDeleteService>();     // silme
-            services.AddHttpClient<IPttTrackingService, PttTrackingService>(); // 🔹 takip
-                                                                               // 🛍️ Shopify
-                                                                               // 🛍️ Shopify
-            services.AddScoped<ShopifyStoreService>();
+            // =====================================================
+            // 📦 PTT
+            // =====================================================
+            services.AddScoped<IPttAuthService, PttAuthService>();
+            services.AddHttpClient<IPttShipmentService, PttShipmentService>();
+            services.AddHttpClient<IPttDeleteService, PttDeleteService>();
+            services.AddHttpClient<IPttTrackingService, PttTrackingService>();
 
-            services.AddHttpClient<IShopifyService, ShopifyService>(client =>
-            {
-                client.Timeout = TimeSpan.FromSeconds(30);
-            });
+            // =====================================================
+            // 📞 NetGSM
+            // =====================================================
+            services.AddTransient<INetGsmSmsService, NetGsmSmsInboxService>();
+            services.AddTransient<INetGsmSmsService, NetGsmSmsSendService>();
 
-
-            // 📦 Job Stats
-            services.AddScoped<IJobStatsService, JobStatsService>();
-
-            // 📦 Recurring Job (DHL → Shopify sync job)
-            services.AddScoped<IRecurringJob, DhlShopifySyncJob>();
-            services.AddScoped<DhlShopifySyncJob>(); // direkt job enjekte etmek için
-
-            // JWT authentication Program.cs’de
+            // =====================================================
+            // 🌐 COMMON
+            // =====================================================
             services.AddHttpContextAccessor();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IFileStorageService, LocalFileStorageService>();
@@ -106,25 +138,19 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IBadgeService, BadgeService>();
             services.AddScoped<IWorkSessionService, WorkSessionService>();
 
-
-
-
-            // 🌐 Genel repo & IP servisleri
             services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
             services.AddScoped<IAllowedAdminIpService, AllowedAdminIpService>();
 
-            // 📞 NetGSM servisleri
-            services.AddTransient<INetGsmSmsService, NetGsmSmsInboxService>();
-            services.AddTransient<INetGsmSmsService, NetGsmSmsSendService>();
-
-            // 🔑 Token & kullanıcı servisleri
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IUserService, UserService>();
 
-            // ✅ MediatR
+            // =====================================================
+            // 🧠 MediatR
+            // =====================================================
             services.AddMediatR(cfg =>
             {
-                cfg.RegisterServicesFromAssembly(typeof(Application.AssemblyReference).Assembly);
+                cfg.RegisterServicesFromAssembly(
+                    typeof(Application.AssemblyReference).Assembly);
             });
 
             return services;
