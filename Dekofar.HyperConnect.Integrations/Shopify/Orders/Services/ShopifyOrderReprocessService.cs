@@ -283,6 +283,9 @@ query ($cursor: String) {{
             if (string.IsNullOrWhiteSpace(shopDomain))
                 throw new InvalidOperationException("shopDomain is required");
 
+            if (limit <= 0 || limit > 50)
+                throw new InvalidOperationException("limit must be between 1 and 50");
+
             var store = await GetStoreAsync(shopDomain, ct);
 
             var gql = $@"
@@ -316,13 +319,20 @@ query {{
                 store.ShopDomain,
                 store.AccessToken,
                 gql,
-                null,
+                variables: null,
                 ct);
 
-            if (json?["data"]?["orders"]?["edges"] is not JArray edges)
+            // 🔐 GÜVENLİK KONTROLLERİ
+            if (json == null)
                 return 0;
 
-            // 📞 phone count
+            if (json["data"]?["orders"] is not JObject ordersObj)
+                return 0;
+
+            if (ordersObj["edges"] is not JArray edges || edges.Count == 0)
+                return 0;
+
+            // 📞 PHONE COUNT
             var phoneCounts = new Dictionary<string, int>();
 
             foreach (var edge in edges)
@@ -359,12 +369,14 @@ query {{
                 }
                 catch
                 {
+                    // ❗ tek sipariş patlarsa test devam etsin
                     continue;
                 }
             }
 
             return processed;
         }
+
 
 
 
