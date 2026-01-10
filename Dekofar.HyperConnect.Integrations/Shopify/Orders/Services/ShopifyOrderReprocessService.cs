@@ -6,14 +6,6 @@ using Newtonsoft.Json.Linq;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
 {
-    /// <summary>
-    /// Shopify Order Reprocess Service
-    /// ✔ OAuth token DB’den
-    /// ✔ Batch + delay
-    /// ✔ Eventual consistency safe
-    /// ✔ Multi-store uyumlu
-    /// ✔ Production safe (null & schema tolerant)
-    /// </summary>
     public class ShopifyOrderReprocessService
     {
         private readonly ShopifyGraphQlClient _graphQl;
@@ -35,263 +27,53 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
         }
 
         // =====================================================
-        // 🚀 ENTRY
+        // 🚀 PROD – TÜM AÇIK SİPARİŞLER
         // =====================================================
         public async Task<int> ReprocessOpenOrdersAsync(
             string shopDomain,
             CancellationToken ct)
         {
-            if (string.IsNullOrWhiteSpace(shopDomain))
-                throw new InvalidOperationException("shopDomain is required");
-
             var store = await GetStoreAsync(shopDomain, ct);
 
-            // 1️⃣ önce sistem tag + notlarını temizle
-            await ClearSystemTagsAndNotesAsync(store, ct);
-
-            // Shopify eventual consistency
             await Task.Delay(ConsistencyDelay, ct);
 
-            // 2️⃣ yeniden işle
-            return await ReprocessInternalAsync(store, ct);
+            return await ReprocessInternalAsync(
+                store,
+                ct,
+                limit: null);
         }
 
         // =====================================================
-        // 🔁 MAIN LOOP
+        // 🧪 TEST – SADECE N SİPARİŞ
         // =====================================================
-        private async Task<int> ReprocessInternalAsync(
-            ShopifyStore store,
-            CancellationToken ct)
-        {
-            string? cursor = null;
-            bool hasNextPage = true;
-            int processed = 0;
-
-            while (hasNextPage)
-            {
-                ct.ThrowIfCancellationRequested();
-
-                var gql = $@"
-query ($cursor: String) {{
-  orders(
-    first: {BatchSize}
-    after: $cursor
-    query: ""financial_status:pending fulfillment_status:unfulfilled""
-  ) {{
-    pageInfo {{ hasNextPage endCursor }}
-    edges {{
-      node {{
-        id
-        tags
-        note
-        totalPriceSet {{ shopMoney {{ amount }} }}
-        shippingAddress {{ address1 city phone countryCode }}
-        customer {{ numberOfOrders }}
-        lineItems(first: 50) {{
-          edges {{
-            node {{
-              quantity
-              product {{ id }}
-            }}
-          }}
-        }}
-      }}
-    }}
-  }}
-}}";
-
-                var json = await _graphQl.ExecuteAsync(
-                    store.ShopDomain,
-                    store.AccessToken,
-                    gql,
-                    new { cursor },
-                    ct);
-
-                if (json?["data"]?["orders"] is not JObject ordersObj)
-                    break;
-
-                var pageInfo = ordersObj["pageInfo"] as JObject;
-                hasNextPage = pageInfo?["hasNextPage"]?.Value<bool>() == true;
-                cursor = pageInfo?["endCursor"]?.ToString();
-
-                if (ordersObj["edges"] is not JArray edges || edges.Count == 0)
-                {
-                    if (hasNextPage)
-                        await Task.Delay(BatchDelay, ct);
-                    continue;
-                }
-
-                // =================================================
-                // 📞 PHONE COUNT (BATCH İÇİ)
-                // =================================================
-                var phoneCounts = new Dictionary<string, int>();
-
-                foreach (var edge in edges)
-                {
-                    if (edge?["node"] is not JObject node)
-                        continue;
-
-                    var shipping = node["shippingAddress"] as JObject;
-                    var phone = shipping?["phone"]?.ToString();
-
-                    if (string.IsNullOrWhiteSpace(phone))
-                        continue;
-
-                    phoneCounts.TryGetValue(phone, out var c);
-                    phoneCounts[phone] = c + 1;
-                }
-
-                // =================================================
-                // 🏷️ TAG APPLY
-                // =================================================
-                foreach (var edge in edges)
-                {
-                    if (edge?["node"] is not JObject node)
-                        continue;
-
-                    try
-                    {
-                        var normalized =
-                            NormalizeGraphQlOrder(node, phoneCounts);
-
-                        await _autoTag.ApplyAutoTagsAsync(
-                            normalized,
-                            store.ShopDomain,
-                            ct,
-                            replaceExistingTags: true);
-
-                        processed++;
-                    }
-                    catch
-                    {
-                        // ❗ tek sipariş bozuksa batch devam eder
-                        continue;
-                    }
-                }
-
-                if (hasNextPage)
-                    await Task.Delay(BatchDelay, ct);
-            }
-
-            return processed;
-        }
-
-        // =====================================================
-        // 🧹 CLEAN: TAGLER + [SİSTEM] NOTU
-        // =====================================================
-        private async Task ClearSystemTagsAndNotesAsync(
-            ShopifyStore store,
-            CancellationToken ct)
-        {
-            string? cursor = null;
-            bool hasNextPage = true;
-
-            while (hasNextPage)
-            {
-                ct.ThrowIfCancellationRequested();
-
-                var gql = $@"
-query ($cursor: String) {{
-  orders(
-    first: {BatchSize}
-    after: $cursor
-    query: ""financial_status:pending fulfillment_status:unfulfilled""
-  ) {{
-    pageInfo {{ hasNextPage endCursor }}
-    edges {{
-      node {{
-        id
-        tags
-        note
-      }}
-    }}
-  }}
-}}";
-
-                var json = await _graphQl.ExecuteAsync(
-                    store.ShopDomain,
-                    store.AccessToken,
-                    gql,
-                    new { cursor },
-                    ct);
-
-                if (json?["data"]?["orders"] is not JObject ordersObj)
-                    break;
-
-                var pageInfo = ordersObj["pageInfo"] as JObject;
-                hasNextPage = pageInfo?["hasNextPage"]?.Value<bool>() == true;
-                cursor = pageInfo?["endCursor"]?.ToString();
-
-                if (ordersObj["edges"] is not JArray edges)
-                    continue;
-
-                foreach (var edge in edges)
-                {
-                    if (edge?["node"] is not JObject node)
-                        continue;
-
-                    var id = node["id"]?.ToString();
-                    if (string.IsNullOrWhiteSpace(id))
-                        continue;
-
-                    var tags = node["tags"]?.ToString()?
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(t => t.Trim())
-                        .ToArray();
-
-                    if (tags is { Length: > 0 })
-                    {
-                        await _graphQl.ExecuteAsync(
-                            store.ShopDomain,
-                            store.AccessToken,
-                            @"mutation ($id: ID!, $tags: [String!]!) {
-                              tagsRemove(id: $id, tags: $tags) {
-                                userErrors { message }
-                              }
-                            }",
-                            new { id, tags },
-                            ct);
-                    }
-
-                    var note = node["note"]?.ToString();
-                    if (!string.IsNullOrWhiteSpace(note) &&
-                        note.StartsWith("[SİSTEM]"))
-                    {
-                        await _graphQl.ExecuteAsync(
-                            store.ShopDomain,
-                            store.AccessToken,
-                            @"mutation ($id: ID!, $note: String!) {
-                              orderUpdate(input: { id: $id, note: $note }) {
-                                userErrors { message }
-                              }
-                            }",
-                            new { id, note = RemoveSystemNote(note) },
-                            ct);
-                    }
-                }
-
-                if (hasNextPage)
-                    await Task.Delay(BatchDelay, ct);
-            }
-        }
-
         public async Task<int> ReprocessOpenOrdersTestAsync(
-    string shopDomain,
-    int limit,
-    CancellationToken ct)
+            string shopDomain,
+            int limit,
+            CancellationToken ct)
         {
-            if (string.IsNullOrWhiteSpace(shopDomain))
-                throw new InvalidOperationException("shopDomain is required");
-
             if (limit <= 0 || limit > 50)
                 throw new InvalidOperationException("limit must be between 1 and 50");
 
             var store = await GetStoreAsync(shopDomain, ct);
 
+            return await ReprocessInternalAsync(
+                store,
+                ct,
+                limit);
+        }
+
+        // =====================================================
+        // 🔁 ORTAK İŞLEYİCİ
+        // =====================================================
+        private async Task<int> ReprocessInternalAsync(
+            ShopifyStore store,
+            CancellationToken ct,
+            int? limit)
+        {
             var gql = $@"
 query {{
   orders(
-    first: {limit}
+    first: {(limit ?? BatchSize)}
     query: ""financial_status:pending fulfillment_status:unfulfilled""
   ) {{
     edges {{
@@ -319,20 +101,16 @@ query {{
                 store.ShopDomain,
                 store.AccessToken,
                 gql,
-                variables: null,
+                null,
                 ct);
 
-            // 🔐 GÜVENLİK KONTROLLERİ
-            if (json == null)
-                return 0;
-
-            if (json["data"]?["orders"] is not JObject ordersObj)
+            if (json?["data"]?["orders"] is not JObject ordersObj)
                 return 0;
 
             if (ordersObj["edges"] is not JArray edges || edges.Count == 0)
                 return 0;
 
-            // 📞 PHONE COUNT
+            // 📞 TELEFON TEKRAR SAYACI
             var phoneCounts = new Dictionary<string, int>();
 
             foreach (var edge in edges)
@@ -369,7 +147,7 @@ query {{
                 }
                 catch
                 {
-                    // ❗ tek sipariş patlarsa test devam etsin
+                    // ❗ tek sipariş bozuksa devam
                     continue;
                 }
             }
@@ -377,12 +155,8 @@ query {{
             return processed;
         }
 
-
-
-
-
         // =====================================================
-        // 🔄 NORMALIZE (AUTO-TAG ENGINE UYUMLU)
+        // 🔄 NORMALIZE
         // =====================================================
         private static JObject NormalizeGraphQlOrder(
             JObject node,
@@ -425,41 +199,27 @@ query {{
                 ["admin_graphql_api_id"] = node["id"]?.ToString(),
                 ["tags"] = node["tags"]?.ToString(),
                 ["note"] = node["note"]?.ToString(),
-
                 ["total_price"] =
                     node["totalPriceSet"]?["shopMoney"]?["amount"]?.ToString(),
-
-                ["shipping_address"] = shipping == null
-                    ? null
-                    : new JObject
-                    {
-                        ["address1"] = shipping["address1"]?.ToString(),
-                        ["city"] = shipping["city"]?.ToString(),
-                        ["phone"] = phone,
-                        ["country_code"] = shipping["countryCode"]?.ToString()
-                    },
-
-                ["customer"] = customer == null
-                    ? null
-                    : new JObject
-                    {
-                        ["orders_count"] =
-                            customer["numberOfOrders"]?.Value<int>() ?? 0
-                    },
-
+                ["shipping_address"] = new JObject
+                {
+                    ["address1"] = shipping?["address1"]?.ToString(),
+                    ["city"] = shipping?["city"]?.ToString(),
+                    ["phone"] = phone,
+                    ["country_code"] = shipping?["countryCode"]?.ToString()
+                },
+                ["customer"] = new JObject
+                {
+                    ["orders_count"] =
+                        customer?["numberOfOrders"]?.Value<int>() ?? 0
+                },
                 ["line_items"] = lineItems,
                 ["__repeat_phone_count"] = repeat
             };
         }
 
-        private static string RemoveSystemNote(string note)
-        {
-            var i = note.IndexOf("[MÜŞTERİ NOTU]");
-            return i >= 0 ? note.Substring(i) : string.Empty;
-        }
-
         // =====================================================
-        // 🔑 STORE HELPER
+        // 🔑 STORE
         // =====================================================
         private async Task<ShopifyStore> GetStoreAsync(
             string shopDomain,
@@ -478,8 +238,4 @@ query {{
             return store;
         }
     }
-
-
-
-
 }
