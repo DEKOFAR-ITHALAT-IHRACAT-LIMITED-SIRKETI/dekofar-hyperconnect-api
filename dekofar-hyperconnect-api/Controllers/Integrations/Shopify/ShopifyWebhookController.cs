@@ -2,10 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 
-namespace Dekofar.HyperConnect.Api.Controllers.Webhooks
+namespace Dekofar.HyperConnect.Api.Controllers.Integrations.Shopify
 {
     [ApiController]
-    [Route("api/webhooks/shopify")]
+    [Route("api/integrations/shopify/webhooks")]
     public class ShopifyWebhookController : ControllerBase
     {
         private readonly ShopifyOrderAutoTagService _autoTagService;
@@ -24,20 +24,17 @@ namespace Dekofar.HyperConnect.Api.Controllers.Webhooks
             [FromBody] JObject payload,
             CancellationToken ct)
         {
-            // Shopify bu header'ı ZORUNLU gönderir
             var shopDomain =
                 Request.Headers["X-Shopify-Shop-Domain"]
                     .FirstOrDefault();
 
             if (string.IsNullOrWhiteSpace(shopDomain))
-                return BadRequest("X-Shopify-Shop-Domain header missing");
+                return BadRequest("Missing shop domain");
 
             await _autoTagService.ApplyAutoTagsAsync(
-                order: payload,
-                shopDomain: shopDomain,
-                ct: ct,
-                replaceExistingTags: true
-            );
+                payload,
+                shopDomain,
+                ct);
 
             return Ok();
         }
