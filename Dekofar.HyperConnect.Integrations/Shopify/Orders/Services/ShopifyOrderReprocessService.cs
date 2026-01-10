@@ -12,7 +12,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
     /// ✔ Batch + delay
     /// ✔ Eventual consistency safe
     /// ✔ Multi-store uyumlu
-    /// ✔ Production ready
+    /// ✔ Production safe (null & schema tolerant)
     /// </summary>
     public class ShopifyOrderReprocessService
     {
@@ -46,13 +46,13 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
 
             var store = await GetStoreAsync(shopDomain, ct);
 
-            // 1️⃣ Önce sistem tag + notlarını temizle
+            // 1️⃣ önce sistem tag + notlarını temizle
             await ClearSystemTagsAndNotesAsync(store, ct);
 
             // Shopify eventual consistency
             await Task.Delay(ConsistencyDelay, ct);
 
-            // 2️⃣ Kurallara göre yeniden işle
+            // 2️⃣ yeniden işle
             return await ReprocessInternalAsync(store, ct);
         }
 
@@ -111,17 +111,13 @@ query ($cursor: String) {{
                     break;
 
                 var pageInfo = ordersObj["pageInfo"] as JObject;
-                hasNextPage =
-                    pageInfo?["hasNextPage"]?.Value<bool>() == true;
-
-                cursor =
-                    pageInfo?["endCursor"]?.ToString();
+                hasNextPage = pageInfo?["hasNextPage"]?.Value<bool>() == true;
+                cursor = pageInfo?["endCursor"]?.ToString();
 
                 if (ordersObj["edges"] is not JArray edges || edges.Count == 0)
                 {
                     if (hasNextPage)
                         await Task.Delay(BatchDelay, ct);
-
                     continue;
                 }
 
@@ -132,8 +128,11 @@ query ($cursor: String) {{
 
                 foreach (var edge in edges)
                 {
-                    var phone =
-                        edge?["node"]?["shippingAddress"]?["phone"]?.ToString();
+                    if (edge?["node"] is not JObject node)
+                        continue;
+
+                    var shipping = node["shippingAddress"] as JObject;
+                    var phone = shipping?["phone"]?.ToString();
 
                     if (string.IsNullOrWhiteSpace(phone))
                         continue;
@@ -165,7 +164,7 @@ query ($cursor: String) {{
                     }
                     catch
                     {
-                        // ❗ Tek sipariş bozuksa batch devam eder
+                        // ❗ tek sipariş bozuksa batch devam eder
                         continue;
                     }
                 }
@@ -178,7 +177,7 @@ query ($cursor: String) {{
         }
 
         // =====================================================
-        // 🧹 CLEAN: TÜM TAGLER + SADECE [SİSTEM] NOTU
+        // 🧹 CLEAN: TAGLER + [SİSTEM] NOTU
         // =====================================================
         private async Task ClearSystemTagsAndNotesAsync(
             ShopifyStore store,
@@ -220,24 +219,21 @@ query ($cursor: String) {{
                     break;
 
                 var pageInfo = ordersObj["pageInfo"] as JObject;
-                hasNextPage =
-                    pageInfo?["hasNextPage"]?.Value<bool>() == true;
-
-                cursor =
-                    pageInfo?["endCursor"]?.ToString();
+                hasNextPage = pageInfo?["hasNextPage"]?.Value<bool>() == true;
+                cursor = pageInfo?["endCursor"]?.ToString();
 
                 if (ordersObj["edges"] is not JArray edges)
                     continue;
 
                 foreach (var edge in edges)
                 {
-                    var node = edge?["node"] as JObject;
-                    var id = node?["id"]?.ToString();
+                    if (edge?["node"] is not JObject node)
+                        continue;
 
+                    var id = node["id"]?.ToString();
                     if (string.IsNullOrWhiteSpace(id))
                         continue;
 
-                    // 🏷️ TÜM TAGLER
                     var tags = node["tags"]?.ToString()?
                         .Split(',', StringSplitOptions.RemoveEmptyEntries)
                         .Select(t => t.Trim())
@@ -257,7 +253,6 @@ query ($cursor: String) {{
                             ct);
                     }
 
-                    // 📝 SADECE [SİSTEM] BLOĞU
                     var note = node["note"]?.ToString();
                     if (!string.IsNullOrWhiteSpace(note) &&
                         note.StartsWith("[SİSTEM]"))
@@ -280,8 +275,102 @@ query ($cursor: String) {{
             }
         }
 
+        public async Task<int> ReprocessOpenOrdersTestAsync(
+    string shopDomain,
+    int limit,
+    CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(shopDomain))
+                throw new InvalidOperationException("shopDomain is required");
+
+            var store = await GetStoreAsync(shopDomain, ct);
+
+            var gql = $@"
+query {{
+  orders(
+    first: {limit}
+    query: ""financial_status:pending fulfillment_status:unfulfilled""
+  ) {{
+    edges {{
+      node {{
+        id
+        tags
+        note
+        totalPriceSet {{ shopMoney {{ amount }} }}
+        shippingAddress {{ address1 city phone countryCode }}
+        customer {{ numberOfOrders }}
+        lineItems(first: 50) {{
+          edges {{
+            node {{
+              quantity
+              product {{ id }}
+            }}
+          }}
+        }}
+      }}
+    }}
+  }}
+}}";
+
+            var json = await _graphQl.ExecuteAsync(
+                store.ShopDomain,
+                store.AccessToken,
+                gql,
+                null,
+                ct);
+
+            if (json?["data"]?["orders"]?["edges"] is not JArray edges)
+                return 0;
+
+            // 📞 phone count
+            var phoneCounts = new Dictionary<string, int>();
+
+            foreach (var edge in edges)
+            {
+                var phone =
+                    edge?["node"]?["shippingAddress"]?["phone"]?.ToString();
+
+                if (string.IsNullOrWhiteSpace(phone))
+                    continue;
+
+                phoneCounts.TryGetValue(phone, out var c);
+                phoneCounts[phone] = c + 1;
+            }
+
+            int processed = 0;
+
+            foreach (var edge in edges)
+            {
+                if (edge?["node"] is not JObject node)
+                    continue;
+
+                try
+                {
+                    var normalized =
+                        NormalizeGraphQlOrder(node, phoneCounts);
+
+                    await _autoTag.ApplyAutoTagsAsync(
+                        normalized,
+                        store.ShopDomain,
+                        ct,
+                        replaceExistingTags: true);
+
+                    processed++;
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+
+            return processed;
+        }
+
+
+
+
         // =====================================================
-        // 🔄 NORMALIZE (DecisionEngine uyumlu JSON)
+        // 🔄 NORMALIZE (AUTO-TAG ENGINE UYUMLU)
         // =====================================================
         private static JObject NormalizeGraphQlOrder(
             JObject node,
@@ -328,19 +417,23 @@ query ($cursor: String) {{
                 ["total_price"] =
                     node["totalPriceSet"]?["shopMoney"]?["amount"]?.ToString(),
 
-                ["shipping_address"] = new JObject
-                {
-                    ["address1"] = shipping?["address1"]?.ToString(),
-                    ["city"] = shipping?["city"]?.ToString(),
-                    ["phone"] = phone,
-                    ["country_code"] = shipping?["countryCode"]?.ToString()
-                },
+                ["shipping_address"] = shipping == null
+                    ? null
+                    : new JObject
+                    {
+                        ["address1"] = shipping["address1"]?.ToString(),
+                        ["city"] = shipping["city"]?.ToString(),
+                        ["phone"] = phone,
+                        ["country_code"] = shipping["countryCode"]?.ToString()
+                    },
 
-                ["customer"] = new JObject
-                {
-                    ["orders_count"] =
-                        customer?["numberOfOrders"]?.Value<int>() ?? 0
-                },
+                ["customer"] = customer == null
+                    ? null
+                    : new JObject
+                    {
+                        ["orders_count"] =
+                            customer["numberOfOrders"]?.Value<int>() ?? 0
+                    },
 
                 ["line_items"] = lineItems,
                 ["__repeat_phone_count"] = repeat
@@ -373,4 +466,8 @@ query ($cursor: String) {{
             return store;
         }
     }
+
+
+
+
 }
