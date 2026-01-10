@@ -31,14 +31,8 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl
             object? variables = null,
             CancellationToken ct = default)
         {
-            _httpClient.BaseAddress = new Uri($"https://{shopDomain}");
-            _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add(
-                "X-Shopify-Access-Token",
-                accessToken);
-
-            _httpClient.DefaultRequestHeaders.Accept.Add(
-                new MediaTypeWithQualityHeaderValue("application/json"));
+            var url =
+                $"https://{shopDomain}/admin/api/{ApiVersion}/graphql.json";
 
             var payload = JsonConvert.SerializeObject(new
             {
@@ -46,14 +40,24 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl
                 variables
             });
 
-            using var content = new StringContent(
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                url);
+
+            request.Headers.Add(
+                "X-Shopify-Access-Token",
+                accessToken);
+
+            request.Headers.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/json"));
+
+            request.Content = new StringContent(
                 payload,
                 Encoding.UTF8,
                 "application/json");
 
-            var response = await _httpClient.PostAsync(
-                $"/admin/api/{ApiVersion}/graphql.json",
-                content,
+            var response = await _httpClient.SendAsync(
+                request,
                 ct);
 
             var body = await response.Content.ReadAsStringAsync(ct);
