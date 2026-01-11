@@ -1,6 +1,11 @@
-﻿using Dekofar.HyperConnect.Application.Common.Interfaces;
+﻿using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Dekofar.HyperConnect.Application.Common.Interfaces;
 using Dekofar.HyperConnect.Domain.Entities;
 using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
+using Dekofar.HyperConnect.Integrations.Shopify.Constants;
 using Dekofar.HyperConnect.Integrations.Shopify.GraphQl;
 using Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +18,8 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
     /// ✔ OAuth token DB’den
     /// ✔ Multi-store safe
     /// ✔ Webhook / manuel reprocess uyumlu
-    /// ✔ Aynı telefon → sadece AÇIK siparişler ara1
+    /// ✔ Reset flag destekli
+    /// ✔ Eski sistem notlarını temizler
     /// </summary>
     public sealed class ShopifyOrderAutoTagService
     {
@@ -47,7 +53,8 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
             JObject order,
             string shopDomain,
             CancellationToken ct,
-            bool replaceExistingTags = true)
+            bool replaceExistingTags = true,
+            bool ignoreResetFlag = false)
         {
             if (string.IsNullOrWhiteSpace(shopDomain))
                 throw new InvalidOperationException("shopDomain is required");
@@ -70,7 +77,21 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                     $"ShopifyStore not found or inactive: {shopDomain}");
 
             // =====================================================
-            // 🧠 BASE DECISION (ENGINE)
+            // 🔒 RESET FLAG KONTROLÜ (SADECE WEBHOOK İÇİN)
+            // =====================================================
+            if (!ignoreResetFlag)
+            {
+                var note = order["note"]?.ToString();
+                if (!string.IsNullOrWhiteSpace(note) &&
+                    note.Contains(ShopifySystemNotes.ResetFlag))
+                {
+                    // Manuel reset sonrası webhook → ETİKETLEME YAPMA
+                    return;
+                }
+            }
+
+            // =====================================================
+            // 🧠 BASE DECISION
             // =====================================================
             var decision = _decisionEngine.Decide(order);
 
@@ -101,7 +122,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                 return;
 
             // =====================================================
-            // 🧹 MEVCUT TAG’LERİ TEMİZLE
+            // 🧹 TAG TEMİZLE
             // =====================================================
             if (replaceExistingTags)
             {
@@ -124,7 +145,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
             }
 
             // =====================================================
-            // 🏷️ YENİ TAG EKLE
+            // 🏷️ TAG EKLE
             // =====================================================
             await _graphQl.ExecuteAsync(
                 store.ShopDomain,
@@ -134,13 +155,16 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                 ct);
 
             // =====================================================
-            // 📝 SİSTEM NOTU (SADECE ara1)
+            // 📝 SİSTEM NOTU (ESKİLER SİLİNİR, YENİ YAZILIR)
             // =====================================================
             if (decision.Decision == OrderDecision.ApprovalNeeded &&
                 decision.Reasons.Any())
             {
+                var cleanCustomerNote =
+                    RemoveSystemNotes(order["note"]?.ToString());
+
                 var systemNote =
-                    "[SİSTEM]\n" +
+                    ShopifySystemNotes.SystemNotePrefix + "\n" +
                     string.Join(
                         "\n",
                         decision.Reasons
@@ -148,11 +172,9 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                             .Select(r => $"• {r}")
                     );
 
-                var existingNote = order["note"]?.ToString();
-
-                var finalNote = string.IsNullOrWhiteSpace(existingNote)
+                var finalNote = string.IsNullOrWhiteSpace(cleanCustomerNote)
                     ? systemNote
-                    : $"{systemNote}\n\n[MÜŞTERİ NOTU]\n{existingNote}";
+                    : $"{systemNote}\n\n[MÜŞTERİ NOTU]\n{cleanCustomerNote}";
 
                 await _graphQl.ExecuteAsync(
                     store.ShopDomain,
@@ -163,7 +185,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
             }
 
             // =====================================================
-            // 📞 AYNI TELEFON → SADECE AÇIK SİPARİŞLER ara1
+            // 📞 AYNI TELEFON → AÇIK SİPARİŞLERİ ara1
             // =====================================================
             if (decision.Decision == OrderDecision.ApprovalNeeded)
             {
@@ -175,7 +197,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
         }
 
         // =====================================================
-        // 📞 AYNI TELEFON → TÜM AÇIK SİPARİŞLERİ ara1
+        // 📞 AYNI TELEFON → TÜM AÇIKLARI ara1
         // =====================================================
         private async Task ForceAllOpenOrdersWithSamePhoneToAra1Async(
             ShopifyStore store,
@@ -196,13 +218,12 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
             if (json?["data"]?["orders"]?["edges"] is not JArray edges)
                 return;
 
-            // Tek açık sipariş varsa zorlamaya gerek yok
             if (edges.Count <= 1)
                 return;
 
             foreach (var edge in edges)
             {
-                if (edge?["node"] is not JObject node)
+                if (edge["node"] is not JObject node)
                     continue;
 
                 var orderId = node["id"]?.ToString();
@@ -255,6 +276,18 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                 return false;
 
             return NoteBlockKeywords.Any(k => note.Contains(k));
+        }
+
+        private static string? RemoveSystemNotes(string? note)
+        {
+            if (string.IsNullOrWhiteSpace(note))
+                return note;
+
+            return note
+                .Replace(ShopifySystemNotes.ResetFlag, string.Empty)
+                .Split(ShopifySystemNotes.SystemNotePrefix)
+                .FirstOrDefault()
+                ?.Trim();
         }
     }
 }

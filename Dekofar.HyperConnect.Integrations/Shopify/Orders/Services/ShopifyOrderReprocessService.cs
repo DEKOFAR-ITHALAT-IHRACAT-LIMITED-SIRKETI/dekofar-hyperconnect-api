@@ -53,7 +53,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
             // Shopify eventual consistency
             await Task.Delay(ConsistencyDelay, ct);
 
-            // 2️⃣ KURALLARA GÖRE YENİDEN ETİKETLE
+            // 2️⃣ RESET FLAG YOK SAYILARAK YENİDEN ETİKETLE
             return await ReprocessOpenOrdersInBatchesAsync(store, ct);
         }
 
@@ -185,17 +185,18 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                         var normalized =
                             NormalizeGraphQlOrder(node, phoneCounts);
 
+                        // 🔥 RESET FLAG YOK SAYILIR
                         await _autoTag.ApplyAutoTagsAsync(
                             normalized,
                             store.ShopDomain,
                             ct,
-                            replaceExistingTags: false);
+                            replaceExistingTags: false,
+                            ignoreResetFlag: true);
 
                         processed++;
                     }
                     catch
                     {
-                        // tek sipariş bozuksa batch devam eder
                         continue;
                     }
                 }
@@ -209,7 +210,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
         }
 
         // =====================================================
-        // 🔄 NORMALIZE (DecisionEngine uyumlu JSON)
+        // 🔄 NORMALIZE
         // =====================================================
         private static JObject NormalizeGraphQlOrder(
             JObject node,
@@ -221,49 +222,21 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
             var phone = shipping?["phone"]?.ToString();
             phoneCounts.TryGetValue(phone ?? string.Empty, out var repeat);
 
-            var lineItems = new JArray();
-
-            if (node["lineItems"]?["edges"] is JArray edges)
-            {
-                foreach (var e in edges)
-                {
-                    if (e["node"] is not JObject item)
-                        continue;
-
-                    var productId = item["product"]?["id"]?.ToString();
-                    var quantity = item["quantity"]?.Value<int>() ?? 1;
-
-                    if (!string.IsNullOrWhiteSpace(productId))
-                    {
-                        lineItems.Add(new JObject
-                        {
-                            ["product_id"] = productId,
-                            ["quantity"] = quantity
-                        });
-                    }
-                }
-            }
-
             return new JObject
             {
                 ["admin_graphql_api_id"] = node["id"]?.ToString(),
                 ["tags"] = "",
                 ["note"] = node["note"]?.ToString(),
-                ["total_price"] =
-                    node["totalPriceSet"]?["shopMoney"]?["amount"]?.ToString(),
                 ["shipping_address"] = new JObject
                 {
                     ["address1"] = shipping?["address1"]?.ToString(),
-                    ["city"] = shipping?["city"]?.ToString(),
-                    ["phone"] = phone,
-                    ["country_code"] = shipping?["countryCode"]?.ToString()
+                    ["phone"] = phone
                 },
                 ["customer"] = new JObject
                 {
                     ["orders_count"] =
                         customer?["numberOfOrders"]?.Value<int>() ?? 0
                 },
-                ["line_items"] = lineItems,
                 ["__repeat_phone_count"] = repeat
             };
         }
@@ -290,7 +263,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
     }
 
     // =====================================================
-    // 🧠 GRAPHQL – SADECE BU DOSYADA
+    // 🧠 GRAPHQL
     // =====================================================
     internal static class GraphQlQueries
     {
@@ -322,17 +295,8 @@ query ($cursor: String, $first: Int!) {
       node {
         id
         note
-        totalPriceSet { shopMoney { amount } }
-        shippingAddress { address1 city phone countryCode }
+        shippingAddress { address1 phone }
         customer { numberOfOrders }
-        lineItems(first: 50) {
-          edges {
-            node {
-              quantity
-              product { id }
-            }
-          }
-        }
       }
     }
   }
