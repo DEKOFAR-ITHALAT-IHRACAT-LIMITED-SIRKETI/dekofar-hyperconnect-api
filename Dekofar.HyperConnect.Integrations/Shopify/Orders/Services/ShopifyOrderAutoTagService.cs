@@ -56,6 +56,9 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
             if (string.IsNullOrWhiteSpace(orderId))
                 return;
 
+            // =====================================================
+            // 🔑 STORE
+            // =====================================================
             var store = await _db.ShopifyStores
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
@@ -67,7 +70,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                     $"ShopifyStore not found or inactive: {shopDomain}");
 
             // =====================================================
-            // 🧠 BASE DECISION
+            // 🧠 BASE DECISION (ENGINE)
             // =====================================================
             var decision = _decisionEngine.Decide(order);
 
@@ -98,7 +101,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                 return;
 
             // =====================================================
-            // 🧹 TAG TEMİZLE
+            // 🧹 MEVCUT TAG’LERİ TEMİZLE
             // =====================================================
             if (replaceExistingTags)
             {
@@ -121,7 +124,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
             }
 
             // =====================================================
-            // 🏷️ TAG EKLE
+            // 🏷️ YENİ TAG EKLE
             // =====================================================
             await _graphQl.ExecuteAsync(
                 store.ShopDomain,
@@ -131,7 +134,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                 ct);
 
             // =====================================================
-            // 📝 SYSTEM NOTE (ara1)
+            // 📝 SİSTEM NOTU (SADECE ara1)
             // =====================================================
             if (decision.Decision == OrderDecision.ApprovalNeeded &&
                 decision.Reasons.Any())
@@ -172,7 +175,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
         }
 
         // =====================================================
-        // 📞 AYNI TELEFON → TÜM AÇIKLARI ara1
+        // 📞 AYNI TELEFON → TÜM AÇIK SİPARİŞLERİ ara1
         // =====================================================
         private async Task ForceAllOpenOrdersWithSamePhoneToAra1Async(
             ShopifyStore store,
@@ -193,6 +196,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
             if (json?["data"]?["orders"]?["edges"] is not JArray edges)
                 return;
 
+            // Tek açık sipariş varsa zorlamaya gerek yok
             if (edges.Count <= 1)
                 return;
 

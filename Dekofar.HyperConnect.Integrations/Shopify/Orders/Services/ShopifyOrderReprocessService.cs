@@ -11,6 +11,10 @@ using Newtonsoft.Json.Linq;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
 {
+    /// <summary>
+    /// Swagger üzerinden çalıştırılan
+    /// AÇIK sipariş RESET + yeniden etiketleme servisi
+    /// </summary>
     public sealed class ShopifyOrderReprocessService
     {
         private readonly ShopifyGraphQlClient _graphQl;
@@ -43,7 +47,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
 
             var store = await GetStoreAsync(shopDomain, ct);
 
-            // 1️⃣ TÜM AÇIK SİPARİŞLERDE TAG TEMİZLE
+            // 1️⃣ TÜM AÇIK SİPARİŞLERDE ETİKETLERİ SİL
             await ClearAllTagsForOpenOrdersAsync(store, ct);
 
             // Shopify eventual consistency
@@ -54,7 +58,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
         }
 
         // =====================================================
-        // 🧹 AŞAMA 1 — TÜM TAG’LERİ SİL
+        // 🧹 AŞAMA 1 — TÜM ETİKETLERİ TEMİZLE
         // =====================================================
         private async Task ClearAllTagsForOpenOrdersAsync(
             ShopifyStore store,
@@ -286,7 +290,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
     }
 
     // =====================================================
-    // 🧠 GRAPHQL (SADECE BU DOSYADA)
+    // 🧠 GRAPHQL – SADECE BU DOSYADA
     // =====================================================
     internal static class GraphQlQueries
     {
@@ -306,7 +310,6 @@ query ($cursor: String, $first: Int!) {
     }
   }
 }";
-
         public const string OpenOrdersFull = @"
 query ($cursor: String, $first: Int!) {
   orders(

@@ -6,7 +6,7 @@ namespace Dekofar.HyperConnect.Api.Controllers.Integrations.Shopify
 {
     [ApiController]
     [Route("api/integrations/shopify/webhooks")]
-    public class ShopifyWebhookController : ControllerBase
+    public sealed class ShopifyWebhookController : ControllerBase
     {
         private readonly ShopifyOrderAutoTagService _autoTagService;
 
@@ -18,24 +18,38 @@ namespace Dekofar.HyperConnect.Api.Controllers.Integrations.Shopify
 
         /// <summary>
         /// Shopify → Order Created Webhook
+        /// Bu endpoint otomatik etiketleme yapar
         /// </summary>
+        /// <remarks>
+        /// • Shopify tarafından çağrılır  
+        /// • Swagger / manuel reprocess ile çakışmaz  
+        /// • Aynı telefon → sadece AÇIK siparişler ara1  
+        /// </remarks>
         [HttpPost("orders/create")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> OrderCreated(
             [FromBody] JObject payload,
             CancellationToken ct)
         {
+            if (payload == null)
+                return BadRequest("Payload is required");
+
             var shopDomain =
                 Request.Headers["X-Shopify-Shop-Domain"]
                     .FirstOrDefault();
 
             if (string.IsNullOrWhiteSpace(shopDomain))
-                return BadRequest("Missing shop domain");
+                return BadRequest("Missing X-Shopify-Shop-Domain header");
 
+            // 🔥 OTOMATİK ETİKETLEME
             await _autoTagService.ApplyAutoTagsAsync(
                 payload,
                 shopDomain,
-                ct);
+                ct,
+                replaceExistingTags: true);
 
+            // Shopify webhook'ları için 200 OK yeterlidir
             return Ok();
         }
     }
