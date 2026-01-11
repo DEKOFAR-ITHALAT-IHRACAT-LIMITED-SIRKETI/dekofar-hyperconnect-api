@@ -1,13 +1,17 @@
 ﻿namespace Dekofar.HyperConnect.Integrations.Shopify.Constants
 {
     /// <summary>
-    /// Shopify sipariş notlarında sistem tarafından kullanılan özel flag'ler
+    /// Shopify sistem notları için TEK kaynak
     /// </summary>
     public static class ShopifySystemNotes
     {
         /// <summary>
-        /// Manuel reset işlemi sonrası eklenen flag.
-        /// Webhook bu flag'i görürse otomatik etiketleme yapmaz.
+        /// Sistem tarafından yazılan tüm notların ortak prefix’i
+        /// </summary>
+        public const string SystemNotePrefix = "[SİSTEM]";
+
+        /// <summary>
+        /// Manuel reset sonrası webhook’un tekrar çalışmaması için flag
         /// </summary>
         public const string ResetFlag = "[SYSTEM_RESET]";
     }
