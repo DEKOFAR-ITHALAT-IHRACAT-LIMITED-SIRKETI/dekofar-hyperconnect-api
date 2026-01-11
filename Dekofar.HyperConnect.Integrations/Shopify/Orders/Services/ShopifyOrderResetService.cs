@@ -18,6 +18,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
     /// ✔ Webhook’tan tamamen bağımsız
     /// ✔ Açık siparişlerde TÜM tag’leri siler
     /// ✔ KURAL çalıştırmaz
+    /// ✔ Reset flag note’a eklenir
     /// ✔ 100’erli batch + cursor pagination
     /// </summary>
     public sealed class ShopifyOrderResetService
@@ -82,20 +83,31 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                         continue;
 
                     var orderId = node["id"]?.ToString();
-                    var tagsRaw = node["tags"]?.ToString();
-
-                    if (string.IsNullOrWhiteSpace(orderId) ||
-                        string.IsNullOrWhiteSpace(tagsRaw))
+                    if (string.IsNullOrWhiteSpace(orderId))
                         continue;
 
-                    var tags = tagsRaw
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(t => t.Trim())
+                    // ✅ TAGLERİ ARRAY OLARAK OKU
+                    var tagsArray = node["tags"] as JArray;
+                    if (tagsArray == null || tagsArray.Count == 0)
+                        continue;
+
+                    var tags = tagsArray
+                        .Select(t => t.ToString())
+                        .Where(t => !string.IsNullOrWhiteSpace(t))
                         .ToArray();
 
                     if (tags.Length == 0)
                         continue;
 
+                    // 🧹 TAG SİL
+                    await _graphQl.ExecuteAsync(
+                        store.ShopDomain,
+                        store.AccessToken,
+                        ShopifyGraphQlMutations.TagsRemove,
+                        new { id = orderId, tags },
+                        ct);
+
+                    // 📝 RESET FLAG NOTE (webhook çakışmasını önler)
                     await _graphQl.ExecuteAsync(
                         store.ShopDomain,
                         store.AccessToken,
@@ -106,7 +118,6 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                             note = ShopifySystemNotes.ResetFlag
                         },
                         ct);
-
 
                     clearedCount++;
                 }
