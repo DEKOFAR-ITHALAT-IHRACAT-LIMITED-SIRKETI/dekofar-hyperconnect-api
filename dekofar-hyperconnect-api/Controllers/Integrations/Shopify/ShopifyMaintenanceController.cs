@@ -1,94 +1,37 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
-using Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
-using Microsoft.AspNetCore.Http;
+﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Dekofar.HyperConnect.Api.Controllers.Integrations
+namespace Dekofar.HyperConnect.Api.Controllers.Integrations.Shopify
 {
     [ApiController]
     [Route("api/integrations/shopify")]
     public sealed class ShopifyMaintenanceController : ControllerBase
     {
-        private readonly ShopifyOrderResetService _resetService;
-        private readonly ShopifyOrderReprocessService _reprocessService;
+        private readonly ShopifyOrderResetService _reset;
+        private readonly ShopifyOrderReprocessService _reprocess;
 
         public ShopifyMaintenanceController(
-            ShopifyOrderResetService resetService,
-            ShopifyOrderReprocessService reprocessService)
+            ShopifyOrderResetService reset,
+            ShopifyOrderReprocessService reprocess)
         {
-            _resetService = resetService;
-            _reprocessService = reprocessService;
+            _reset = reset;
+            _reprocess = reprocess;
         }
 
-        // =====================================================
-        // 🔥 1️⃣ SADECE TAG RESET (Swagger)
-        // =====================================================
-        /// <summary>
-        /// 🔥 Açık siparişlerdeki TÜM etiketleri temizler
-        /// ❌ KURAL çalıştırmaz
-        /// ❌ Etiket eklemez
-        /// ✔ Sadece reset
-        /// </summary>
-        /// <remarks>
-        /// Shopify API limitlerine uygun:
-        /// 100’erli batch + cursor pagination
-        /// </remarks>
         [HttpPost("reset-tags")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> ResetOpenOrderTags(
-            [FromQuery] string shop,
-            CancellationToken ct)
-        {
-            if (string.IsNullOrWhiteSpace(shop))
-                return BadRequest("shop query param is required");
-
-            var cleared =
-                await _resetService.ResetAllOpenOrderTagsAsync(
-                    shop,
-                    ct);
-
-            return Ok(new
+        public async Task<IActionResult> Reset(string shop, CancellationToken ct)
+            => Ok(new
             {
                 shop,
-                cleared,
-                status = "reset-completed"
+                cleared = await _reset.ResetAllOpenOrderTagsAsync(shop, ct)
             });
-        }
 
-        // =====================================================
-        // 🔁 2️⃣ RESET SONRASI YENİDEN ETİKETLE
-        // =====================================================
-        /// <summary>
-        /// 🔁 Açık siparişleri kurallara göre yeniden etiketler
-        /// ✔ OrderDecisionEngine çalışır
-        /// ✔ ara1 / dhl / iptal atanır
-        /// </summary>
-        /// <remarks>
-        /// Reset işleminden SONRA çağrılmalıdır
-        /// </remarks>
         [HttpPost("reprocess")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> ReprocessOpenOrders(
-            [FromQuery] string shop,
-            CancellationToken ct)
-        {
-            if (string.IsNullOrWhiteSpace(shop))
-                return BadRequest("shop query param is required");
-
-            var processed =
-                await _reprocessService.ReprocessOpenOrdersAsync(
-                    shop,
-                    ct);
-
-            return Ok(new
+        public async Task<IActionResult> Reprocess(string shop, CancellationToken ct)
+            => Ok(new
             {
                 shop,
-                processed,
-                status = "reprocess-completed"
+                processed = await _reprocess.ReprocessOpenOrdersAsync(shop, ct)
             });
-        }
     }
 }

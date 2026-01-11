@@ -1,10 +1,10 @@
 ﻿namespace Dekofar.HyperConnect.Integrations.Shopify.GraphQl
 {
-    internal static class ShopifyGraphQlQueries
+    public static class ShopifyGraphQlQueries
     {
-        /// <summary>
-        /// Açık siparişler – minimal (reset için)
-        /// </summary>
+        // =====================================================
+        // 🔍 AÇIK SİPARİŞLER – SADECE ID + TAG
+        // =====================================================
         public const string OpenOrdersMinimal = @"
 query ($cursor: String, $first: Int!) {
   orders(
@@ -12,10 +12,7 @@ query ($cursor: String, $first: Int!) {
     after: $cursor
     query: ""financial_status:pending fulfillment_status:unfulfilled""
   ) {
-    pageInfo {
-      hasNextPage
-      endCursor
-    }
+    pageInfo { hasNextPage endCursor }
     edges {
       node {
         id
@@ -25,15 +22,50 @@ query ($cursor: String, $first: Int!) {
   }
 }";
 
-        /// <summary>
-        /// Aynı telefon numarasına sahip AÇIK siparişler
-        /// ✔ SADECE ara1 zorlaması için
-        /// ✔ Webhook + AutoTag kullanır
-        /// </summary>
+        // =====================================================
+        // 🔍 AÇIK SİPARİŞLER – TÜM KARAR DATASI
+        // =====================================================
+        public const string OpenOrdersFull = @"
+query ($cursor: String, $first: Int!) {
+  orders(
+    first: $first
+    after: $cursor
+    query: ""financial_status:pending fulfillment_status:unfulfilled""
+  ) {
+    pageInfo { hasNextPage endCursor }
+    edges {
+      node {
+        id
+        note
+        totalPriceSet { shopMoney { amount } }
+        shippingAddress {
+          address1
+          city
+          phone
+          countryCode
+        }
+        customer {
+          numberOfOrders
+        }
+        lineItems(first: 50) {
+          edges {
+            node {
+              quantity
+              product { id }
+            }
+          }
+        }
+      }
+    }
+  }
+}";
+        // =====================================================
+        // 📞 AYNI TELEFONLU AÇIK SİPARİŞLER
+        // =====================================================
         public const string OpenOrdersByPhone = @"
 query ($phone: String!) {
   orders(
-    first: 50
+    first: 10
     query: ""financial_status:pending fulfillment_status:unfulfilled phone:$phone""
   ) {
     edges {

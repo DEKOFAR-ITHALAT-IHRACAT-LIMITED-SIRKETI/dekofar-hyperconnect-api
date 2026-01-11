@@ -15,10 +15,9 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
 {
     /// <summary>
     /// Shopify Order Auto Tag Service
-    /// ✔ Webhook + Reprocess uyumlu
-    /// ✔ Reset flag SADECE webhook'u durdurur
-    /// ✔ Reprocess reset flag ve eski sistem notlarını temizler
-    /// ✔ Sistem notları üst üste binmez
+    /// ✔ Webhook + manuel reprocess uyumlu
+    /// ✔ Reset flag destekli
+    /// ✔ Eski sistem notlarını temizler
     /// </summary>
     public sealed class ShopifyOrderAutoTagService
     {
@@ -45,9 +44,6 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
             _db = db;
         }
 
-        // =====================================================
-        // 🚀 ENTRY
-        // =====================================================
         public async Task ApplyAutoTagsAsync(
             JObject order,
             string shopDomain,
@@ -55,52 +51,30 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
             bool replaceExistingTags = true,
             bool ignoreResetFlag = false)
         {
-            if (string.IsNullOrWhiteSpace(shopDomain))
-                throw new InvalidOperationException("shopDomain is required");
-
             var orderId = order["admin_graphql_api_id"]?.ToString();
             if (string.IsNullOrWhiteSpace(orderId))
                 return;
 
             var store = await _db.ShopifyStores
                 .AsNoTracking()
-                .FirstOrDefaultAsync(
-                    x => x.ShopDomain == shopDomain && x.IsActive,
-                    ct);
+                .FirstOrDefaultAsync(x => x.ShopDomain == shopDomain && x.IsActive, ct);
 
             if (store == null)
-                throw new InvalidOperationException(
-                    $"ShopifyStore not found or inactive: {shopDomain}");
+                return;
 
-            // =====================================================
-            // 🔒 RESET FLAG — SADECE WEBHOOK
-            // =====================================================
+            // 🔒 Reset flag (sadece webhook için)
             if (!ignoreResetFlag)
             {
                 var note = order["note"]?.ToString();
                 if (!string.IsNullOrWhiteSpace(note) &&
                     note.Contains(ShopifySystemNotes.ResetFlag))
-                {
                     return;
-                }
             }
 
-            // =====================================================
-            // 🧠 KARAR
-            // =====================================================
             var decision = _decisionEngine.Decide(order);
 
-            if (IsAddressTooShort(order))
-            {
+            if (IsAddressTooShort(order) || HasBlockedCustomerNote(order))
                 decision.Decision = OrderDecision.ApprovalNeeded;
-                decision.Reasons.Add("Adres 20 karakterden kısa veya eksik");
-            }
-
-            if (HasBlockedCustomerNote(order))
-            {
-                decision.Decision = OrderDecision.ApprovalNeeded;
-                decision.Reasons.Add("Müşteri notunda teslimat / kargo kısıtı var");
-            }
 
             var tag = decision.Decision switch
             {
@@ -110,33 +84,30 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                 _ => null
             };
 
-            if (string.IsNullOrWhiteSpace(tag))
+            if (tag == null)
                 return;
 
-            // =====================================================
-            // 🧹 TAG TEMİZLE
-            // =====================================================
+            // 🧹 Eski tag'leri sil
             if (replaceExistingTags)
             {
-                var tags = order["tags"]?.ToString()?
+                var tagsRaw = order["tags"]?.ToString();
+                var tagsToRemove = tagsRaw?
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => t.Trim())
                     .ToArray();
 
-                if (tags is { Length: > 0 })
+                if (tagsToRemove?.Length > 0)
                 {
                     await _graphQl.ExecuteAsync(
                         store.ShopDomain,
                         store.AccessToken,
                         ShopifyGraphQlMutations.TagsRemove,
-                        new { id = orderId, tags },
+                        new { id = orderId, tags = tagsToRemove },
                         ct);
                 }
             }
 
-            // =====================================================
-            // 🏷️ TAG EKLE
-            // =====================================================
+            // 🏷 Yeni tag ekle
             await _graphQl.ExecuteAsync(
                 store.ShopDomain,
                 store.AccessToken,
@@ -144,27 +115,18 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                 new { id = orderId, tags = new[] { tag } },
                 ct);
 
-            // =====================================================
-            // 📝 SİSTEM NOTU (RESET + ESKİLER SİLİNİR)
-            // =====================================================
-            if (decision.Decision == OrderDecision.ApprovalNeeded &&
-                decision.Reasons.Any())
+            // 📝 Sistem notu
+            if (decision.Decision == OrderDecision.ApprovalNeeded)
             {
-                var customerNote =
-                    CleanCustomerNote(order["note"]?.ToString());
+                var cleanNote = RemoveSystemNotes(order["note"]?.ToString());
 
                 var systemNote =
                     ShopifySystemNotes.SystemNotePrefix + "\n" +
-                    string.Join(
-                        "\n",
-                        decision.Reasons
-                            .Distinct()
-                            .Select(r => $"• {r}")
-                    );
+                    string.Join("\n", decision.Reasons.Distinct().Select(r => $"• {r}"));
 
-                var finalNote = string.IsNullOrWhiteSpace(customerNote)
+                var finalNote = string.IsNullOrWhiteSpace(cleanNote)
                     ? systemNote
-                    : $"{systemNote}\n\n[MÜŞTERİ NOTU]\n{customerNote}";
+                    : $"{systemNote}\n\n[MÜŞTERİ NOTU]\n{cleanNote}";
 
                 await _graphQl.ExecuteAsync(
                     store.ShopDomain,
@@ -173,102 +135,25 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                     new { id = orderId, note = finalNote },
                     ct);
             }
-
-            // =====================================================
-            // 📞 AYNI TELEFON → AÇIKLAR ara1
-            // =====================================================
-            if (decision.Decision == OrderDecision.ApprovalNeeded)
-            {
-                await ForceAllOpenOrdersWithSamePhoneToAra1Async(
-                    store,
-                    order,
-                    ct);
-            }
         }
 
-        // =====================================================
-        // 📞 AYNI TELEFON
-        // =====================================================
-        private async Task ForceAllOpenOrdersWithSamePhoneToAra1Async(
-            ShopifyStore store,
-            JObject order,
-            CancellationToken ct)
-        {
-            var phone = order["shipping_address"]?["phone"]?.ToString();
-            if (string.IsNullOrWhiteSpace(phone))
-                return;
-
-            var json = await _graphQl.ExecuteAsync(
-                store.ShopDomain,
-                store.AccessToken,
-                ShopifyGraphQlQueries.OpenOrdersByPhone,
-                new { phone },
-                ct);
-
-            if (json?["data"]?["orders"]?["edges"] is not JArray edges ||
-                edges.Count <= 1)
-                return;
-
-            foreach (var edge in edges)
-            {
-                if (edge["node"] is not JObject node)
-                    continue;
-
-                var orderId = node["id"]?.ToString();
-                if (string.IsNullOrWhiteSpace(orderId))
-                    continue;
-
-                var tags = node["tags"]?.ToString()?
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(t => t.Trim())
-                    .ToArray() ?? Array.Empty<string>();
-
-                if (tags.Contains("ara1"))
-                    continue;
-
-                if (tags.Length > 0)
-                {
-                    await _graphQl.ExecuteAsync(
-                        store.ShopDomain,
-                        store.AccessToken,
-                        ShopifyGraphQlMutations.TagsRemove,
-                        new { id = orderId, tags },
-                        ct);
-                }
-
-                await _graphQl.ExecuteAsync(
-                    store.ShopDomain,
-                    store.AccessToken,
-                    ShopifyGraphQlMutations.TagsAdd,
-                    new { id = orderId, tags = new[] { "ara1" } },
-                    ct);
-            }
-        }
-
-        // =====================================================
-        // 🔍 HELPERS
-        // =====================================================
         private static bool IsAddressTooShort(JObject order)
         {
-            var address =
-                order["shipping_address"]?["address1"]?.ToString();
-
+            var address = order["shipping_address"]?["address1"]?.ToString();
             return string.IsNullOrWhiteSpace(address) || address.Length < 20;
         }
 
         private static bool HasBlockedCustomerNote(JObject order)
         {
             var note = order["note"]?.ToString()?.ToLowerInvariant();
-            if (string.IsNullOrWhiteSpace(note))
-                return false;
-
-            return NoteBlockKeywords.Any(k => note.Contains(k));
+            return !string.IsNullOrWhiteSpace(note) &&
+                   NoteBlockKeywords.Any(k => note.Contains(k));
         }
 
-        private static string? CleanCustomerNote(string? note)
+        private static string? RemoveSystemNotes(string? note)
         {
             if (string.IsNullOrWhiteSpace(note))
-                return null;
+                return note;
 
             return note
                 .Replace(ShopifySystemNotes.ResetFlag, string.Empty)
