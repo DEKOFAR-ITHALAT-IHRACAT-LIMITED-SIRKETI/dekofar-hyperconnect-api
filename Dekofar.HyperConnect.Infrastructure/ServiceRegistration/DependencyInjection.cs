@@ -83,9 +83,12 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddHttpClient<ShopifyGraphQlClient>();
 
             services.AddScoped<OrderDecisionEngine>();
-            services.AddScoped<ShopifyOrderAutoTagService>();
-            services.AddScoped<ShopifyOrderReprocessService>();
+
+            services.AddScoped<ShopifyOrderAutoTagService>();     // webhook + reprocess
+            services.AddScoped<ShopifyOrderResetService>();       // 🔥 SADECE RESET
+            services.AddScoped<ShopifyOrderReprocessService>();   // 🔁 reset sonrası kurallar
             services.AddScoped<ShopifyOrderReportService>();
+
 
             // =====================================================
             // 📦 JOBS
