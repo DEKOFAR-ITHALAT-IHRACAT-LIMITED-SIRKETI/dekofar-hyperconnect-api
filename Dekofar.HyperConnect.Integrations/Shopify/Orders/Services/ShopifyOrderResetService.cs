@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Dekofar.HyperConnect.Application.Common.Interfaces;
 using Dekofar.HyperConnect.Domain.Entities;
 using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
+using Dekofar.HyperConnect.Integrations.Shopify.Constants;
 using Dekofar.HyperConnect.Integrations.Shopify.GraphQl;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
@@ -98,9 +99,14 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                     await _graphQl.ExecuteAsync(
                         store.ShopDomain,
                         store.AccessToken,
-                        ShopifyGraphQlMutations.TagsRemove,
-                        new { id = orderId, tags },
+                        ShopifyGraphQlMutations.UpdateOrderNote,
+                        new
+                        {
+                            id = orderId,
+                            note = ShopifySystemNotes.ResetFlag
+                        },
                         ct);
+
 
                     clearedCount++;
                 }

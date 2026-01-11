@@ -1,4 +1,5 @@
-﻿using Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
+﻿using Dekofar.HyperConnect.Integrations.Shopify.Constants;
+using Dekofar.HyperConnect.Integrations.Shopify.Orders.Services;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 
@@ -23,6 +24,7 @@ namespace Dekofar.HyperConnect.Api.Controllers.Integrations.Shopify
         /// <remarks>
         /// • Shopify tarafından çağrılır  
         /// • Swagger / manuel reprocess ile çakışmaz  
+        /// • Manuel reset edilmiş siparişleri atlar  
         /// • Aynı telefon → sadece AÇIK siparişler ara1  
         /// </remarks>
         [HttpPost("orders/create")]
@@ -42,7 +44,21 @@ namespace Dekofar.HyperConnect.Api.Controllers.Integrations.Shopify
             if (string.IsNullOrWhiteSpace(shopDomain))
                 return BadRequest("Missing X-Shopify-Shop-Domain header");
 
+            // =====================================================
+            // 🔒 MANUEL RESET KORUMASI
+            // =====================================================
+            var note = payload["note"]?.ToString();
+
+            if (!string.IsNullOrWhiteSpace(note) &&
+                note.Contains(ShopifySystemNotes.ResetFlag))
+            {
+                // Manuel reset sonrası webhook → ETİKETLEME YAPMA
+                return Ok();
+            }
+
+            // =====================================================
             // 🔥 OTOMATİK ETİKETLEME
+            // =====================================================
             await _autoTagService.ApplyAutoTagsAsync(
                 payload,
                 shopDomain,
