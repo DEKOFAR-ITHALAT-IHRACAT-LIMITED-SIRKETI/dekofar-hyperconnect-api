@@ -1,4 +1,9 @@
-﻿using Dekofar.HyperConnect.Application.Common.Interfaces;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Dekofar.HyperConnect.Application.Common.Interfaces;
 using Dekofar.HyperConnect.Domain.Entities;
 using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
 using Microsoft.EntityFrameworkCore;
@@ -6,15 +11,15 @@ using Newtonsoft.Json.Linq;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
 {
-    public class ShopifyOrderReprocessService
+    public sealed class ShopifyOrderReprocessService
     {
         private readonly ShopifyGraphQlClient _graphQl;
         private readonly ShopifyOrderAutoTagService _autoTag;
         private readonly IApplicationDbContext _db;
 
-        private const int BatchSize = 200;
-        private static readonly TimeSpan BatchDelay = TimeSpan.FromMinutes(2);
-        private static readonly TimeSpan ConsistencyDelay = TimeSpan.FromMinutes(1);
+        private const int BatchSize = 100;
+        private static readonly TimeSpan BatchDelay = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan ConsistencyDelay = TimeSpan.FromSeconds(5);
 
         public ShopifyOrderReprocessService(
             ShopifyGraphQlClient graphQl,
@@ -27,136 +32,180 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
         }
 
         // =====================================================
-        // 🚀 PROD – TÜM AÇIK SİPARİŞLER
+        // 🚀 ENTRY (Swagger burayı çağırır)
         // =====================================================
         public async Task<int> ReprocessOpenOrdersAsync(
             string shopDomain,
             CancellationToken ct)
         {
+            if (string.IsNullOrWhiteSpace(shopDomain))
+                throw new InvalidOperationException("shopDomain is required");
+
             var store = await GetStoreAsync(shopDomain, ct);
 
+            // 1️⃣ TÜM AÇIK SİPARİŞLERDE TAG TEMİZLE
+            await ClearAllTagsForOpenOrdersAsync(store, ct);
+
+            // Shopify eventual consistency
             await Task.Delay(ConsistencyDelay, ct);
 
-            return await ReprocessInternalAsync(
-                store,
-                ct,
-                limit: null);
+            // 2️⃣ KURALLARA GÖRE YENİDEN ETİKETLE
+            return await ReprocessOpenOrdersInBatchesAsync(store, ct);
         }
 
         // =====================================================
-        // 🧪 TEST – SADECE N SİPARİŞ
+        // 🧹 AŞAMA 1 — TÜM TAG’LERİ SİL
         // =====================================================
-        public async Task<int> ReprocessOpenOrdersTestAsync(
-            string shopDomain,
-            int limit,
+        private async Task ClearAllTagsForOpenOrdersAsync(
+            ShopifyStore store,
             CancellationToken ct)
         {
-            if (limit <= 0 || limit > 50)
-                throw new InvalidOperationException("limit must be between 1 and 50");
+            string? cursor = null;
+            bool hasNextPage;
 
-            var store = await GetStoreAsync(shopDomain, ct);
+            do
+            {
+                ct.ThrowIfCancellationRequested();
 
-            return await ReprocessInternalAsync(
-                store,
-                ct,
-                limit);
+                var json = await _graphQl.ExecuteAsync(
+                    store.ShopDomain,
+                    store.AccessToken,
+                    GraphQlQueries.OpenOrdersMinimal,
+                    new { cursor, first = BatchSize },
+                    ct);
+
+                var orders = json["data"]?["orders"] as JObject;
+                if (orders == null)
+                    break;
+
+                hasNextPage =
+                    orders["pageInfo"]?["hasNextPage"]?.Value<bool>() == true;
+
+                cursor =
+                    orders["pageInfo"]?["endCursor"]?.ToString();
+
+                if (orders["edges"] is not JArray edges)
+                    continue;
+
+                foreach (var edge in edges)
+                {
+                    if (edge["node"] is not JObject node)
+                        continue;
+
+                    var orderId = node["id"]?.ToString();
+                    var tagsRaw = node["tags"]?.ToString();
+
+                    if (string.IsNullOrWhiteSpace(orderId) ||
+                        string.IsNullOrWhiteSpace(tagsRaw))
+                        continue;
+
+                    var tags = tagsRaw
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(t => t.Trim())
+                        .ToArray();
+
+                    if (tags.Length == 0)
+                        continue;
+
+                    await _graphQl.ExecuteAsync(
+                        store.ShopDomain,
+                        store.AccessToken,
+                        GraphQlMutations.TagsRemove,
+                        new { id = orderId, tags },
+                        ct);
+                }
+
+                if (hasNextPage)
+                    await Task.Delay(BatchDelay, ct);
+
+            } while (hasNextPage);
         }
 
         // =====================================================
-        // 🔁 ORTAK İŞLEYİCİ
+        // 🔁 AŞAMA 2 — YENİDEN ETİKETLE
         // =====================================================
-        private async Task<int> ReprocessInternalAsync(
+        private async Task<int> ReprocessOpenOrdersInBatchesAsync(
             ShopifyStore store,
-            CancellationToken ct,
-            int? limit)
+            CancellationToken ct)
         {
-            var gql = $@"
-query {{
-  orders(
-    first: {(limit ?? BatchSize)}
-    query: ""financial_status:pending fulfillment_status:unfulfilled""
-  ) {{
-    edges {{
-      node {{
-        id
-        tags
-        note
-        totalPriceSet {{ shopMoney {{ amount }} }}
-        shippingAddress {{ address1 city phone countryCode }}
-        customer {{ numberOfOrders }}
-        lineItems(first: 50) {{
-          edges {{
-            node {{
-              quantity
-              product {{ id }}
-            }}
-          }}
-        }}
-      }}
-    }}
-  }}
-}}";
-
-            var json = await _graphQl.ExecuteAsync(
-                store.ShopDomain,
-                store.AccessToken,
-                gql,
-                null,
-                ct);
-
-            if (json?["data"]?["orders"] is not JObject ordersObj)
-                return 0;
-
-            if (ordersObj["edges"] is not JArray edges || edges.Count == 0)
-                return 0;
-
-            // 📞 TELEFON TEKRAR SAYACI
-            var phoneCounts = new Dictionary<string, int>();
-
-            foreach (var edge in edges)
-            {
-                var phone =
-                    edge?["node"]?["shippingAddress"]?["phone"]?.ToString();
-
-                if (string.IsNullOrWhiteSpace(phone))
-                    continue;
-
-                phoneCounts.TryGetValue(phone, out var c);
-                phoneCounts[phone] = c + 1;
-            }
-
+            string? cursor = null;
+            bool hasNextPage;
             int processed = 0;
 
-            foreach (var edge in edges)
+            do
             {
-                if (edge?["node"] is not JObject node)
+                ct.ThrowIfCancellationRequested();
+
+                var json = await _graphQl.ExecuteAsync(
+                    store.ShopDomain,
+                    store.AccessToken,
+                    GraphQlQueries.OpenOrdersFull,
+                    new { cursor, first = BatchSize },
+                    ct);
+
+                var orders = json["data"]?["orders"] as JObject;
+                if (orders == null)
+                    break;
+
+                hasNextPage =
+                    orders["pageInfo"]?["hasNextPage"]?.Value<bool>() == true;
+
+                cursor =
+                    orders["pageInfo"]?["endCursor"]?.ToString();
+
+                if (orders["edges"] is not JArray edges || edges.Count == 0)
                     continue;
 
-                try
-                {
-                    var normalized =
-                        NormalizeGraphQlOrder(node, phoneCounts);
+                // 📞 batch içi telefon tekrar sayacı
+                var phoneCounts = new Dictionary<string, int>();
 
-                    await _autoTag.ApplyAutoTagsAsync(
-                        normalized,
-                        store.ShopDomain,
-                        ct,
-                        replaceExistingTags: true);
-
-                    processed++;
-                }
-                catch
+                foreach (var edge in edges)
                 {
-                    // ❗ tek sipariş bozuksa devam
-                    continue;
+                    var phone =
+                        edge["node"]?["shippingAddress"]?["phone"]?.ToString();
+
+                    if (string.IsNullOrWhiteSpace(phone))
+                        continue;
+
+                    phoneCounts.TryGetValue(phone, out var c);
+                    phoneCounts[phone] = c + 1;
                 }
-            }
+
+                foreach (var edge in edges)
+                {
+                    if (edge["node"] is not JObject node)
+                        continue;
+
+                    try
+                    {
+                        var normalized =
+                            NormalizeGraphQlOrder(node, phoneCounts);
+
+                        await _autoTag.ApplyAutoTagsAsync(
+                            normalized,
+                            store.ShopDomain,
+                            ct,
+                            replaceExistingTags: false);
+
+                        processed++;
+                    }
+                    catch
+                    {
+                        // tek sipariş bozuksa batch devam eder
+                        continue;
+                    }
+                }
+
+                if (hasNextPage)
+                    await Task.Delay(BatchDelay, ct);
+
+            } while (hasNextPage);
 
             return processed;
         }
 
         // =====================================================
-        // 🔄 NORMALIZE
+        // 🔄 NORMALIZE (DecisionEngine uyumlu JSON)
         // =====================================================
         private static JObject NormalizeGraphQlOrder(
             JObject node,
@@ -166,7 +215,7 @@ query {{
             var customer = node["customer"] as JObject;
 
             var phone = shipping?["phone"]?.ToString();
-            phoneCounts.TryGetValue(phone ?? "", out var repeat);
+            phoneCounts.TryGetValue(phone ?? string.Empty, out var repeat);
 
             var lineItems = new JArray();
 
@@ -174,14 +223,11 @@ query {{
             {
                 foreach (var e in edges)
                 {
-                    if (e?["node"] is not JObject item)
+                    if (e["node"] is not JObject item)
                         continue;
 
-                    var productId =
-                        item["product"]?["id"]?.ToString();
-
-                    var quantity =
-                        item["quantity"]?.Value<int>() ?? 1;
+                    var productId = item["product"]?["id"]?.ToString();
+                    var quantity = item["quantity"]?.Value<int>() ?? 1;
 
                     if (!string.IsNullOrWhiteSpace(productId))
                     {
@@ -197,7 +243,7 @@ query {{
             return new JObject
             {
                 ["admin_graphql_api_id"] = node["id"]?.ToString(),
-                ["tags"] = node["tags"]?.ToString(),
+                ["tags"] = "",
                 ["note"] = node["note"]?.ToString(),
                 ["total_price"] =
                     node["totalPriceSet"]?["shopMoney"]?["amount"]?.ToString(),
@@ -237,5 +283,66 @@ query {{
 
             return store;
         }
+    }
+
+    // =====================================================
+    // 🧠 GRAPHQL (SADECE BU DOSYADA)
+    // =====================================================
+    internal static class GraphQlQueries
+    {
+        public const string OpenOrdersMinimal = @"
+query ($cursor: String, $first: Int!) {
+  orders(
+    first: $first
+    after: $cursor
+    query: ""financial_status:pending fulfillment_status:unfulfilled""
+  ) {
+    pageInfo { hasNextPage endCursor }
+    edges {
+      node {
+        id
+        tags
+      }
+    }
+  }
+}";
+
+        public const string OpenOrdersFull = @"
+query ($cursor: String, $first: Int!) {
+  orders(
+    first: $first
+    after: $cursor
+    query: ""financial_status:pending fulfillment_status:unfulfilled""
+  ) {
+    pageInfo { hasNextPage endCursor }
+    edges {
+      node {
+        id
+        note
+        totalPriceSet { shopMoney { amount } }
+        shippingAddress { address1 city phone countryCode }
+        customer { numberOfOrders }
+        lineItems(first: 50) {
+          edges {
+            node {
+              quantity
+              product { id }
+            }
+          }
+        }
+      }
+    }
+  }
+}";
+    }
+
+    internal static class GraphQlMutations
+    {
+        public const string TagsRemove = @"
+mutation ($id: ID!, $tags: [String!]!) {
+  tagsRemove(id: $id, tags: $tags) {
+    userErrors { message }
+  }
+}";
     }
 }

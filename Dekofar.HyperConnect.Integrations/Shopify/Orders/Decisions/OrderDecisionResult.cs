@@ -1,31 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using System.Collections.Generic;
-
-namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions
+﻿namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions
 {
-    public class OrderDecisionResult
+    public sealed class OrderDecisionResult
     {
-        /// <summary>
-        /// Sipariş için verilen nihai karar
-        /// (Automatic / ApprovalNeeded / Cancelled)
-        /// </summary>
         public OrderDecision Decision { get; set; }
 
-        /// <summary>
-        /// Operatör için açıklama listesi
-        /// </summary>
-        public List<string> Reasons { get; } = new();
+        public List<string> Reasons { get; }
 
-        /// <summary>
-        /// Bu karar için SMS gönderilmeli mi?
-        /// </summary>
-        public bool RequiresSms =>
-            Decision == OrderDecision.Automatic ||
-            Decision == OrderDecision.ApprovalNeeded;
+        public bool IsForcedApproval { get; set; }
+
+        // ✅ PARAMETRESİZ (İstersen manuel set edebilirsin)
+        public OrderDecisionResult()
+        {
+            Reasons = new List<string>();
+        }
+
+        // ✅ ENGINE'İN KULLANDIĞI CONSTRUCTOR
+        public OrderDecisionResult(
+            OrderDecision decision,
+            IEnumerable<string> reasons,
+            bool isForcedApproval)
+        {
+            Decision = decision;
+            Reasons = reasons?.ToList() ?? new List<string>();
+            IsForcedApproval = isForcedApproval;
+        }
     }
 }

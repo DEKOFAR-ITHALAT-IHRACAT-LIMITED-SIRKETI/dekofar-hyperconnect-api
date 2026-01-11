@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions
 {
-    public class OrderDecisionEngine
+    public sealed class OrderDecisionEngine
     {
         private static readonly string[] CancelKeywords =
         {
@@ -15,23 +15,39 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions
             "fake"
         };
 
+        private static readonly string[] ApprovalNoteKeywords =
+        {
+            "şube",
+            "şubeye",
+            "kargo gönderme",
+            "kargo göndermeyin",
+            "göndermeyin",
+            "elden teslim"
+        };
+
         public OrderDecisionResult Decide(JObject order)
         {
-            var result = new OrderDecisionResult();
+            var reasons = new List<string>();
+            var isForcedApproval = false;
 
             // =====================================================
             // 🔴 1. MUTLAK IPTAL
             // =====================================================
             if (ContainsCancelKeyword(order))
             {
-                result.Decision = OrderDecision.Cancelled;
-                result.Reasons.Add(
-                    "Siparişte iptal / test amaçlı ifade tespit edildi");
-                return result;
+                return new OrderDecisionResult(
+                    decision: OrderDecision.Cancelled,
+                    reasons: new[]
+                    {
+                        "Siparişte iptal / test amaçlı ifade tespit edildi"
+                    },
+                    isForcedApproval: false
+                );
             }
 
             // =====================================================
-            // 👤 2. TEKRAR EDEN MÜŞTERİ / TELEFON
+            // 👤 2. AYNI TELEFON / TEKRAR SİPARİŞ
+            // (Kapalı siparişler SAYILIR → kararı etkiler)
             // =====================================================
             var repeatPhoneCount =
                 order["__repeat_phone_count"]?.Value<int>() ?? 0;
@@ -41,10 +57,8 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions
 
             if (repeatPhoneCount > 1 || customerOrders > 1)
             {
-                result.Decision = OrderDecision.ApprovalNeeded;
-                result.Reasons.Add(
-                    "Müşterinin birden fazla siparişi bulundu");
-                return result;
+                reasons.Add("Aynı telefon numarasıyla birden fazla sipariş mevcut");
+                isForcedApproval = true;
             }
 
             // =====================================================
@@ -58,13 +72,11 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions
 
             if (total < 1000)
             {
-                result.Decision = OrderDecision.ApprovalNeeded;
-                result.Reasons.Add("Sipariş tutarı 1000 TL altında");
+                reasons.Add("Sipariş tutarı 1000 TL altında");
             }
             else if (total >= 2000)
             {
-                result.Decision = OrderDecision.ApprovalNeeded;
-                result.Reasons.Add("Sipariş tutarı 2000 TL ve üzeri");
+                reasons.Add("Sipariş tutarı 2000 TL ve üzeri");
             }
 
             // =====================================================
@@ -76,32 +88,48 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions
 
             if (hasMultipleQuantity)
             {
-                result.Decision = OrderDecision.ApprovalNeeded;
-                result.Reasons.Add(
-                    "Aynı üründen birden fazla adet sipariş edilmiş");
+                reasons.Add("Aynı üründen birden fazla adet sipariş edilmiş");
             }
 
             // =====================================================
-            // 📍 5. ADRES DOĞRULAMA
+            // 📍 5. ADRES KONTROLÜ (20 KARAKTER)
             // =====================================================
-            var addressResult =
-                AddressValidator.Validate(order);
+            var address =
+                order["shipping_address"]?["address1"]?.ToString();
 
-            if (!addressResult.IsValid)
+            if (string.IsNullOrWhiteSpace(address) || address.Length < 20)
             {
-                result.Decision = OrderDecision.ApprovalNeeded;
-                result.Reasons.AddRange(addressResult.Reasons);
+                reasons.Add("Adres 20 karakterden kısa veya eksik");
             }
 
             // =====================================================
-            // 🟢 6. HİÇBİR ŞARTA TAKILMIYORSA → DHL
+            // 📝 6. MÜŞTERİ NOTU KONTROLÜ
             // =====================================================
-            if (result.Decision == default)
+            var note =
+                order["note"]?.ToString()?.ToLowerInvariant() ?? string.Empty;
+
+            if (ApprovalNoteKeywords.Any(k => note.Contains(k)))
             {
-                result.Decision = OrderDecision.Automatic;
+                reasons.Add("Müşteri notunda kargo / teslimat kısıtı var");
             }
 
-            return result;
+            // =====================================================
+            // 🧠 FINAL KARAR
+            // =====================================================
+            if (reasons.Count > 0)
+            {
+                return new OrderDecisionResult(
+                    decision: OrderDecision.ApprovalNeeded,
+                    reasons: reasons,
+                    isForcedApproval: isForcedApproval
+                );
+            }
+
+            return new OrderDecisionResult(
+                decision: OrderDecision.Automatic,
+                reasons: Array.Empty<string>(),
+                isForcedApproval: false
+            );
         }
 
         // =====================================================
@@ -113,8 +141,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Decisions
                 order["note"]?.ToString() ?? string.Empty;
 
             var address =
-                order["shipping_address"]?["address1"]?
-                    .ToString() ?? string.Empty;
+                order["shipping_address"]?["address1"]?.ToString() ?? string.Empty;
 
             var text =
                 $"{note} {address}".ToLowerInvariant();
