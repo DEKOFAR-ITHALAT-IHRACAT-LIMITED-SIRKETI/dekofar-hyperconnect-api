@@ -49,7 +49,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                 return;
 
             // =====================================================
-            // 🔑 STORE + TOKEN
+            // 🔑 STORE
             // =====================================================
             var store = await _db.ShopifyStores
                 .AsNoTracking()
@@ -62,10 +62,9 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                     $"ShopifyStore not found or inactive: {shopDomain}");
 
             // =====================================================
-            // 🧠 KARAR
+            // 🧠 DECISION
             // =====================================================
-            var decision =
-                _decisionEngine.Decide(order);
+            var decision = _decisionEngine.Decide(order);
 
             var tag = decision.Decision switch
             {
@@ -79,7 +78,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                 return;
 
             // =====================================================
-            // 🧹 ESKİ TAGLERİ TEMİZLE
+            // 🧹 TAG TEMİZLE
             // =====================================================
             if (replaceExistingTags)
             {
@@ -89,7 +88,6 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                 var tagsToRemove = existingTags?
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => t.Trim())
-                    .Distinct()
                     .ToArray();
 
                 if (tagsToRemove is { Length: > 0 })
@@ -104,7 +102,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
             }
 
             // =====================================================
-            // 🏷️ YENİ TAG EKLE
+            // 🏷️ TAG EKLE
             // =====================================================
             await _graphQl.ExecuteAsync(
                 store.ShopDomain,
@@ -114,7 +112,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                 ct);
 
             // =====================================================
-            // 📝 SİSTEM NOTU (SADECE ara1)
+            // 📝 SİSTEM NOTU (ara1)
             // =====================================================
             if (decision.Decision == OrderDecision.ApprovalNeeded &&
                 decision.Reasons.Any())
@@ -142,24 +140,23 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
             }
 
             // =====================================================
-            // 🔥 AYNI TELEFONLU DİĞER AÇIK SİPARİŞLER
+            // 🔥 KRİTİK KURAL
+            // AYNI TELEFON → TÜM AÇIKLAR ara1
             // =====================================================
             if (decision.Decision == OrderDecision.ApprovalNeeded)
             {
-                await ForceOtherOrdersToAra1Async(
+                await ForceAllOpenOrdersWithSamePhoneToAra1Async(
                     store,
-                    orderId,
                     order,
                     ct);
             }
         }
 
         // =====================================================
-        // 🔥 AYNI TELEFON → TÜM AÇIK SİPARİŞLERİ ara1
+        // 🔥 AYNI TELEFON → TÜM AÇIK SİPARİŞLER ara1
         // =====================================================
-        private async Task ForceOtherOrdersToAra1Async(
+        private async Task ForceAllOpenOrdersWithSamePhoneToAra1Async(
             ShopifyStore store,
-            string currentOrderId,
             JObject order,
             CancellationToken ct)
         {
@@ -181,24 +178,20 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
 
             foreach (var edge in edges)
             {
-                var node = edge?["node"] as JObject;
-                var orderId = node?["id"]?.ToString();
-
-                if (string.IsNullOrWhiteSpace(orderId))
+                if (edge?["node"] is not JObject node)
                     continue;
 
-                if (orderId == currentOrderId)
+                var orderId = node["id"]?.ToString();
+                if (string.IsNullOrWhiteSpace(orderId))
                     continue;
 
                 var existingTags =
                     node["tags"]?.ToString() ?? string.Empty;
 
-                if (existingTags.Contains("ara1"))
-                    continue;
-
                 var tagsToRemove = existingTags
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => t.Trim())
+                    .Where(t => t != "ara1")
                     .ToArray();
 
                 if (tagsToRemove.Length > 0)
@@ -211,12 +204,15 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                         ct);
                 }
 
-                await _graphQl.ExecuteAsync(
-                    store.ShopDomain,
-                    store.AccessToken,
-                    GraphQlMutations.TagsAdd,
-                    new { id = orderId, tags = new[] { "ara1" } },
-                    ct);
+                if (!existingTags.Contains("ara1"))
+                {
+                    await _graphQl.ExecuteAsync(
+                        store.ShopDomain,
+                        store.AccessToken,
+                        GraphQlMutations.TagsAdd,
+                        new { id = orderId, tags = new[] { "ara1" } },
+                        ct);
+                }
             }
         }
     }
