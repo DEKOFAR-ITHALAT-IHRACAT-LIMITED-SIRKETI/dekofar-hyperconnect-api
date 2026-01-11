@@ -36,7 +36,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
         }
 
         // =====================================================
-        // 🚀 ENTRY (Swagger burayı çağırır)
+        // 🚀 ENTRY (Swagger)
         // =====================================================
         public async Task<int> ReprocessOpenOrdersAsync(
             string shopDomain,
@@ -58,7 +58,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
         }
 
         // =====================================================
-        // 🧹 AŞAMA 1 — TÜM ETİKETLERİ TEMİZLE
+        // 🧹 AŞAMA 1 — TAG TEMİZLE
         // =====================================================
         private async Task ClearAllTagsForOpenOrdersAsync(
             ShopifyStore store,
@@ -69,8 +69,6 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
 
             do
             {
-                ct.ThrowIfCancellationRequested();
-
                 var json = await _graphQl.ExecuteAsync(
                     store.ShopDomain,
                     store.AccessToken,
@@ -138,8 +136,6 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
 
             do
             {
-                ct.ThrowIfCancellationRequested();
-
                 var json = await _graphQl.ExecuteAsync(
                     store.ShopDomain,
                     store.AccessToken,
@@ -160,7 +156,7 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                 if (orders["edges"] is not JArray edges || edges.Count == 0)
                     continue;
 
-                // 📞 batch içi telefon tekrar sayacı
+                // 📞 batch içi telefon sayacı
                 var phoneCounts = new Dictionary<string, int>();
 
                 foreach (var edge in edges)
@@ -283,6 +279,7 @@ query ($cursor: String, $first: Int!) {
     }
   }
 }";
+
         public const string OpenOrdersFull = @"
 query ($cursor: String, $first: Int!) {
   orders(
