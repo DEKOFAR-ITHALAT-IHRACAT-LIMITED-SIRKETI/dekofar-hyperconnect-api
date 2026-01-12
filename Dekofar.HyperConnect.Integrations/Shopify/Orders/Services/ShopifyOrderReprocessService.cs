@@ -90,17 +90,42 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
 
         private static JObject NormalizeGraphQlOrder(JObject node)
         {
+            // 🛡️ DEFANSİF OKUMA
+            var shipping = node["shippingAddress"] as JObject ?? new JObject();
+            var customer = node["customer"] as JObject ?? new JObject();
+
             return new JObject
             {
+                // 🔑 ID
                 ["admin_graphql_api_id"] = node["id"]?.ToString(),
-                ["total_price"] = node["totalPriceSet"]?["shopMoney"]?["amount"]?.ToString(),
+
+                // 💰 TOPLAM TUTAR (1000 TL kuralı)
+                ["total_price"] =
+                    node["totalPriceSet"]?["shopMoney"]?["amount"]?.ToString(),
+
+                // 📦 LINE ITEMS (DecisionEngine kullanıyor)
                 ["line_items"] = ExtractLineItems(node),
+
+                // 📝 NOT
                 ["note"] = node["note"]?.ToString(),
-                ["shipping_address"] = node["shippingAddress"] as JObject ?? new JObject(),
+
+                // 🚚 ADRES (NULL SAFE)
+                ["shipping_address"] = new JObject
+                {
+                    ["address1"] = shipping["address1"]?.ToString(),
+                    ["city"] = shipping["city"]?.ToString(),
+                    ["phone"] = shipping["phone"]?.ToString(),
+                    ["country_code"] = shipping["countryCode"]?.ToString()
+                },
+
+                // 👤 CUSTOMER (NULL SAFE)
                 ["customer"] = new JObject
                 {
-                    ["orders_count"] = node["customer"]?["numberOfOrders"]?.Value<int>() ?? 0
+                    ["orders_count"] =
+                        customer["numberOfOrders"]?.Value<int>() ?? 0
                 },
+
+                // 🏷️ TAGLER BAŞLANGIÇTA BOŞ
                 ["tags"] = ""
             };
         }
