@@ -2,11 +2,8 @@
 {
     public static class ShopifyGraphQlQueries
     {
-        // =====================================================
-        // 🔍 AÇIK SİPARİŞLER – SADECE ID + TAG
-        // =====================================================
         public const string OpenOrdersMinimal = @"
-query ($cursor: String, $first: Int!) {
+query ($first: Int!, $cursor: String) {
   orders(
     first: $first
     after: $cursor
@@ -22,11 +19,8 @@ query ($cursor: String, $first: Int!) {
   }
 }";
 
-        // =====================================================
-        // 🔍 AÇIK SİPARİŞLER – TÜM KARAR DATASI
-        // =====================================================
         public const string OpenOrdersFull = @"
-query ($cursor: String, $first: Int!) {
+query ($first: Int!, $cursor: String) {
   orders(
     first: $first
     after: $cursor
@@ -55,23 +49,6 @@ query ($cursor: String, $first: Int!) {
             }
           }
         }
-      }
-    }
-  }
-}";
-        // =====================================================
-        // 📞 AYNI TELEFONLU AÇIK SİPARİŞLER
-        // =====================================================
-        public const string OpenOrdersByPhone = @"
-query ($phone: String!) {
-  orders(
-    first: 10
-    query: ""financial_status:pending fulfillment_status:unfulfilled phone:$phone""
-  ) {
-    edges {
-      node {
-        id
-        tags
       }
     }
   }

@@ -12,21 +12,13 @@ using Newtonsoft.Json.Linq;
 
 namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
 {
-    /// <summary>
-    /// Shopify Open Orders TAG RESET Service
-    /// ✔ SADECE manuel (Swagger)
-    /// ✔ Webhook’tan tamamen bağımsız
-    /// ✔ Açık siparişlerde TÜM tag’leri siler
-    /// ✔ Reset flag note’a eklenir
-    /// ✔ Shopify pagination bug-safe
-    /// </summary>
     public sealed class ShopifyOrderResetService
     {
-        private readonly ShopifyGraphQlClient _graphQl;
-        private readonly IApplicationDbContext _db;
-
         private const int BatchSize = 100;
         private static readonly TimeSpan BatchDelay = TimeSpan.FromSeconds(2);
+
+        private readonly ShopifyGraphQlClient _graphQl;
+        private readonly IApplicationDbContext _db;
 
         public ShopifyOrderResetService(
             ShopifyGraphQlClient graphQl,
@@ -36,25 +28,22 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
             _db = db;
         }
 
-        // =====================================================
-        // 🚀 ENTRY (Swagger çağırır)
-        // =====================================================
         public async Task<int> ResetAllOpenOrderTagsAsync(
             string shopDomain,
             CancellationToken ct)
         {
-            if (string.IsNullOrWhiteSpace(shopDomain))
-                throw new InvalidOperationException("shopDomain is required");
+            var store = await _db.ShopifyStores
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ShopDomain == shopDomain && x.IsActive, ct);
 
-            var store = await GetStoreAsync(shopDomain, ct);
+            if (store == null)
+                throw new InvalidOperationException("Shop not found");
 
-            int clearedCount = 0;
+            int cleared = 0;
             string? cursor = null;
 
             while (true)
             {
-                ct.ThrowIfCancellationRequested();
-
                 var json = await _graphQl.ExecuteAsync(
                     store.ShopDomain,
                     store.AccessToken,
@@ -63,26 +52,13 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                     ct);
 
                 var orders = json["data"]?["orders"] as JObject;
-                if (orders == null)
-                    break;
+                if (orders == null) break;
 
                 var edges = orders["edges"] as JArray;
-                if (edges == null || edges.Count == 0)
-                    break;
+                if (edges == null || edges.Count == 0) break;
 
-                var nextCursor =
-                    orders["pageInfo"]?["endCursor"]?.ToString();
-
-                var hasNextPage =
-                    orders["pageInfo"]?["hasNextPage"]?.Value<bool>() == true;
-
-                // 🔥 SHOPIFY BUG SAFE CONTINUE
-                var shouldContinue =
-                    hasNextPage ||
-                    (!string.IsNullOrWhiteSpace(nextCursor) &&
-                     nextCursor != cursor);
-
-                cursor = nextCursor;
+                var hasNextPage = orders["pageInfo"]?["hasNextPage"]?.Value<bool>() == true;
+                var nextCursor = orders["pageInfo"]?["endCursor"]?.ToString();
 
                 foreach (var edge in edges)
                 {
@@ -93,19 +69,19 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                     if (string.IsNullOrWhiteSpace(orderId))
                         continue;
 
-                    var tagsArray = node["tags"] as JArray;
-                    if (tagsArray == null || tagsArray.Count == 0)
+                    // ✅ TAGS STRING OLARAK OKUNUR
+                    var tagsRaw = node["tags"]?.ToString();
+                    if (string.IsNullOrWhiteSpace(tagsRaw))
                         continue;
 
-                    var tags = tagsArray
-                        .Select(t => t.ToString())
-                        .Where(t => !string.IsNullOrWhiteSpace(t))
+                    var tags = tagsRaw
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(t => t.Trim())
                         .ToArray();
 
                     if (tags.Length == 0)
                         continue;
 
-                    // 🧹 TAG SİL
                     await _graphQl.ExecuteAsync(
                         store.ShopDomain,
                         store.AccessToken,
@@ -113,48 +89,24 @@ namespace Dekofar.HyperConnect.Integrations.Shopify.Orders.Services
                         new { id = orderId, tags },
                         ct);
 
-                    // 📝 RESET FLAG (webhook çakışmasını önler)
                     await _graphQl.ExecuteAsync(
                         store.ShopDomain,
                         store.AccessToken,
                         ShopifyGraphQlMutations.UpdateOrderNote,
-                        new
-                        {
-                            id = orderId,
-                            note = ShopifySystemNotes.ResetFlag
-                        },
+                        new { id = orderId, note = ShopifySystemNotes.ResetFlag },
                         ct);
 
-                    clearedCount++;
+                    cleared++;
                 }
 
-                if (!shouldContinue)
+                if (!hasNextPage || string.IsNullOrWhiteSpace(nextCursor))
                     break;
 
+                cursor = nextCursor;
                 await Task.Delay(BatchDelay, ct);
             }
 
-            return clearedCount;
-        }
-
-        // =====================================================
-        // 🔑 STORE
-        // =====================================================
-        private async Task<ShopifyStore> GetStoreAsync(
-            string shopDomain,
-            CancellationToken ct)
-        {
-            var store = await _db.ShopifyStores
-                .AsNoTracking()
-                .FirstOrDefaultAsync(
-                    x => x.ShopDomain == shopDomain && x.IsActive,
-                    ct);
-
-            if (store == null)
-                throw new InvalidOperationException(
-                    $"ShopifyStore not found or inactive: {shopDomain}");
-
-            return store;
+            return cleared;
         }
     }
 }
