@@ -2,6 +2,7 @@
 using Dekofar.HyperConnect.Application.Common.Interfaces;
 using Dekofar.HyperConnect.Application.Integrations.Shopify.Services;
 using Dekofar.HyperConnect.Application.Interfaces;
+using Dekofar.HyperConnect.Application.Shipments.Interfaces;
 using Dekofar.HyperConnect.Domain.Entities;
 using Dekofar.HyperConnect.Infrastructure.Jobs;
 using Dekofar.HyperConnect.Infrastructure.Persistence;
@@ -16,11 +17,7 @@ using Dekofar.HyperConnect.Integrations.Kargo.Dhl.CBSInfo.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.CBSInfo.Services;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.StandardQuery.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.StandardQuery.Services;
-using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Auth;
-using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Shipment.Interfaces;
-using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Shipment.Services;
-using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Interfaces;
-using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Tracking.Services;
+using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Utils;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
 using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
@@ -115,14 +112,11 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IGetShipmentStatusByShipmentIdService, GetShipmentStatusByShipmentIdService>();
             services.AddScoped<ITrackShipmentByReferenceIdService, TrackShipmentByReferenceIdService>();
             services.AddScoped<ITrackShipmentByShipmentIdService, TrackShipmentByShipmentIdService>();
+            services.AddHttpClient<PttShipmentProvider>();
 
-            // =====================================================
-            // 📦 PTT
-            // =====================================================
-            services.AddScoped<IPttAuthService, PttAuthService>();
-            services.AddHttpClient<IPttShipmentService, PttShipmentService>();
-            services.AddHttpClient<IPttDeleteService, PttDeleteService>();
-            services.AddHttpClient<IPttTrackingService, PttTrackingService>();
+            services.AddScoped<IShipmentProvider, PttShipmentProvider>();
+            services.AddScoped<IBarcodeService, BarcodeService>();
+
 
             // =====================================================
             // 📞 NetGSM

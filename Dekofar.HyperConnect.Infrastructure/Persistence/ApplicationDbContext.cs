@@ -47,6 +47,8 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
         public DbSet<ResponseTemplate> ResponseTemplates => Set<ResponseTemplate>();
         public DbSet<ModerationRule> ModerationRules => Set<ModerationRule>();
         public DbSet<ModerationLog> ModerationLogs => Set<ModerationLog>();
+        public DbSet<Shipment> Shipments => Set<Shipment>();
+
         public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
         public DbSet<JobStat> JobStats => Set<JobStat>();
         public DbSet<ShopifyStore> ShopifyStores => Set<ShopifyStore>();

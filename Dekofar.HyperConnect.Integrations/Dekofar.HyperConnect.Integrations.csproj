@@ -7,6 +7,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="Kargo\Ptt\Tracking\**" />
+	  <EmbeddedResource Remove="Kargo\Ptt\Tracking\**" />
+	  <None Remove="Kargo\Ptt\Tracking\**" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.8" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.8" />
 		<PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
@@ -26,10 +32,6 @@
 
 	<ItemGroup>
 	  <None Include="D:\DekofarHyperConnect\dekofar-hyperconnect-api\Dekofar.HyperConnect.Integrations\Shopify\Models\Shopify\.editorconfig" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Kargo\Ptt\Tracking\" />
 	</ItemGroup>
 
 
