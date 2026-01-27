@@ -106,8 +106,10 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IUserNotificationService, UserNotificationService>();
             services.AddScoped<IBadgeService, BadgeService>();
             services.AddScoped<IWorkSessionService, WorkSessionService>();
+            services.AddScoped<IJobStatsService, JobStatsService>();
             services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
             services.AddScoped<IAllowedAdminIpService, AllowedAdminIpService>();
+            services.AddScoped<IRecurringJob, NoOpRecurringJob>();
 
             // =====================================================
             // 📲 NetGSM

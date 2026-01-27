@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
+using System;
+using System.IO;
 
 namespace Dekofar.HyperConnect.Infrastructure.Persistence
 {
@@ -14,6 +16,7 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
                 ?? "Development";
 
             var basePath = Directory.GetCurrentDirectory();
+            basePath = ResolveBasePath(basePath);
 
             Console.WriteLine($"📁 BasePath: {basePath}");
             Console.WriteLine($"🌍 Environment: {environment}");
@@ -38,6 +41,33 @@ namespace Dekofar.HyperConnect.Infrastructure.Persistence
             optionsBuilder.UseNpgsql(connectionString);
 
             return new ApplicationDbContext(optionsBuilder.Options);
+        }
+
+        private static string ResolveBasePath(string basePath)
+        {
+            var appSettingsPath = Path.Combine(basePath, "appsettings.json");
+            if (File.Exists(appSettingsPath))
+            {
+                return basePath;
+            }
+
+            var apiPath = Path.Combine(basePath, "dekofar-hyperconnect-api");
+            if (File.Exists(Path.Combine(apiPath, "appsettings.json")))
+            {
+                return apiPath;
+            }
+
+            var parent = Directory.GetParent(basePath);
+            if (parent != null)
+            {
+                var parentApiPath = Path.Combine(parent.FullName, "dekofar-hyperconnect-api");
+                if (File.Exists(Path.Combine(parentApiPath, "appsettings.json")))
+                {
+                    return parentApiPath;
+                }
+            }
+
+            return basePath;
         }
     }
 }
