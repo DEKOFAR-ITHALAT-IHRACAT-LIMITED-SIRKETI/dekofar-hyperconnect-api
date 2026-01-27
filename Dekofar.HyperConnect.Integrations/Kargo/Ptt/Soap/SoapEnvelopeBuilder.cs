@@ -1,7 +1,9 @@
 ﻿using Dekofar.HyperConnect.Application.Common.Options;
 using Dekofar.HyperConnect.Application.Shipments;
 using Dekofar.HyperConnect.Application.Shipments.DTOs;
-using System.Text;
+using System.Xml.Linq;
+
+namespace Dekofar.HyperConnect.Integrations.Kargo.Ptt.Soap;
 
 public static class SoapEnvelopeBuilder
 {
@@ -44,23 +46,45 @@ public static class SoapEnvelopeBuilder
 
     public static CreateShipmentResult ParseCreateShipment(string xml)
     {
-        // Basit örnek – prod’da XML node parsing yapılmalı
-        if (xml.Contains("<hata>"))
-            return new() { Success = false, Error = "PTT error" };
-
-        var trackingNo = Extract(xml, "barkod");
-
-        return new()
+        try
         {
-            Success = true,
-            TrackingNo = trackingNo
-        };
-    }
+            var doc = XDocument.Parse(xml);
 
-    private static string Extract(string xml, string node)
-    {
-        var start = xml.IndexOf($"<{node}>") + node.Length + 2;
-        var end = xml.IndexOf($"</{node}>");
-        return xml.Substring(start, end - start);
+            // PTT hata dönmüş mü?
+            if (doc.Descendants("hata").Any())
+            {
+                var error = doc.Descendants("hata").First().Value;
+                return new CreateShipmentResult
+                {
+                    Success = false,
+                    Error = error
+                };
+            }
+
+            var barkod = doc.Descendants("barkod").FirstOrDefault()?.Value;
+
+            if (string.IsNullOrEmpty(barkod))
+            {
+                return new CreateShipmentResult
+                {
+                    Success = false,
+                    Error = "PTT response invalid"
+                };
+            }
+
+            return new CreateShipmentResult
+            {
+                Success = true,
+                TrackingNo = barkod
+            };
+        }
+        catch (Exception ex)
+        {
+            return new CreateShipmentResult
+            {
+                Success = false,
+                Error = ex.Message
+            };
+        }
     }
 }

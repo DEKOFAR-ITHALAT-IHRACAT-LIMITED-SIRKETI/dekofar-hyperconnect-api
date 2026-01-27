@@ -1,24 +1,31 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace Dekofar.HyperConnect.Application.Shipments.DTOs
+namespace Dekofar.HyperConnect.Application.Shipments.DTOs;
+
+public class CreateShipmentRequest
 {
-    public class CreateShipmentRequest
-    {
-        public string OrderId { get; set; } = default!;
-        public string ReferenceId { get; set; } = default!;
+    [Required]
+    public Guid OrderId { get; set; }
 
-        public string ReceiverName { get; set; } = default!;
-        public string ReceiverPhone { get; set; } = default!;
-        public string ReceiverAddress { get; set; } = default!;
-        public string ReceiverCity { get; set; } = default!;
-        public string ReceiverDistrict { get; set; } = default!;
+    [Required]
+    public string ReferenceId { get; set; } = null!;
 
-        public bool IsCashOnDelivery { get; set; }
-        public decimal? CashOnDeliveryAmount { get; set; }
-    }
+    [Required]
+    public string ReceiverName { get; set; } = null!;
 
+    [Required]
+    public string ReceiverPhone { get; set; } = null!;
+
+    [Required]
+    public string ReceiverAddress { get; set; } = null!;
+
+    [Required]
+    public string ReceiverCity { get; set; } = null!;
+
+    [Required]
+    public string ReceiverDistrict { get; set; } = null!;
+
+    public bool IsCashOnDelivery { get; set; }
+
+    public decimal? CashOnDeliveryAmount { get; set; }
 }

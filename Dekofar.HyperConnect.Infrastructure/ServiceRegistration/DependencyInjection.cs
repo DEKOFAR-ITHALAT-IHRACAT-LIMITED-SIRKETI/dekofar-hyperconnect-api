@@ -1,8 +1,10 @@
 ﻿using Dekofar.HyperConnect.Application;
 using Dekofar.HyperConnect.Application.Common.Interfaces;
+using Dekofar.HyperConnect.Application.Common.Options;
 using Dekofar.HyperConnect.Application.Integrations.Shopify.Services;
 using Dekofar.HyperConnect.Application.Interfaces;
 using Dekofar.HyperConnect.Application.Shipments.Interfaces;
+using Dekofar.HyperConnect.Application.Shipments.Services;
 using Dekofar.HyperConnect.Domain.Entities;
 using Dekofar.HyperConnect.Infrastructure.Jobs;
 using Dekofar.HyperConnect.Infrastructure.Persistence;
@@ -17,7 +19,7 @@ using Dekofar.HyperConnect.Integrations.Kargo.Dhl.CBSInfo.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.CBSInfo.Services;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.StandardQuery.Interfaces;
 using Dekofar.HyperConnect.Integrations.Kargo.Dhl.StandardQuery.Services;
-using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Utils;
+using Dekofar.HyperConnect.Integrations.Kargo.Ptt.Providers;
 using Dekofar.HyperConnect.Integrations.NetGsm.Interfaces.sms;
 using Dekofar.HyperConnect.Integrations.NetGsm.Services.sms;
 using Dekofar.HyperConnect.Integrations.Shopify.Clients.GraphQl;
@@ -40,6 +42,12 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             this IServiceCollection services,
             IConfiguration configuration)
         {
+            // =====================================================
+            // ⚙️ OPTIONS
+            // =====================================================
+            services.Configure<PttOptions>(
+                configuration.GetSection("Ptt"));
+
             // =====================================================
             // 📦 DbContext
             // =====================================================
@@ -65,7 +73,7 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             .AddDefaultTokenProviders();
 
             // =====================================================
-            // 🛍️ SHOPIFY – REST
+            // 🛍️ SHOPIFY
             // =====================================================
             services.AddScoped<ShopifyStoreService>();
 
@@ -74,25 +82,19 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
                 client.Timeout = TimeSpan.FromSeconds(30);
             });
 
-            // =====================================================
-            // 🛍️ SHOPIFY – GRAPHQL CORE
-            // =====================================================
             services.AddHttpClient<ShopifyGraphQlClient>();
 
             services.AddScoped<OrderDecisionEngine>();
-
-            services.AddScoped<ShopifyOrderAutoTagService>();     // webhook + reprocess
-            services.AddScoped<ShopifyOrderResetService>();       // 🔥 SADECE RESET
-            services.AddScoped<ShopifyOrderReprocessService>();   // 🔁 reset sonrası kurallar
+            services.AddScoped<ShopifyOrderAutoTagService>();
+            services.AddScoped<ShopifyOrderResetService>();
+            services.AddScoped<ShopifyOrderReprocessService>();
             services.AddScoped<ShopifyOrderReportService>();
-
 
             // =====================================================
             // 📦 JOBS
             // =====================================================
             services.AddScoped<IRecurringJob, DhlShopifySyncJob>();
             services.AddScoped<DhlShopifySyncJob>();
-
             services.AddScoped<IJobStatsService, JobStatsService>();
 
             // =====================================================
@@ -112,11 +114,17 @@ namespace Dekofar.HyperConnect.Infrastructure.ServiceRegistration
             services.AddScoped<IGetShipmentStatusByShipmentIdService, GetShipmentStatusByShipmentIdService>();
             services.AddScoped<ITrackShipmentByReferenceIdService, TrackShipmentByReferenceIdService>();
             services.AddScoped<ITrackShipmentByShipmentIdService, TrackShipmentByShipmentIdService>();
-            services.AddHttpClient<PttShipmentProvider>();
+
+            // =====================================================
+            // 🚚 PTT
+            // =====================================================
+            services.AddHttpClient<PttShipmentProvider>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
 
             services.AddScoped<IShipmentProvider, PttShipmentProvider>();
             services.AddScoped<IBarcodeService, BarcodeService>();
-
 
             // =====================================================
             // 📞 NetGSM

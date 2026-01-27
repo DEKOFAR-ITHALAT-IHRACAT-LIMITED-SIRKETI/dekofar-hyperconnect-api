@@ -15,6 +15,7 @@ namespace Dekofar.HyperConnect.Domain.Entities
         ///     URL or file path of the user's profile image.
         /// </summary>
         public string? AvatarUrl { get; set; }
+        public ICollection<Order> Orders { get; set; } = new List<Order>();
 
         /// <summary>
         ///     Stored hashed representation of the user's 4-digit PIN.
@@ -56,9 +57,7 @@ namespace Dekofar.HyperConnect.Domain.Entities
             set => LastSupportActivity = value;
         }
 
-        // Navigation collections cause self-referencing loops; ignore for Swagger
-        [JsonIgnore]
-        public ICollection<Order> Orders { get; set; } = new List<Order>();
+
 
         [JsonIgnore]
         public ICollection<Commission> Commissions { get; set; } = new List<Commission>();

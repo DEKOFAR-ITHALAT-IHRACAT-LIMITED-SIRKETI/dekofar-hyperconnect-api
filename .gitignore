@@ -1,68 +1,14 @@
-##########################################
-## 🔧 Build & Compiled Files
-##########################################
-bin/
-obj/
-[Bb]uild/
-[Ll]ogs/
-*.log
-artifacts/
+hwww.freeones
+.com/p
 
-##########################################
-## 💻 Visual Studio / VS Code
-##########################################
-.vscode/
+
+rd /s /q bin
+rd /s /q obj
 .vs/
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
 
-##########################################
-## ⚙️ .NET Core / EF Core
-##########################################
-project.lock.json
-project.fragment.lock.json
-*.dbmdl
-*.sqlite
-*.sqlite3
-__EFMigrationsHistory/
 
-##########################################
-## 🌐 Rider IDE
-##########################################
-.idea/
 
-##########################################
-## 🖥️ Operating System
-##########################################
-.DS_Store
-Thumbs.db
+https://dekofar-hyperconnect-api-production.up.railway.app/api/integrations/shopify/reports/orders/open/tag-summary?shop=8p1hkn-r0.myshopify.com
 
-##########################################
-## 📦 Node.js / npm / yarn (Frontend)
-##########################################
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-##########################################
-## 🔐 Secrets and Certificates
-##########################################
-.env
-*.p12
-*.pem
-*.crt
-*.key
-
-##########################################
-## 🚀 Publish Files
-##########################################
-.publish/
-.publishxml
-
-##########################################
-## 📦 Others
-##########################################
-*.swp
+Integrations/Shopify/Constants/ShopifySystemNotes.cs

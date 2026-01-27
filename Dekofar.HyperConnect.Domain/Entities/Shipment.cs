@@ -20,7 +20,7 @@ namespace Dekofar.HyperConnect.Domain.Entities
 
     public class Shipment : BaseEntity
     {
-        public string OrderId { get; set; } = default!;
+        public Guid OrderId { get; set; }   // ✅ Guid
         public string Provider { get; set; } = "PTT";
         public string ReferenceId { get; set; } = default!;
         public string? TrackingNo { get; set; }

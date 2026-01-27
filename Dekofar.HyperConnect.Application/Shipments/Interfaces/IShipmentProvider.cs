@@ -10,8 +10,7 @@ namespace Dekofar.HyperConnect.Application.Shipments.Interfaces
     public interface IShipmentProvider
     {
         Task<CreateShipmentResult> CreateAsync(CreateShipmentRequest request);
-        Task<TrackingResult> TrackAsync(string trackingNo);
         Task CancelAsync(string referenceId);
+        Task<TrackingResult> TrackAsync(string trackingNo);
     }
-
 }

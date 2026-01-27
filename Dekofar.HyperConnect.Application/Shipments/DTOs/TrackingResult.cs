@@ -10,7 +10,6 @@ namespace Dekofar.HyperConnect.Application.Shipments.DTOs
     {
         public bool Success { get; set; }
         public string? Status { get; set; }
-        public List<TrackingEventDto>? Events { get; set; }
         public string? Error { get; set; }
     }
 }

@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "Dekofar.HyperConnect.Shared/1.0.0": {
+        "runtime": {
+          "Dekofar.HyperConnect.Shared.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Dekofar.HyperConnect.Shared/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
