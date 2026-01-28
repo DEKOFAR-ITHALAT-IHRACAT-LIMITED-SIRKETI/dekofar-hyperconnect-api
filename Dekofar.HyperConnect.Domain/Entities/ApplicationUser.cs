@@ -15,7 +15,11 @@ namespace Dekofar.HyperConnect.Domain.Entities
         ///     URL or file path of the user's profile image.
         /// </summary>
         public string? AvatarUrl { get; set; }
-        public ICollection<Order> Orders { get; set; } = new List<Order>();
+        //public ICollection<Order> Orders { get; set; } = new List<Order>();
+
+
+        [NotMapped]
+        public ICollection<Order> Orders { get; set; }
 
         /// <summary>
         ///     Stored hashed representation of the user's 4-digit PIN.

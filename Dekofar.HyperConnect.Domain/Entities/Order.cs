@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Dekofar.HyperConnect.Domain.Entities
 {
@@ -9,9 +10,13 @@ namespace Dekofar.HyperConnect.Domain.Entities
         public decimal TotalAmount { get; set; }
 
         public Guid? SellerId { get; set; }
+        [NotMapped]
+
         public ApplicationUser? Seller { get; set; }
 
         public Guid? CustomerId { get; set; }
+        [NotMapped]
+
         public ApplicationUser? Customer { get; set; }
 
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
